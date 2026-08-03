@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, Check, MessageCircle, Images, BarChart3, Users, Sparkles, Crown } from 'lucide-react'
-import { useStore } from '../store'
+import { useStore, FREE_PASS_TOTAL } from '../store'
 import { useNav } from '../navigation'
 import { PremiumCheckout } from '../premium-checkout'
 import { PRO_PLAN } from '@/lib/products'
@@ -16,13 +16,15 @@ const PERKS = [
 ]
 
 function priceLabel() {
-  return `$${(PRO_PLAN.priceInCents / 100).toFixed(2)}/mo`
+  const dollars = PRO_PLAN.priceInCents / 100
+  return Number.isInteger(dollars) ? `$${dollars}/mo` : `$${dollars.toFixed(2)}/mo`
 }
 
 export function Paywall({ feature }: { feature?: string }) {
-  const { setPremium, pushToast } = useStore()
+  const { setPremium, pushToast, passesRemaining } = useStore()
   const { back } = useNav()
   const [checkingOut, setCheckingOut] = useState(false)
+  const outOfPasses = passesRemaining <= 0
 
   const handleSuccess = () => {
     setPremium(true)
@@ -52,13 +54,33 @@ export function Paywall({ feature }: { feature?: string }) {
             <Crown size={32} />
           </span>
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight">
-            {feature ? `Unlock ${feature}` : 'Go Pro'}
+            {outOfPasses
+              ? 'Your free passes are used up'
+              : feature
+                ? `Unlock ${feature}`
+                : 'Go Pro'}
           </h1>
           <p className="mt-1 max-w-[20rem] text-pretty text-sm text-primary-foreground/80">
-            {feature
-              ? `${feature} is a Waits Pro feature. Upgrade to unlock it plus everything below.`
-              : 'Level up your training network with the full Waits experience.'}
+            {outOfPasses
+              ? `You've used all ${FREE_PASS_TOTAL} free Pro passes. Subscribe for unlimited access to everything below.`
+              : `You get ${FREE_PASS_TOTAL} free Pro passes to try everything. Subscribe anytime for unlimited access — no limits.`}
           </p>
+
+          {/* Free-pass meter */}
+          <div className="mt-4 flex items-center gap-1.5" aria-hidden="true">
+            {Array.from({ length: FREE_PASS_TOTAL }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-2 w-5 rounded-full ${
+                  i < passesRemaining ? 'bg-white' : 'bg-white/25'
+                }`}
+              />
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs font-semibold text-primary-foreground/80">
+            {passesRemaining} of {FREE_PASS_TOTAL} free passes left
+          </p>
+
           <p className="mt-4 text-3xl font-extrabold">
             {priceLabel()}
             <span className="text-base font-semibold text-primary-foreground/70"> billed monthly</span>

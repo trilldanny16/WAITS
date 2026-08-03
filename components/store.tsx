@@ -29,7 +29,10 @@ export interface Toast {
 export const FREE_MAX_ACTIVE_WORKOUTS = 3
 export const FREE_MAX_PARTICIPANTS = 3
 export const PRO_MAX_PARTICIPANTS = 6
+/** Number of free Pro "passes" before a subscription is required */
+export const FREE_PASS_TOTAL = 7
 const PREMIUM_STORAGE_KEY = 'waits:premium'
+const PASSES_STORAGE_KEY = 'waits:passes'
 
 interface NewWorkoutInput {
   gym: string
@@ -69,6 +72,14 @@ interface StoreValue {
   // Premium / subscription
   isPremium: boolean
   setPremium: (v: boolean) => void
+  /** free Pro passes remaining (0 when exhausted) */
+  passesRemaining: number
+  /** true if the user still has any Pro access (paid OR free passes left) */
+  hasProAccess: boolean
+  /** whether a specific gated item is already unlocked (or user is premium) */
+  hasAccess: (key: string) => boolean
+  /** consume a free pass to unlock a gated item; false if none remain */
+  unlock: (key: string) => boolean
   activeHostedCount: number
   galleryFor: (userId: string) => string[]
   addGalleryPhoto: (src: string) => void
@@ -87,17 +98,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [followers] = useState<string[]>(SEED_FOLLOWERS)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [isPremium, setIsPremium] = useState(false)
+  // Keys of gated items unlocked with free passes (e.g. 'chat:w1', 'gallery:u_mike').
+  const [unlockedKeys, setUnlockedKeys] = useState<string[]>([])
   // Extra gallery photos the current user adds this session, keyed by user id.
   const [ownGallery, setOwnGallery] = useState<string[]>([])
 
-  // Hydrate premium status from localStorage (prototype persistence).
+  // Hydrate premium status + used passes from localStorage (prototype persistence).
   useEffect(() => {
     try {
       if (localStorage.getItem(PREMIUM_STORAGE_KEY) === '1') setIsPremium(true)
+      const raw = localStorage.getItem(PASSES_STORAGE_KEY)
+      if (raw) setUnlockedKeys(JSON.parse(raw) as string[])
     } catch {
       /* ignore */
     }
   }, [])
+
+  const passesRemaining = isPremium
+    ? FREE_PASS_TOTAL
+    : Math.max(0, FREE_PASS_TOTAL - unlockedKeys.length)
+  const hasProAccess = isPremium || passesRemaining > 0
+
+  const hasAccess = useCallback(
+    (key: string) => isPremium || unlockedKeys.includes(key),
+    [isPremium, unlockedKeys],
+  )
 
   const setPremium = useCallback((v: boolean) => {
     setIsPremium(v)
@@ -125,6 +150,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
+
+  const unlock = useCallback(
+    (key: string): boolean => {
+      if (isPremium || unlockedKeys.includes(key)) return true
+      if (FREE_PASS_TOTAL - unlockedKeys.length <= 0) return false
+      const next = [...unlockedKeys, key]
+      setUnlockedKeys(next)
+      try {
+        localStorage.setItem(PASSES_STORAGE_KEY, JSON.stringify(next))
+      } catch {
+        /* ignore */
+      }
+      const left = FREE_PASS_TOTAL - next.length
+      pushToast({
+        title: 'Free pass used 🎟️',
+        body:
+          left > 0
+            ? `${left} of ${FREE_PASS_TOTAL} free Pro passes left.`
+            : 'That was your last free pass — subscribe to keep the perks.',
+      })
+      return true
+    },
+    [isPremium, unlockedKeys, pushToast],
+  )
 
   const isFull = useCallback((w: Workout) => w.attendees.length >= w.maxParticipants, [])
 
@@ -176,8 +225,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const createWorkout = useCallback(
     (input: NewWorkoutInput) => {
-      // Clamp participant count to the free-tier max unless premium.
-      const cappedMax = isPremium
+      // Clamp participant count to the free-tier max unless the user has Pro access.
+      const cappedMax = hasProAccess
         ? Math.min(input.maxParticipants, PRO_MAX_PARTICIPANTS)
         : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
       const workout: Workout = {
@@ -194,7 +243,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       })
       return workout
     },
-    [pushToast, isPremium],
+    [pushToast, hasProAccess],
   )
 
   const galleryFor = useCallback(
@@ -281,6 +330,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       pushToast,
       isPremium,
       setPremium,
+      passesRemaining,
+      hasProAccess,
+      hasAccess,
+      unlock,
       activeHostedCount,
       galleryFor,
       addGalleryPhoto,
@@ -307,6 +360,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       pushToast,
       isPremium,
       setPremium,
+      passesRemaining,
+      hasProAccess,
+      hasAccess,
+      unlock,
       activeHostedCount,
       galleryFor,
       addGalleryPhoto,

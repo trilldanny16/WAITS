@@ -13,8 +13,8 @@ export const PLANS: Plan[] = [
   {
     id: 'waits-pro-monthly',
     name: 'Waits Pro',
-    description: 'Crew chats, gallery access, stats, bigger groups & more.',
-    priceInCents: 999, // $9.99 / month
+    description: 'Unlimited crew chats, gallery access, stats, bigger groups & more.',
+    priceInCents: 1000, // $10.00 / month
     interval: 'month',
   },
 ]
