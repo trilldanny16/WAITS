@@ -18,6 +18,8 @@ export async function startPremiumCheckout(planId: string) {
     ui_mode: 'embedded',
     redirect_on_completion: 'never',
     mode: 'subscription',
+    payment_method_types: ['card'],
+    billing_address_collection: 'required',
     line_items: [
       {
         price_data: {
