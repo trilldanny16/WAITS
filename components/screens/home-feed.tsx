@@ -11,10 +11,13 @@ import { relativeBucket, timeToMinutes } from '@/lib/date-utils'
 import type { Workout } from '@/lib/types'
 
 function greeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
+  const choices = [
+    'Ready to move',
+    'Let’s get after it',
+    'Time to train',
+    'Your next session awaits',
+  ]
+  return choices[Math.floor(Math.random() * choices.length)]
 }
 
 function Section({
@@ -47,19 +50,18 @@ export function HomeFeed() {
   const { openUser } = useNav()
   const me = getUser(currentUserId)
 
-  const { today, tonight, week } = useMemo(() => {
+  const { today, week } = useMemo(() => {
     const sorted = [...workouts].sort(
       (a, b) =>
         a.date.localeCompare(b.date) || timeToMinutes(a.time) - timeToMinutes(b.time),
     )
     return {
-      today: sorted.filter((w) => relativeBucket(w.date, w.time) === 'today'),
-      tonight: sorted.filter((w) => relativeBucket(w.date, w.time) === 'tonight'),
+      today: sorted.filter((w) => ['today', 'tonight'].includes(relativeBucket(w.date, w.time))),
       week: sorted.filter((w) => relativeBucket(w.date, w.time) === 'week'),
     }
   }, [workouts])
 
-  const empty = today.length + tonight.length + week.length === 0
+  const empty = today.length + week.length === 0
 
   // friends training this week, for the top rail
   const railUsers = useMemo(() => {
@@ -114,7 +116,6 @@ export function HomeFeed() {
         ) : (
           <>
             <Section title="Today" workouts={today} />
-            <Section title="Tonight" accent workouts={tonight} />
             <Section title="This Week" workouts={week} />
           </>
         )}

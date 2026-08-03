@@ -1,8 +1,8 @@
-import { Dumbbell } from 'lucide-react'
+import { Clock, Dumbbell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * Brand wordmark: "Waits" flanked by two dumbbells so it reads like "weights".
+ * Brand wordmark: time plus training energy, tuned for the Waits brand.
  */
 export function Wordmark({
   className,
@@ -15,7 +15,7 @@ export function Wordmark({
 }) {
   return (
     <span className={cn('inline-flex items-center gap-2 font-black uppercase tracking-tight', className)}>
-      <Dumbbell size={iconSize} strokeWidth={strokeWidth} className="shrink-0" aria-hidden="true" />
+      <Clock size={iconSize} strokeWidth={strokeWidth} className="shrink-0" aria-hidden="true" />
       <span className="tracking-[0.06em]">WAITS</span>
       <Dumbbell size={iconSize} strokeWidth={strokeWidth} className="shrink-0" aria-hidden="true" />
       <span className="sr-only">Waits — never lift alone</span>

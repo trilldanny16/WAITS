@@ -34,6 +34,7 @@ const PREMIUM_STORAGE_KEY = 'waits:premium'
 interface NewWorkoutInput {
   gym: string
   city: string
+  address: string
   lat?: number
   lng?: number
   date: string
@@ -54,6 +55,7 @@ interface StoreValue {
   followers: string[]
   toasts: Toast[]
   getUser: (id: string) => User
+  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
   joinWorkout: (id: string) => void
@@ -80,7 +82,7 @@ let idCounter = 100
 const nextId = (prefix: string) => `${prefix}_${idCounter++}`
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [users] = useState<User[]>(SEED_USERS)
+  const [users, setUsers] = useState<User[]>(SEED_USERS)
   const [workouts, setWorkouts] = useState<Workout[]>(() => seedWorkouts())
   const [messages, setMessages] = useState<ChatMessage[]>(() => seedMessages())
   const [following, setFollowing] = useState<string[]>(SEED_FOLLOWING)
@@ -121,6 +123,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setToasts((prev) => prev.filter((x) => x.id !== toast.id))
     }, 3600)
   }, [])
+
+  const updateUser = useCallback(
+    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => {
+      setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, ...updates } : user)))
+    },
+    [],
+  )
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -267,6 +276,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       followers,
       toasts,
       getUser,
+      updateUser,
       isFull,
       hasJoined,
       joinWorkout,
@@ -293,6 +303,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       followers,
       toasts,
       getUser,
+      updateUser,
       isFull,
       hasJoined,
       joinWorkout,

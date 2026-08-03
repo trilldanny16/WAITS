@@ -18,9 +18,16 @@ import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
-import { GymMapPreview } from '../gym-map-picker'
 import { formatTime, formatDateLabel } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
+
+function getDirectionsUrl(lat: number, lng: number) {
+  const destination = `${lat},${lng}`
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent)
+  return isIOS
+    ? `https://maps.apple.com/?daddr=${destination}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${destination}`
+}
 
 export function WorkoutDetail({ id }: { id: string }) {
   const { workouts, getUser, isFull, hasJoined, joinWorkout, leaveWorkout, cancelWorkout, isPremium } =
@@ -105,7 +112,7 @@ export function WorkoutDetail({ id }: { id: string }) {
 
         {/* Meta rows */}
         <div className="mt-3 space-y-2.5 rounded-2xl bg-card p-4 ring-1 ring-border">
-          <Row icon={MapPin} label={workout.gym} sub={workout.city} />
+          <Row icon={MapPin} label={workout.gym} sub={workout.address ?? workout.city} />
           <Row icon={Calendar} label={formatDateLabel(workout.date)} />
           <Row icon={Clock} label={formatTime(workout.time)} />
           <Row
@@ -119,22 +126,6 @@ export function WorkoutDetail({ id }: { id: string }) {
             />
           ) : null}
         </div>
-
-        {/* Location map */}
-        {workout.lat != null && workout.lng != null ? (
-          <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-border">
-            <GymMapPreview lat={workout.lat} lng={workout.lng} />
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${workout.lat},${workout.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-card py-3 text-sm font-bold text-primary"
-            >
-              <Navigation size={16} />
-              Get directions
-            </a>
-          </div>
-        ) : null}
 
         {workout.notes && canChat ? (
           <div className="mt-3 rounded-2xl bg-card p-4 ring-1 ring-border">

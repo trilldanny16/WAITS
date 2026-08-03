@@ -14,29 +14,34 @@ export async function startPremiumCheckout(planId: string) {
     throw new Error(`Plan with id "${planId}" not found`)
   }
 
-  const session = await stripe.checkout.sessions.create({
-    ui_mode: 'embedded',
-    redirect_on_completion: 'never',
-    mode: 'subscription',
-    payment_method_types: ['card'],
-    billing_address_collection: 'required',
-    line_items: [
-      {
-        price_data: {
-          currency: 'usd',
-          recurring: { interval: plan.interval },
-          product_data: {
-            name: plan.name,
-            description: plan.description,
+  try {
+    const session = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded',
+      redirect_on_completion: 'never',
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      billing_address_collection: 'required',
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            recurring: { interval: plan.interval },
+            product_data: {
+              name: plan.name,
+              description: plan.description,
+            },
+            unit_amount: plan.priceInCents,
           },
-          unit_amount: plan.priceInCents,
+          quantity: 1,
         },
-        quantity: 1,
-      },
-    ],
-  })
+      ],
+    })
 
-  return { clientSecret: session.client_secret, sessionId: session.id }
+    return { clientSecret: session.client_secret, sessionId: session.id }
+  } catch (error) {
+    console.error('Stripe checkout session create failed', error)
+    throw new Error('Stripe checkout session could not be created. Check your Stripe API keys and plan configuration.')
+  }
 }
 
 /**

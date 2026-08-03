@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Apple, Mail, Check, Dumbbell, ArrowRight, Phone, Loader2 } from 'lucide-react'
+import { Apple, Mail, Check, Clock, Dumbbell, ArrowRight, ArrowLeft, Phone, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Wordmark } from './wordmark'
+
 import { savePhoneLead } from '@/app/actions/phone-leads'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -58,17 +58,35 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="relative flex h-full flex-col bg-primary text-primary-foreground">
+      {step === 1 ? (
+        <div className="flex shrink-0 items-center px-7 pt-[calc(env(safe-area-inset-top)+16px)]">
+          <button
+            type="button"
+            onClick={() => setStep(0)}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-white transition-colors hover:bg-white/15"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        </div>
+      ) : null}
+
       {/* Hero */}
       <div className="flex flex-1 flex-col justify-center px-7">
-        <span className="flex size-16 items-center justify-center rounded-3xl bg-lime text-lime-foreground shadow-lg">
-          <Dumbbell size={34} strokeWidth={2.4} />
-        </span>
-
         {step === 0 ? (
           <div className="mt-7 animate-in fade-in slide-in-from-bottom-4">
-            <Wordmark iconSize={34} strokeWidth={2.6} className="text-balance text-4xl leading-[1.05] gap-3" />
-            <p className="mt-3 max-w-[16rem] text-lg font-medium text-primary-foreground/80">
-              Never lift alone. See when your friends train and join with one tap.
+            <div className="flex flex-col items-center gap-3 text-center">
+              <span className="flex size-16 items-center justify-center rounded-3xl bg-lime text-lime-foreground shadow-lg">
+                <Dumbbell size={34} strokeWidth={2.6} />
+              </span>
+              <span className="text-balance text-4xl font-black uppercase tracking-[0.06em]">
+                WAITS
+              </span>
+            </div>
+            <p className="mt-3 max-w-[16rem] text-center text-lg font-medium text-primary-foreground/80 mx-auto">
+              <span className="block">Never lift alone.</span>
+              <span className="block">Train with friends.</span>
+              <span className="block">Join in with one tap.</span>
             </p>
 
             {/* Phone capture */}
@@ -136,14 +154,20 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             </div>
           </div>
         ) : (
-          <div className="mt-7 animate-in fade-in slide-in-from-right-4">
-            <h1 className="text-balance text-3xl font-extrabold leading-tight tracking-tight">
-              Set your weekly rhythm
-            </h1>
+          <div className="mt-7 animate-in fade-in slide-in-from-right-4 flex flex-col items-center text-center">
+            <div className="flex flex-col items-center gap-4 text-center mb-4">
+              <span className="flex size-16 items-center justify-center rounded-3xl bg-lime text-lime-foreground shadow-lg">
+                <Clock size={28} strokeWidth={2.4} />
+              </span>
+              <h1 className="text-balance text-3xl font-extrabold leading-tight tracking-tight">
+                <span className="block">Set Your</span>
+                <span className="block">Weekly Rythm</span>
+              </h1>
+            </div>
             <p className="mt-2 max-w-[17rem] text-base font-medium text-primary-foreground/80">
               Pick the days you usually train so friends know when to come thru.
             </p>
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
               {WEEKDAYS.map((d) => {
                 const on = days.includes(d)
                 return (

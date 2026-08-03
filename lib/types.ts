@@ -48,6 +48,13 @@ export type WorkoutType =
 
 export type Visibility = 'friends' | 'public'
 
+export interface GymLocation {
+  name: string
+  address: string
+  city: string
+  zip?: string
+}
+
 export interface User {
   id: string
   name: string
@@ -83,6 +90,7 @@ export interface Workout {
   hostId: string
   gym: string
   city: string
+  address: string
   /** optional geo coordinates for the gym location */
   lat?: number
   lng?: number
@@ -132,11 +140,20 @@ export const WORKOUT_CATEGORIES: WorkoutCategory[] = [
 export const WORKOUT_TYPES: WorkoutType[] = WORKOUT_CATEGORIES.flatMap((c) => c.types)
 
 export const GYMS = [
-  'Crunch Fitness',
-  'EOS Fitness',
-  'LA Fitness',
-  'Planet Fitness',
-  'Gold’s Gym',
-  'Equinox',
-  'The Yard',
+  { name: 'Crunch Fitness', address: '123 Gym Ave, Miami, FL 33101', city: 'Miami', zip: '33101' },
+  { name: 'Crunch Fitness', address: '234 Power St, Jacksonville, FL 32246', city: 'Jacksonville', zip: '32246' },
+  { name: 'EOS Fitness', address: '456 Strength Blvd, Wellington, FL 33414', city: 'Wellington', zip: '33414' },
+  { name: 'EOS Fitness', address: '567 Fit Ln, Boca Raton, FL 33431', city: 'Boca Raton', zip: '33431' },
+  { name: 'EOS Fitness', address: '678 Power Ct, West Palm Beach, FL 33401', city: 'West Palm Beach', zip: '33401' },
+  { name: 'YouFit', address: '345 Flex Ave, Miami, FL 33101', city: 'Miami', zip: '33101' },
+  { name: 'YouFit', address: '456 Sweat St, West Palm Beach, FL 33401', city: 'West Palm Beach', zip: '33401' },
+  { name: 'YouFit', address: '789 Grind Blvd, Boca Raton, FL 33431', city: 'Boca Raton', zip: '33431' },
+  { name: 'YouFit', address: '890 Lift Rd, Jacksonville, FL 32246', city: 'Jacksonville', zip: '32246' },
+  { name: 'LA Fitness', address: '789 Muscle St, Miami, FL 33101', city: 'Miami', zip: '33101' },
+  { name: 'LA Fitness', address: '321 Strength Ave, Boynton Beach, FL 33435', city: 'Boynton Beach', zip: '33435' },
+  { name: 'LA Fitness', address: '654 Workout Way, Jacksonville, FL 32250', city: 'Jacksonville', zip: '32250' },
+  { name: 'Planet Fitness', address: '101 Fitness Way, Miami, FL 33101', city: 'Miami', zip: '33101' },
+  { name: 'Gold’s Gym', address: '202 Power Ln, Miami, FL 33101', city: 'Miami', zip: '33101' },
+  { name: 'Equinox', address: '303 Train Rd, Miami, FL 33101', city: 'Miami', zip: '33101' },
+  { name: 'Retro Fitness', address: '404 Classic Ct, Miami, FL 33101', city: 'Miami', zip: '33101' },
 ]

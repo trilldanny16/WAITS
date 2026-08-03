@@ -6,7 +6,6 @@ import {
   EmbeddedCheckoutProvider,
 } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
-import { startPremiumCheckout, confirmPremiumCheckout } from '@/app/actions/stripe'
 import { PRO_PLAN } from '@/lib/products'
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -19,13 +18,36 @@ export function PremiumCheckout({ onSuccess }: { onSuccess: () => void }) {
   const publishableKeyMissing = !stripePublishableKey
 
   const fetchClientSecret = useCallback(async () => {
-    const { clientSecret, sessionId } = await startPremiumCheckout(PRO_PLAN.id)
-    sessionIdRef.current = sessionId
-    return clientSecret as string
+    const response = await fetch('/api/stripe/create-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId: PRO_PLAN.id }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data.clientSecret || !data.sessionId) {
+      console.error('Stripe create session failed', data)
+      throw new Error(data.error || 'Could not create Stripe checkout session')
+    }
+
+    sessionIdRef.current = data.sessionId
+    return data.clientSecret as string
   }, [])
 
   const handleComplete = useCallback(async () => {
-    const paid = await confirmPremiumCheckout(sessionIdRef.current ?? '')
+    const sessionId = sessionIdRef.current
+    if (!sessionId) return
+
+    const response = await fetch('/api/stripe/confirm-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    })
+
+    const data = await response.json()
+    const paid = response.ok && data.paid === true
+
     if (paid) onSuccess()
   }, [onSuccess])
 

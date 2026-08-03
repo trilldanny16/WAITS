@@ -61,7 +61,9 @@ export function Paywall({ feature }: { feature?: string }) {
           </p>
           <p className="mt-4 text-3xl font-extrabold">
             {priceLabel()}
-            <span className="text-base font-semibold text-primary-foreground/70"> billed monthly</span>
+          </p>
+          <p className="mt-2 text-sm text-primary-foreground/80">
+            Free for the first 7 days, then $9.99 billed monthly.
           </p>
         </div>
 
