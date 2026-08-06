@@ -70,12 +70,22 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
       if (!mounted) return
 
-      const signedIn = Boolean(data.session)
-      setHasSession(signedIn)
+const signedIn = Boolean(data.session)
+setHasSession(signedIn)
 
-      if (signedIn) {
-        setStep(1)
-      }
+if (data.session?.user) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('onboarding_completed')
+    .eq('id', data.session.user.id)
+    .single()
+
+  if (profile?.onboarding_completed) {
+    onDone()
+  } else {
+    setStep(1)
+  }
+}
     }
 
     void checkSession()
@@ -205,15 +215,51 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     }
   }
 
-  const handleEnterWaits = () => {
-    if (!hasSession) {
-      setAuthError('You must sign in before entering WAITS.')
-      setStep(0)
-      return
-    }
-
-    onDone()
+ const handleEnterWaits = async () => {
+  if (!hasSession) {
+    setAuthError('You must sign in before entering WAITS.')
+    setStep(0)
+    return
   }
+
+  setAuthError(null)
+  setAuthLoading(true)
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    setAuthError('Your login session could not be verified.')
+    setAuthLoading(false)
+    return
+  }
+
+const { error } = await supabase
+  .from('profiles')
+  .upsert(
+    {
+      id: user.id,
+      email: user.email,
+      weekly_rhythm: days,
+      onboarding_completed: true,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: 'id',
+    },
+  )
+
+  if (error) {
+    setAuthError(error.message)
+    setAuthLoading(false)
+    return
+  }
+
+  setAuthLoading(false)
+  onDone()
+}
 
   return (
     <div className="relative flex h-full flex-col bg-primary text-primary-foreground">
