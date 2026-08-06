@@ -1,12 +1,25 @@
 'use client'
 
-import { useState } from 'react'
-import { Apple, Mail, Check, Clock, Dumbbell, ArrowRight, ArrowLeft, Phone, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
+import {
+  Apple,
+  Mail,
+  Check,
+  Clock,
+  Dumbbell,
+  ArrowRight,
+  ArrowLeft,
+  Phone,
+  Loader2,
+} from 'lucide-react'
 
 import { savePhoneLead } from '@/app/actions/phone-leads'
+import { supabase } from '@/lib/supabase-client'
+import { cn } from '@/lib/utils'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+type AuthMode = 'signup' | 'signin'
 
 function GoogleGlyph() {
   return (
@@ -36,24 +49,170 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const [days, setDays] = useState<string[]>(['Mon', 'Wed', 'Fri'])
 
   const [phone, setPhone] = useState('')
-  const [phoneStatus, setPhoneStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [phoneStatus, setPhoneStatus] =
+    useState<'idle' | 'saving' | 'saved'>('idle')
   const [phoneError, setPhoneError] = useState<string | null>(null)
 
-  const toggleDay = (d: string) =>
-    setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+  const [showEmailForm, setShowEmailForm] = useState(false)
+  const [authMode, setAuthMode] = useState<AuthMode>('signup')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [authMessage, setAuthMessage] = useState<string | null>(null)
+  const [authLoading, setAuthLoading] = useState(false)
+  const [hasSession, setHasSession] = useState(false)
 
-  const submitPhone = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    let mounted = true
+
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession()
+
+      if (!mounted) return
+
+      const signedIn = Boolean(data.session)
+      setHasSession(signedIn)
+
+      if (signedIn) {
+        setStep(1)
+      }
+    }
+
+    void checkSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
+
+      const signedIn = Boolean(session)
+      setHasSession(signedIn)
+
+      if (signedIn) {
+        setStep(1)
+      }
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const toggleDay = (day: string) => {
+    setDays((previousDays) =>
+      previousDays.includes(day)
+        ? previousDays.filter((existingDay) => existingDay !== day)
+        : [...previousDays, day],
+    )
+  }
+
+  const submitPhone = async (event: React.FormEvent) => {
+    event.preventDefault()
+
     if (phoneStatus === 'saving') return
+
     setPhoneError(null)
     setPhoneStatus('saving')
+
     const result = await savePhoneLead(phone)
+
     if (result.ok) {
       setPhoneStatus('saved')
     } else {
       setPhoneStatus('idle')
       setPhoneError(result.error)
     }
+  }
+
+  const handleEmailAuth = async () => {
+    setAuthError(null)
+    setAuthMessage(null)
+
+    if (!email.trim()) {
+      setAuthError('Enter your email address.')
+      return
+    }
+
+    if (password.length < 6) {
+      setAuthError('Your password must be at least 6 characters.')
+      return
+    }
+
+    setAuthLoading(true)
+
+    try {
+      if (authMode === 'signup') {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
+        })
+
+        if (error) {
+          setAuthError(error.message)
+          return
+        }
+
+        if (data.session) {
+          setHasSession(true)
+          setStep(1)
+        } else {
+          setAuthMessage(
+            'Check your email and click the confirmation link to finish signing up.',
+          )
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        })
+
+        if (error) {
+          setAuthError(error.message)
+          return
+        }
+
+        if (data.session) {
+          setHasSession(true)
+          setStep(1)
+        }
+      }
+    } catch {
+      setAuthError('Something went wrong. Please try again.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setAuthError(null)
+    setAuthMessage(null)
+    setAuthLoading(true)
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    })
+
+    if (error) {
+      setAuthError(error.message)
+      setAuthLoading(false)
+    }
+  }
+
+  const handleEnterWaits = () => {
+    if (!hasSession) {
+      setAuthError('You must sign in before entering WAITS.')
+      setStep(0)
+      return
+    }
+
+    onDone()
   }
 
   return (
@@ -71,33 +230,34 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         </div>
       ) : null}
 
-      {/* Hero */}
-      <div className="flex flex-1 flex-col justify-center px-7">
+      <div className="flex flex-1 flex-col justify-center overflow-y-auto px-7">
         {step === 0 ? (
-          <div className="mt-7 animate-in fade-in slide-in-from-bottom-4">
+          <div className="my-7 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex flex-col items-center gap-3 text-center">
               <span className="flex size-16 items-center justify-center rounded-3xl bg-lime text-lime-foreground shadow-lg">
                 <Dumbbell size={34} strokeWidth={2.6} />
               </span>
+
               <span className="text-balance text-4xl font-black uppercase tracking-[0.06em]">
                 WAITS
               </span>
             </div>
-            <p className="mt-3 max-w-[16rem] text-center text-lg font-medium text-primary-foreground/80 mx-auto">
+
+            <p className="mx-auto mt-3 max-w-[16rem] text-center text-lg font-medium text-primary-foreground/80">
               <span className="block">Never lift alone.</span>
               <span className="block">Train with friends.</span>
               <span className="block">Join in with one tap.</span>
             </p>
 
-            {/* Phone capture */}
             <div className="mt-7 rounded-3xl bg-white/10 p-4">
               {phoneStatus === 'saved' ? (
                 <div className="flex items-center gap-2.5 py-1.5">
                   <span className="flex size-7 items-center justify-center rounded-full bg-lime text-lime-foreground">
                     <Check size={16} strokeWidth={3} />
                   </span>
+
                   <p className="text-sm font-semibold text-primary-foreground">
-                    You&apos;re all set. Your free account is ready to go.
+                    Your phone number was saved.
                   </p>
                 </div>
               ) : (
@@ -107,21 +267,25 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                       htmlFor="phone"
                       className="text-sm font-semibold text-primary-foreground"
                     >
-                      Sign up with your phone
+                      Join with your phone
                     </label>
+
                     <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lime-foreground">
                       Free
                     </span>
                   </div>
+
                   <p className="mt-0.5 text-xs text-primary-foreground/65">
-                    Enter your number to create your free account. No cost, ever.
+                    Enter your number to stay updated.
                   </p>
+
                   <form onSubmit={submitPhone} className="mt-3 flex gap-2">
                     <div className="relative flex-1">
                       <Phone
                         size={18}
                         className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary-foreground/60"
                       />
+
                       <input
                         id="phone"
                         type="tel"
@@ -129,10 +293,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                         autoComplete="tel"
                         placeholder="(555) 123-4567"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(event) => setPhone(event.target.value)}
                         className="h-12 w-full rounded-xl border border-white/20 bg-white/5 pl-10 pr-3 text-base font-medium text-primary-foreground placeholder:text-primary-foreground/45 outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
                       />
                     </div>
+
                     <button
                       type="submit"
                       disabled={phoneStatus === 'saving'}
@@ -146,44 +311,51 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                       )}
                     </button>
                   </form>
+
                   {phoneError ? (
-                    <p className="mt-2 text-xs font-medium text-lime">{phoneError}</p>
+                    <p className="mt-2 text-xs font-medium text-lime">
+                      {phoneError}
+                    </p>
                   ) : null}
                 </>
               )}
             </div>
           </div>
         ) : (
-          <div className="mt-7 animate-in fade-in slide-in-from-right-4 flex flex-col items-center text-center">
-            <div className="flex flex-col items-center gap-4 text-center mb-4">
+          <div className="mt-7 flex animate-in flex-col items-center text-center fade-in slide-in-from-right-4">
+            <div className="mb-4 flex flex-col items-center gap-4 text-center">
               <span className="flex size-16 items-center justify-center rounded-3xl bg-lime text-lime-foreground shadow-lg">
                 <Clock size={28} strokeWidth={2.4} />
               </span>
+
               <h1 className="text-balance text-3xl font-extrabold leading-tight tracking-tight">
                 <span className="block">Set Your</span>
-                <span className="block">Weekly Rythm</span>
+                <span className="block">Weekly Rhythm</span>
               </h1>
             </div>
+
             <p className="mt-2 max-w-[17rem] text-base font-medium text-primary-foreground/80">
               Pick the days you usually train so friends know when to come thru.
             </p>
+
             <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {WEEKDAYS.map((d) => {
-                const on = days.includes(d)
+              {WEEKDAYS.map((day) => {
+                const selected = days.includes(day)
+
                 return (
                   <button
-                    key={d}
+                    key={day}
                     type="button"
-                    onClick={() => toggleDay(d)}
+                    onClick={() => toggleDay(day)}
                     className={cn(
                       'flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors',
-                      on
+                      selected
                         ? 'bg-lime text-lime-foreground'
                         : 'bg-white/10 text-primary-foreground',
                     )}
                   >
-                    {on ? <Check size={15} strokeWidth={3} /> : null}
-                    {d}
+                    {selected ? <Check size={15} strokeWidth={3} /> : null}
+                    {day}
                   </button>
                 )
               })}
@@ -192,45 +364,152 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         )}
       </div>
 
-      {/* Actions */}
       <div className="shrink-0 px-7 pb-[calc(env(safe-area-inset-bottom)+28px)]">
         {step === 0 ? (
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => setStep(1)}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black transition-transform active:scale-[0.98]"
+              disabled
+              className="flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-2xl bg-white/70 py-3.5 text-base font-semibold text-black/60"
             >
               <Apple size={20} className="-mt-0.5" fill="currentColor" />
-              Continue with Apple
+              Apple Sign-In Coming Soon
             </button>
+
             <button
               type="button"
-              onClick={() => setStep(1)}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black transition-transform active:scale-[0.98]"
+              onClick={handleGoogleSignIn}
+              disabled={authLoading}
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
             >
-              <GoogleGlyph />
+              {authLoading ? (
+                <Loader2 size={19} className="animate-spin" />
+              ) : (
+                <GoogleGlyph />
+              )}
               Continue with Google
             </button>
+
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => {
+                setShowEmailForm((current) => !current)
+                setAuthError(null)
+                setAuthMessage(null)
+              }}
               className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/25 py-3.5 text-base font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
             >
               <Mail size={19} />
-              Sign up with Email
+              Continue with Email
             </button>
+
+            {showEmailForm ? (
+              <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
+                <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl bg-black/10 p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signup')
+                      setAuthError(null)
+                      setAuthMessage(null)
+                    }}
+                    className={cn(
+                      'rounded-lg px-3 py-2 text-sm font-semibold',
+                      authMode === 'signup'
+                        ? 'bg-white text-black'
+                        : 'text-white/70',
+                    )}
+                  >
+                    Create account
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signin')
+                      setAuthError(null)
+                      setAuthMessage(null)
+                    }}
+                    className={cn(
+                      'rounded-lg px-3 py-2 text-sm font-semibold',
+                      authMode === 'signin'
+                        ? 'bg-white text-black'
+                        : 'text-white/70',
+                    )}
+                  >
+                    Sign in
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="h-12 w-full rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white placeholder:text-white/45 outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
+                  />
+
+                  <input
+                    type="password"
+                    autoComplete={
+                      authMode === 'signup'
+                        ? 'new-password'
+                        : 'current-password'
+                    }
+                    placeholder="Password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        void handleEmailAuth()
+                      }
+                    }}
+                    className="h-12 w-full rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white placeholder:text-white/45 outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleEmailAuth}
+                    disabled={authLoading}
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-lime px-4 text-sm font-bold text-lime-foreground disabled:opacity-60"
+                  >
+                    {authLoading ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : null}
+
+                    {authMode === 'signup'
+                      ? 'Create Account'
+                      : 'Sign In'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {authError ? (
+              <p className="rounded-xl bg-red-500/20 px-3 py-2 text-center text-sm font-medium text-white">
+                {authError}
+              </p>
+            ) : null}
+
+            {authMessage ? (
+              <p className="rounded-xl bg-lime/20 px-3 py-2 text-center text-sm font-medium text-white">
+                {authMessage}
+              </p>
+            ) : null}
+
             <p className="pt-1 text-center text-xs text-primary-foreground/55">
-              By continuing you agree to our Terms & Privacy Policy.
+              By continuing you agree to our Terms &amp; Privacy Policy.
             </p>
           </div>
         ) : (
           <button
             type="button"
-            onClick={onDone}
+            onClick={handleEnterWaits}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-bold text-lime-foreground transition-transform active:scale-[0.98]"
           >
-            Enter Waits
+            Enter WAITS
             <ArrowRight size={20} strokeWidth={2.6} />
           </button>
         )}
