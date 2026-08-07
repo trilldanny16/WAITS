@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { User, ArrowRight } from 'lucide-react'
+import { supabase } from '@/lib/supabase-client'
 
 type ProfileSetupProps = {
   onContinue: (displayName: string) => void
@@ -9,6 +10,41 @@ type ProfileSetupProps = {
 
 export function ProfileSetup({ onContinue }: ProfileSetupProps) {
   const [displayName, setDisplayName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const handleContinue = async () => {
+  const name = displayName.trim()
+
+  if (name.length < 2 || saving) return
+
+  setSaving(true)
+  setError(null)
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    setError('Could not find your account. Please sign in again.')
+    setSaving(false)
+    return
+  }
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ display_name: name })
+    .eq('id', user.id)
+
+  if (updateError) {
+    console.error('Failed to save display name:', updateError)
+    setError('Could not save your name. Please try again.')
+    setSaving(false)
+    return
+  }
+
+  onContinue(name)
+}
 
   return (
     <div className="flex h-full flex-col justify-between bg-primary px-7 py-6 text-primary-foreground">
@@ -35,11 +71,11 @@ export function ProfileSetup({ onContinue }: ProfileSetupProps) {
       </div>
 
       <button
-        disabled={displayName.trim().length < 2}
-        onClick={() => onContinue(displayName.trim())}
+        disabled={displayName.trim().length < 2 || saving}
+        onClick={handleContinue}
         className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-lime font-bold text-lime-foreground disabled:opacity-40"
       >
-        Continue
+        {saving ? 'Saving...' : 'Continue'}
         <ArrowRight size={20} />
       </button>
     </div>
