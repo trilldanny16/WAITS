@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search as SearchIcon, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -8,7 +8,7 @@ import { WorkoutCard } from '../workout-card'
 import { Avatar } from '../avatar'
 import { WORKOUT_TYPES, type WorkoutType } from '@/lib/types'
 import { cn } from '@/lib/utils'
-
+import { supabase } from '@/lib/supabase-client'
 type Filter = 'all' | WorkoutType
 
 export function Search() {
@@ -16,8 +16,45 @@ export function Search() {
   const { openUser } = useNav()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const [realUsers, setRealUsers] = useState<
+  {
+    id: string
+    email: string | null
+    display_name: string | null
+  }[]
+>([])
+useEffect(() => {
+  const loadUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, display_name')
 
-  const q = query.trim().toLowerCase()
+    if (error) {
+      console.error('Failed to load users:', error)
+      return
+    }
+
+    setRealUsers(data ?? [])
+  }
+
+  loadUsers()
+}, [])
+
+const q = query.trim().toLowerCase()
+
+const realMatchedUsers = useMemo(() => {
+  if (!q) return []
+
+  return realUsers.filter((user) => {
+    const name = user.display_name?.toLowerCase() ?? ''
+    const email = user.email?.toLowerCase() ?? ''
+
+    return (
+      user.id !== currentUserId &&
+      (name.includes(q) || email.includes(q))
+    )
+  })
+}, [q, realUsers, currentUserId])
 
   const matchedUsers = useMemo(() => {
     if (!q) return []
@@ -86,28 +123,32 @@ export function Search() {
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
-        {matchedUsers.length > 0 ? (
+        {realMatchedUsers.length > 0 ? (
           <section className="mb-5">
             <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               People
             </h2>
             <div className="space-y-2">
-              {matchedUsers.map((u) => (
+              {realMatchedUsers.map((u) => (
                 <button
                   key={u.id}
                   type="button"
                   onClick={() => openUser(u.id)}
                   className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border"
                 >
-                  <Avatar user={u} size={42} />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-card-foreground">
-                      {u.name}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      @{u.username} · {u.homeGym}
-                    </p>
-                  </div>
+                 <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                 {(u.display_name || u.email || '?').charAt(0).toUpperCase()}
+                 </div>
+
+                 <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-card-foreground">
+                    {u.display_name || 'WAITS User'}
+                  </p>
+
+                 <p className="truncate text-xs text-muted-foreground">
+                      {u.email}
+                     </p>
+                   </div>
                 </button>
               ))}
             </div>

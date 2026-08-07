@@ -1,5 +1,6 @@
 'use client'
 
+import { ProfileSetup } from './profile-setup'
 import { useState } from 'react'
 import { StoreProvider } from './store'
 import { NavProvider, useNav } from './navigation'
@@ -66,20 +67,21 @@ function Inner() {
 }
 
 export function AppShell() {
-  const [onboarded, setOnboarded] = useState(false)
-
+const [stage, setStage] = useState<'onboarding' | 'profile' | 'app'>('onboarding')
   return (
     <div className="flex min-h-[100dvh] w-full justify-center bg-neutral-200 dark:bg-black md:py-6">
       <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-2xl md:h-[900px] md:max-h-[calc(100dvh-3rem)] md:rounded-[3rem] md:ring-1 md:ring-black/10">
-        {!onboarded ? (
-          <Onboarding onDone={() => setOnboarded(true)} />
-        ) : (
-          <StoreProvider>
-            <NavProvider>
-              <Inner />
-            </NavProvider>
-          </StoreProvider>
-        )}
+        {stage === 'onboarding' ? (
+  <Onboarding onDone={() => setStage('profile')} />
+) : stage === 'profile' ? (
+  <ProfileSetup onContinue={() => setStage('app')} />
+) : (
+  <StoreProvider>
+    <NavProvider>
+      <Inner />
+    </NavProvider>
+  </StoreProvider>
+)}
       </div>
     </div>
   )
