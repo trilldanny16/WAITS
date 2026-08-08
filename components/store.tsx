@@ -12,8 +12,6 @@ import {
 import type { ChatMessage, User, Workout, WorkoutType, Visibility } from '@/lib/types'
 import {
 
-  SEED_FOLLOWERS,
-  SEED_FOLLOWING,
   SEED_USERS,
   seedMessages,
   seedWorkouts,
@@ -54,6 +52,8 @@ interface StoreValue {
   messages: ChatMessage[]
   following: string[]
   followers: string[]
+  pendingFriendRequestCount: number
+  refreshSocialState: () => Promise<void>
   toasts: Toast[]
   getUser: (id: string) => User
   updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => void
@@ -88,8 +88,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false)
   const [workouts, setWorkouts] = useState<Workout[]>(() => seedWorkouts())
   const [messages, setMessages] = useState<ChatMessage[]>(() => seedMessages())
-  const [following, setFollowing] = useState<string[]>(SEED_FOLLOWING)
-  const [followers] = useState<string[]>(SEED_FOLLOWERS)
+  const [following, setFollowing] = useState<string[]>([])
+  const [followers, setFollowers] = useState<string[]>([])
+  const [pendingFriendRequestCount, setPendingFriendRequestCount] = useState(0)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [isPremium, setIsPremium] = useState(false)
   // Extra gallery photos the current user adds this session, keyed by user id.
@@ -153,6 +154,64 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   void loadCurrentUser()
 }, [])
+
+  const refreshSocialState = useCallback(async () => {
+    if (!currentUserId) return
+
+    const { data, error } = await supabase
+      .from('friend_requests')
+      .select('sender_id, receiver_id, status')
+      .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
+
+    if (error) {
+      console.error('Failed to refresh social state:', error)
+      return
+    }
+
+    const acceptedConnections = Array.from(new Set(
+      (data ?? [])
+        .filter((request) => request.status === 'accepted')
+        .map((request) => request.sender_id === currentUserId ? request.receiver_id : request.sender_id),
+    ))
+
+    // WAITS currently has friendship semantics, not directional follows. An
+    // accepted request is therefore represented in both profile lists.
+    setFollowing(acceptedConnections)
+    setFollowers(acceptedConnections)
+    setPendingFriendRequestCount(
+      (data ?? []).filter(
+        (request) => request.receiver_id === currentUserId && request.status === 'pending',
+      ).length,
+    )
+  }, [currentUserId])
+
+  useEffect(() => {
+    if (!currentUserId) return
+
+    void refreshSocialState()
+
+    const channel = supabase
+      .channel(`friend-requests:${currentUserId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'friend_requests' },
+        () => void refreshSocialState(),
+      )
+      .subscribe()
+
+    const refreshOnFocus = () => void refreshSocialState()
+    const refreshOnVisibility = () => {
+      if (document.visibilityState === 'visible') void refreshSocialState()
+    }
+    window.addEventListener('focus', refreshOnFocus)
+    document.addEventListener('visibilitychange', refreshOnVisibility)
+
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus)
+      document.removeEventListener('visibilitychange', refreshOnVisibility)
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUserId, refreshSocialState])
 
   // Hydrate premium status from localStorage (prototype persistence).
   useEffect(() => {
@@ -340,6 +399,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       messages,
       following,
       followers,
+      pendingFriendRequestCount,
+      refreshSocialState,
       toasts,
       getUser,
       updateUser,
@@ -367,6 +428,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       messages,
       following,
       followers,
+      pendingFriendRequestCount,
+      refreshSocialState,
       toasts,
       getUser,
       updateUser,
