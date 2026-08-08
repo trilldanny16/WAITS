@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { MessageCircle, Globe, ChevronRight, Crown, Lock } from 'lucide-react'
+import { MessageCircle, Globe, ChevronRight, Crown, Lock, Bell } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
@@ -11,7 +11,7 @@ import { COMMUNITY_CHANNEL_ID } from '@/lib/seed'
 import { supabase } from '@/lib/supabase-client'
 
 export function ChatsList() {
-  const { workouts, messages, getUser, hasJoined, currentUserId, isPremium } = useStore()
+  const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast } = useStore()
   const { openChat, openCommunity, openPaywall } = useNav()
 
   type FriendRequest = {
@@ -22,20 +22,16 @@ export function ChatsList() {
 }
 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
+  const [respondingTo, setRespondingTo] = useState<string | null>(null)
+  const [requestError, setRequestError] = useState<string | null>(null)
   const openCrew = (id: string) => (isPremium ? openChat(id) : openPaywall('Crew chats'))
 
   useEffect(() => {
   const loadFriendRequests = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
     const { data: requests, error } = await supabase
       .from('friend_requests')
       .select('id, sender_id')
-      .eq('receiver_id', user.id)
+      .eq('receiver_id', currentUserId)
       .eq('status', 'pending')
 
     if (error) {
@@ -74,39 +70,53 @@ export function ChatsList() {
     )
   }
 
-  loadFriendRequests()
-}, [])
+  void loadFriendRequests()
+}, [currentUserId])
 
 const acceptFriendRequest = async (requestId: string) => {
+  setRespondingTo(requestId)
+  setRequestError(null)
   const { error } = await supabase
     .from('friend_requests')
     .update({ status: 'accepted' })
     .eq('id', requestId)
+    .eq('receiver_id', currentUserId)
+    .eq('status', 'pending')
 
   if (error) {
-    console.error('Failed to accept friend request:', error)
+    setRequestError(error.message)
+    setRespondingTo(null)
     return
   }
 
   setFriendRequests((current) =>
     current.filter((request) => request.id !== requestId),
   )
+  pushToast({ title: 'Friend request accepted' })
+  setRespondingTo(null)
 }
 
 const declineFriendRequest = async (requestId: string) => {
+  setRespondingTo(requestId)
+  setRequestError(null)
   const { error } = await supabase
     .from('friend_requests')
     .update({ status: 'declined' })
     .eq('id', requestId)
+    .eq('receiver_id', currentUserId)
+    .eq('status', 'pending')
 
   if (error) {
-    console.error('Failed to decline friend request:', error)
+    setRequestError(error.message)
+    setRespondingTo(null)
     return
   }
 
   setFriendRequests((current) =>
     current.filter((request) => request.id !== requestId),
   )
+  pushToast({ title: 'Friend request declined' })
+  setRespondingTo(null)
 }
 
   const communityCount = useMemo(
@@ -133,9 +143,11 @@ const declineFriendRequest = async (requestId: string) => {
 
         {friendRequests.length > 0 ? (
   <section className="mb-4">
-    <p className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-      Friend Requests
+    <p className="mb-2 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-primary">
+      <Bell size={14} /> Friend Requests ({friendRequests.length})
     </p>
+
+    {requestError ? <p role="alert" className="mb-2 text-sm text-red-600">{requestError}</p> : null}
 
     <div className="space-y-2">
       {friendRequests.map((request) => (
@@ -164,6 +176,7 @@ const declineFriendRequest = async (requestId: string) => {
             <button
               type="button"
               onClick={() => acceptFriendRequest(request.id)}
+              disabled={respondingTo === request.id}
               className="flex-1 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground"
             >
               Accept
@@ -172,6 +185,7 @@ const declineFriendRequest = async (requestId: string) => {
             <button
               type="button"
               onClick={() => declineFriendRequest(request.id)}
+              disabled={respondingTo === request.id}
               className="flex-1 rounded-xl border border-border py-2 text-xs font-bold text-foreground"
             >
               Decline
