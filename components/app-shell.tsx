@@ -1,7 +1,7 @@
 'use client'
 
 import { ProfileSetup } from './profile-setup'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { StoreProvider } from './store'
 import { NavProvider, useNav } from './navigation'
 import { BottomNav } from './bottom-nav'
@@ -71,7 +71,7 @@ export function AppShell() {
     'loading' | 'onboarding' | 'profile' | 'app'
   >('loading')
 
-  const loadUserStage = async () => {
+  const loadUserStage = useCallback(async () => {
     setStage('loading')
 
     const {
@@ -100,19 +100,19 @@ export function AppShell() {
     }
 
     setStage('app')
-  }
+  }, [])
 
   useEffect(() => {
     void loadUserStage()
-  }, [])
+  }, [loadUserStage])
 
   return (
     <div className="flex min-h-[100dvh] w-full justify-center bg-neutral-200 dark:bg-black md:py-6">
       <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-2xl md:h-[900px] md:max-h-[calc(100dvh-3rem)] md:rounded-[3rem] md:ring-1 md:ring-black/10">
         {stage === 'loading' ? null : stage === 'onboarding' ? (
-          <Onboarding onDone={() => void loadUserStage()} />
+          <Onboarding onDone={loadUserStage} />
         ) : stage === 'profile' ? (
-          <ProfileSetup onContinue={() => void loadUserStage()} />
+          <ProfileSetup onContinue={loadUserStage} />
         ) : (
           <StoreProvider>
             <NavProvider>
