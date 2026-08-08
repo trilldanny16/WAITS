@@ -15,6 +15,8 @@ export function Search() {
   const { workouts, users, getUser, currentUserId } = useStore()
   const { openUser } = useNav()
   const [query, setQuery] = useState('')
+  const [sentRequests, setSentRequests] = useState<string[]>([])
+  const [sendingTo, setSendingTo] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [realUsers, setRealUsers] = useState<
   {
@@ -39,6 +41,40 @@ useEffect(() => {
 
   loadUsers()
 }, [])
+const sendFriendRequest = async (receiverId: string) => {
+  if (sendingTo || sentRequests.includes(receiverId)) return
+
+  setSendingTo(receiverId)
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    console.error('Could not verify current user')
+    setSendingTo(null)
+    return
+  }
+
+  const { error } = await supabase
+    .from('friend_requests')
+    .insert({
+      sender_id: user.id,
+      receiver_id: receiverId,
+      status: 'pending',
+    })
+
+  if (error) {
+    console.error('Failed to send friend request:', error)
+    setSendingTo(null)
+    return
+  }
+
+  setSentRequests((prev) => [...prev, receiverId])
+  setSendingTo(null)
+}
+
 
 const q = query.trim().toLowerCase()
 
@@ -130,26 +166,43 @@ const realMatchedUsers = useMemo(() => {
             </h2>
             <div className="space-y-2">
               {realMatchedUsers.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => openUser(u.id)}
-                  className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border"
-                >
-                 <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                 {(u.display_name || u.email || '?').charAt(0).toUpperCase()}
-                 </div>
+<div
+  key={u.id}
+  className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border"
+>
+  <button
+    type="button"
+    onClick={() => openUser(u.id)}
+    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+  >
+    <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+      {(u.display_name || u.email || '?').charAt(0).toUpperCase()}
+    </div>
 
-                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-card-foreground">
-                    {u.display_name || 'WAITS User'}
-                  </p>
+    <div className="min-w-0">
+      <p className="truncate text-sm font-semibold text-card-foreground">
+        {u.display_name || 'WAITS User'}
+      </p>
 
-                 <p className="truncate text-xs text-muted-foreground">
-                      {u.email}
-                     </p>
-                   </div>
-                </button>
+      <p className="truncate text-xs text-muted-foreground">
+        {u.email}
+      </p>
+    </div>
+  </button>
+
+  <button
+    type="button"
+    disabled={sendingTo === u.id || sentRequests.includes(u.id)}
+    onClick={() => sendFriendRequest(u.id)}
+    className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+  >
+    {sendingTo === u.id
+      ? 'Sending...'
+      : sentRequests.includes(u.id)
+        ? 'Sent'
+        : 'Add Friend'}
+  </button>
+</div>
               ))}
             </div>
           </section>

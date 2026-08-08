@@ -21,6 +21,7 @@ import { WorkoutCard } from '../workout-card'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase-client'
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -117,6 +118,17 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const handleAddPhoto = () => {
     const next = PRESET_PHOTOS[gallery.length % PRESET_PHOTOS.length]
     addGalleryPhoto(next)
+  }
+
+    const handleSignOut = async () => {
+      const { error } = await supabase.auth.signOut()
+
+     if (error) {
+      console.error('Failed to sign out:', error)
+      return
+   }
+
+   window.location.reload()
   }
 
   const myWorkouts = useMemo(
@@ -257,8 +269,18 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 >
                   Edit Profile
                 </button>
+              
               )}
+              <button
+  type="button"
+  onClick={handleSignOut}
+  className="mt-3 w-full rounded-2xl border border-red-500/30 py-3 text-sm font-bold text-red-500"
+>
+  Sign Out
+</button>
             </div>
+
+            
           ) : (
             <button
               type="button"

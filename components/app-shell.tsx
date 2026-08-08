@@ -1,7 +1,7 @@
 'use client'
 
 import { ProfileSetup } from './profile-setup'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StoreProvider } from './store'
 import { NavProvider, useNav } from './navigation'
 import { BottomNav } from './bottom-nav'
@@ -17,6 +17,7 @@ import { Chat } from './screens/chat'
 import { CommunityChat } from './screens/community-chat'
 import { Paywall } from './screens/paywall'
 import { useStore } from './store'
+import { supabase } from '@/lib/supabase-client'
 
 function ActiveTab() {
   const { tab } = useNav()
@@ -65,23 +66,58 @@ function Inner() {
     </>
   )
 }
-
 export function AppShell() {
-const [stage, setStage] = useState<'onboarding' | 'profile' | 'app'>('onboarding')
+  const [stage, setStage] = useState<
+    'loading' | 'onboarding' | 'profile' | 'app'
+  >('loading')
+
+  useEffect(() => {
+    const loadUserStage = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user) {
+        setStage('onboarding')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed, display_name')
+        .eq('id', session.user.id)
+        .single()
+
+      if (!profile?.onboarding_completed) {
+        setStage('onboarding')
+        return
+      }
+
+      if (!profile.display_name) {
+        setStage('profile')
+        return
+      }
+
+      setStage('app')
+    }
+
+    loadUserStage()
+  }, [])
+
   return (
     <div className="flex min-h-[100dvh] w-full justify-center bg-neutral-200 dark:bg-black md:py-6">
       <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-2xl md:h-[900px] md:max-h-[calc(100dvh-3rem)] md:rounded-[3rem] md:ring-1 md:ring-black/10">
-        {stage === 'onboarding' ? (
-  <Onboarding onDone={() => setStage('profile')} />
-) : stage === 'profile' ? (
-  <ProfileSetup onContinue={() => setStage('app')} />
-) : (
-  <StoreProvider>
-    <NavProvider>
-      <Inner />
-    </NavProvider>
-  </StoreProvider>
-)}
+        {stage === 'loading' ? null : stage === 'onboarding' ? (
+          <Onboarding onDone={() => setStage('profile')} />
+        ) : stage === 'profile' ? (
+          <ProfileSetup onContinue={() => setStage('app')} />
+        ) : (
+          <StoreProvider>
+            <NavProvider>
+              <Inner />
+            </NavProvider>
+          </StoreProvider>
+        )}
       </div>
     </div>
   )
