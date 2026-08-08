@@ -71,46 +71,48 @@ export function AppShell() {
     'loading' | 'onboarding' | 'profile' | 'app'
   >('loading')
 
-  useEffect(() => {
-    const loadUserStage = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+  const loadUserStage = async () => {
+    setStage('loading')
 
-      if (!session?.user) {
-        setStage('onboarding')
-        return
-      }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarding_completed, display_name')
-        .eq('id', session.user.id)
-        .single()
-
-      if (!profile?.onboarding_completed) {
-        setStage('onboarding')
-        return
-      }
-
-      if (!profile.display_name) {
-        setStage('profile')
-        return
-      }
-
-      setStage('app')
+    if (!session?.user) {
+      setStage('onboarding')
+      return
     }
 
-    loadUserStage()
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed, display_name')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!profile?.onboarding_completed) {
+      setStage('onboarding')
+      return
+    }
+
+    if (!profile.display_name) {
+      setStage('profile')
+      return
+    }
+
+    setStage('app')
+  }
+
+  useEffect(() => {
+    void loadUserStage()
   }, [])
 
   return (
     <div className="flex min-h-[100dvh] w-full justify-center bg-neutral-200 dark:bg-black md:py-6">
       <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-2xl md:h-[900px] md:max-h-[calc(100dvh-3rem)] md:rounded-[3rem] md:ring-1 md:ring-black/10">
         {stage === 'loading' ? null : stage === 'onboarding' ? (
-          <Onboarding onDone={() => setStage('profile')} />
+          <Onboarding onDone={() => void loadUserStage()} />
         ) : stage === 'profile' ? (
-          <ProfileSetup onContinue={() => setStage('app')} />
+          <ProfileSetup onContinue={() => void loadUserStage()} />
         ) : (
           <StoreProvider>
             <NavProvider>

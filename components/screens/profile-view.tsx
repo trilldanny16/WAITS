@@ -82,32 +82,76 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     setEditError(null)
   }, [user.name, user.homeGym, user.city, user.bio])
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
+    console.log('SAVE BUTTON CLICKED')
+
     const trimmedName = editName.trim()
     const nameParts = trimmedName.split(/\s+/).filter(Boolean)
-    if (nameParts.length < 2) {
-      setEditError('Enter your first and last name.')
-      return
-    }
-    if (nameParts.some((part) => part.length < 2)) {
-      setEditError('Use a real first and last name.')
-      return
-    }
-    const lowerName = trimmedName.toLowerCase()
-    if (BLOCKED_PROFILE_WORDS.some((bad) => lowerName.includes(bad))) {
-      setEditError('Choose a proper name and avoid inappropriate words.')
-      return
-    }
 
-    updateUser(userId, {
-      name: trimmedName,
-      homeGym: editHomeGym,
-      city: editCity,
-      bio: editBio,
-    })
-    setEditError(null)
-    setIsEditing(false)
+  if (nameParts.length < 2) {
+    setEditError('Enter your first and last name.')
+    return
   }
+
+  if (nameParts.some((part) => part.length < 2)) {
+    setEditError('Use a real first and last name.')
+    return
+  }
+
+  const lowerName = trimmedName.toLowerCase()
+
+  if (BLOCKED_PROFILE_WORDS.some((bad) => lowerName.includes(bad))) {
+    setEditError('Choose a proper name and avoid inappropriate words.')
+    return
+  }
+
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !authUser) {
+    console.error('Could not verify signed-in user:', authError)
+    setEditError('Could not verify your account.')
+    return
+  }
+
+  const { data: savedProfile, error } = await supabase
+    .from('profiles')
+    .update({
+      display_name: trimmedName,
+      home_gym: editHomeGym.trim(),
+      city: editCity.trim(),
+      bio: editBio.trim(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', authUser.id)
+    .select('id, display_name, home_gym, city, bio')
+    .single()
+
+    console.log('PROFILE SAVE DEBUG', {
+  authUserId: authUser.id,
+  savedProfile,
+  error,
+})
+
+  if (error || !savedProfile) {
+    console.error('Failed to save profile:', error)
+    setEditError(error?.message ?? 'Profile was not saved.')
+    return
+  }
+
+  updateUser(authUser.id, {
+    name: savedProfile.display_name ?? trimmedName,
+    homeGym: savedProfile.home_gym ?? '',
+    city: savedProfile.city ?? '',
+    bio: savedProfile.bio ?? '',
+  })
+
+  setEditError(null)
+  setIsEditing(false)
+}
+
   const isSelf = userId === currentUserId
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed

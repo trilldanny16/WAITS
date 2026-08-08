@@ -185,10 +185,27 @@ if (data.session?.user) {
           return
         }
 
-        if (data.session) {
-          setHasSession(true)
-          setStep(1)
-        }
+if (data.session?.user) {
+  setHasSession(true)
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('onboarding_completed')
+    .eq('id', data.session.user.id)
+    .single()
+
+  if (profileError) {
+    setAuthError(profileError.message)
+    return
+  }
+
+  if (profile?.onboarding_completed) {
+    onDone()
+    return
+  }
+
+  setStep(1)
+}
       }
     } catch {
       setAuthError('Something went wrong. Please try again.')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MessageCircle, Globe, ChevronRight, Crown, Lock } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -8,11 +8,106 @@ import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-utils'
 import { COMMUNITY_CHANNEL_ID } from '@/lib/seed'
+import { supabase } from '@/lib/supabase-client'
 
 export function ChatsList() {
   const { workouts, messages, getUser, hasJoined, currentUserId, isPremium } = useStore()
   const { openChat, openCommunity, openPaywall } = useNav()
+
+  type FriendRequest = {
+  id: string
+  sender_id: string
+  sender_name: string | null
+  sender_email: string | null
+}
+
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const openCrew = (id: string) => (isPremium ? openChat(id) : openPaywall('Crew chats'))
+
+  useEffect(() => {
+  const loadFriendRequests = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const { data: requests, error } = await supabase
+      .from('friend_requests')
+      .select('id, sender_id')
+      .eq('receiver_id', user.id)
+      .eq('status', 'pending')
+
+    if (error) {
+      console.error('Failed to load friend requests:', error)
+      return
+    }
+
+    if (!requests || requests.length === 0) {
+      setFriendRequests([])
+      return
+    }
+
+    const senderIds = requests.map((request) => request.sender_id)
+
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, display_name, email')
+      .in('id', senderIds)
+
+    if (profileError) {
+      console.error('Failed to load sender profiles:', profileError)
+      return
+    }
+
+    setFriendRequests(
+      requests.map((request) => {
+        const profile = profiles?.find((p) => p.id === request.sender_id)
+
+        return {
+          id: request.id,
+          sender_id: request.sender_id,
+          sender_name: profile?.display_name ?? null,
+          sender_email: profile?.email ?? null,
+        }
+      }),
+    )
+  }
+
+  loadFriendRequests()
+}, [])
+
+const acceptFriendRequest = async (requestId: string) => {
+  const { error } = await supabase
+    .from('friend_requests')
+    .update({ status: 'accepted' })
+    .eq('id', requestId)
+
+  if (error) {
+    console.error('Failed to accept friend request:', error)
+    return
+  }
+
+  setFriendRequests((current) =>
+    current.filter((request) => request.id !== requestId),
+  )
+}
+
+const declineFriendRequest = async (requestId: string) => {
+  const { error } = await supabase
+    .from('friend_requests')
+    .update({ status: 'declined' })
+    .eq('id', requestId)
+
+  if (error) {
+    console.error('Failed to decline friend request:', error)
+    return
+  }
+
+  setFriendRequests((current) =>
+    current.filter((request) => request.id !== requestId),
+  )
+}
 
   const communityCount = useMemo(
     () => messages.filter((m) => m.workoutId === COMMUNITY_CHANNEL_ID).length,
@@ -35,6 +130,58 @@ export function ChatsList() {
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-3">
+
+        {friendRequests.length > 0 ? (
+  <section className="mb-4">
+    <p className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+      Friend Requests
+    </p>
+
+    <div className="space-y-2">
+      {friendRequests.map((request) => (
+        <div
+          key={request.id}
+          className="rounded-2xl bg-card p-3 ring-1 ring-border"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              {(request.sender_name || request.sender_email || '?')
+                .charAt(0)
+                .toUpperCase()}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-card-foreground">
+                {request.sender_name || 'WAITS User'}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {request.sender_email}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => acceptFriendRequest(request.id)}
+              className="flex-1 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground"
+            >
+              Accept
+            </button>
+
+            <button
+              type="button"
+              onClick={() => declineFriendRequest(request.id)}
+              className="flex-1 rounded-xl border border-border py-2 text-xs font-bold text-foreground"
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+) : null}
         {/* Public community channel — pinned entry point */}
         <button
           type="button"

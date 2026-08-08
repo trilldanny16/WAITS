@@ -11,13 +11,14 @@ import {
 } from 'react'
 import type { ChatMessage, User, Workout, WorkoutType, Visibility } from '@/lib/types'
 import {
-  CURRENT_USER_ID,
+
   SEED_FOLLOWERS,
   SEED_FOLLOWING,
   SEED_USERS,
   seedMessages,
   seedWorkouts,
 } from '@/lib/seed'
+import { supabase } from '@/lib/supabase-client'
 
 export interface Toast {
   id: string
@@ -83,6 +84,8 @@ const nextId = (prefix: string) => `${prefix}_${idCounter++}`
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>(SEED_USERS)
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [authReady, setAuthReady] = useState(false)
   const [workouts, setWorkouts] = useState<Workout[]>(() => seedWorkouts())
   const [messages, setMessages] = useState<ChatMessage[]>(() => seedMessages())
   const [following, setFollowing] = useState<string[]>(SEED_FOLLOWING)
@@ -91,6 +94,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [isPremium, setIsPremium] = useState(false)
   // Extra gallery photos the current user adds this session, keyed by user id.
   const [ownGallery, setOwnGallery] = useState<string[]>([])
+
+  useEffect(() => {
+  const loadCurrentUser = async () => {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      setAuthReady(true)
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, email, display_name, home_gym, city, bio')
+      .eq('id', user.id)
+      .single()
+
+    const email = profile?.email ?? user.email ?? ''
+    const displayName = profile?.display_name?.trim() || 'WAITS User'
+
+const realUser: User = {
+  id: user.id,
+  name: displayName,
+  username:
+    email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') ||
+    `user_${user.id.slice(0, 6)}`,
+  bio: profile?.bio ?? '',
+  homeGym: profile?.home_gym ?? 'Add your home gym',
+  city: profile?.city ?? '',  favoriteSplit: 'Not set',
+  hue: 210,
+  isPrivate: false,
+  gallery: [],
+}
+    setCurrentUserId(user.id)
+
+    setUsers((previous) => [
+      realUser,
+      ...previous.filter((existing) => existing.id !== user.id),
+    ])
+
+    setAuthReady(true)
+  }
+
+  void loadCurrentUser()
+}, [])
 
   // Hydrate premium status from localStorage (prototype persistence).
   useEffect(() => {
@@ -138,7 +188,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const isFull = useCallback((w: Workout) => w.attendees.length >= w.maxParticipants, [])
 
   const hasJoined = useCallback(
-    (w: Workout) => w.attendees.includes(CURRENT_USER_ID),
+    (w: Workout) => w.attendees.includes(currentUserId),
     [],
   )
 
@@ -147,9 +197,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setWorkouts((prev) =>
         prev.map((w) => {
           if (w.id !== id) return w
-          if (w.attendees.includes(CURRENT_USER_ID)) return w
+          if (w.attendees.includes(currentUserId)) return w
           if (w.attendees.length >= w.maxParticipants) return w
-          return { ...w, attendees: [...w.attendees, CURRENT_USER_ID] }
+          return { ...w, attendees: [...w.attendees, currentUserId] }
         }),
       )
       const w = workouts.find((x) => x.id === id)
@@ -169,7 +219,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setWorkouts((prev) =>
         prev.map((w) =>
           w.id === id
-            ? { ...w, attendees: w.attendees.filter((a) => a !== CURRENT_USER_ID) }
+            ? { ...w, attendees: w.attendees.filter((a) => a !== currentUserId) }
             : w,
         ),
       )
@@ -179,7 +229,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
 
   const activeHostedCount = useMemo(
-    () => workouts.filter((w) => w.hostId === CURRENT_USER_ID).length,
+    () => workouts.filter((w) => w.hostId === currentUserId).length,
     [workouts],
   )
 
@@ -191,8 +241,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
       const workout: Workout = {
         id: nextId('w'),
-        hostId: CURRENT_USER_ID,
-        attendees: [CURRENT_USER_ID],
+        hostId: currentUserId,
+        attendees: [currentUserId],
         ...input,
         maxParticipants: cappedMax,
       }
@@ -209,7 +259,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const galleryFor = useCallback(
     (userId: string) => {
       const base = (getUser(userId).gallery ?? []).slice()
-      if (userId === CURRENT_USER_ID) return [...ownGallery, ...base]
+      if (userId === currentUserId) return [...ownGallery, ...base]
       return base
     },
     [getUser, ownGallery],
@@ -240,7 +290,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       {
         id: nextId('m'),
         workoutId,
-        userId: CURRENT_USER_ID,
+        userId: currentUserId,
         text: trimmed,
         createdAt: Date.now(),
       },
@@ -268,7 +318,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<StoreValue>(
     () => ({
-      currentUserId: CURRENT_USER_ID,
+      currentUserId: currentUserId,
       users,
       workouts,
       messages,
@@ -323,6 +373,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addGalleryPhoto,
     ],
   )
+
+  if (!authReady || !currentUserId) return null
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
