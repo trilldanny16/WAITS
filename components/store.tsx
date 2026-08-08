@@ -107,33 +107,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const { data: profile } = await supabase
+    const { data: profiles } = await supabase
       .from('profiles')
       .select('id, email, display_name, home_gym, city, bio')
-      .eq('id', user.id)
-      .single()
+    const profile = profiles?.find((candidate) => candidate.id === user.id)
 
     const email = profile?.email ?? user.email ?? ''
     const displayName = profile?.display_name?.trim() || 'WAITS User'
 
-const realUser: User = {
-  id: user.id,
-  name: displayName,
-  username:
-    email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') ||
-    `user_${user.id.slice(0, 6)}`,
-  bio: profile?.bio ?? '',
-  homeGym: profile?.home_gym ?? 'Add your home gym',
-  city: profile?.city ?? '',  favoriteSplit: 'Not set',
-  hue: 210,
-  isPrivate: false,
-  gallery: [],
-}
+    const toUser = (row: NonNullable<typeof profiles>[number]): User => ({
+      id: row.id,
+      name: row.display_name?.trim() || 'WAITS User',
+      username:
+        (row.email ?? '').split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') ||
+        `user_${row.id.slice(0, 6)}`,
+      bio: row.bio ?? '',
+      homeGym: row.home_gym ?? 'Add your home gym',
+      city: row.city ?? '',
+      favoriteSplit: 'Not set',
+      hue: 210,
+      isPrivate: false,
+      gallery: [],
+    })
+
+    const realUser: User = profile
+      ? toUser(profile)
+      : {
+          id: user.id,
+          name: displayName,
+          username: email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || `user_${user.id.slice(0, 6)}`,
+          bio: '', homeGym: 'Add your home gym', city: '', favoriteSplit: 'Not set',
+          hue: 210, isPrivate: false, gallery: [],
+        }
     setCurrentUserId(user.id)
 
+    const realUsers = (profiles ?? []).map(toUser)
     setUsers((previous) => [
       realUser,
-      ...previous.filter((existing) => existing.id !== user.id),
+      ...realUsers.filter((candidate) => candidate.id !== user.id),
+      ...previous.filter((existing) => !realUsers.some((candidate) => candidate.id === existing.id) && existing.id !== user.id),
     ])
 
     setAuthReady(true)
@@ -162,7 +174,11 @@ const realUser: User = {
   }, [])
 
   const getUser = useCallback(
-    (id: string) => users.find((u) => u.id === id) ?? users[0],
+    (id: string) => users.find((u) => u.id === id) ?? ({
+      id, name: 'WAITS User', username: `user_${id.slice(0, 6)}`, bio: '',
+      homeGym: 'Gym not set', city: '', favoriteSplit: 'Not set', hue: 210,
+      isPrivate: false, gallery: [],
+    }),
     [users],
   )
 
@@ -189,7 +205,7 @@ const realUser: User = {
 
   const hasJoined = useCallback(
     (w: Workout) => w.attendees.includes(currentUserId),
-    [],
+    [currentUserId],
   )
 
   const joinWorkout = useCallback(
@@ -211,7 +227,7 @@ const realUser: User = {
         })
       }
     },
-    [workouts, getUser, pushToast],
+    [workouts, getUser, pushToast, currentUserId],
   )
 
   const leaveWorkout = useCallback(
@@ -225,12 +241,12 @@ const realUser: User = {
       )
       pushToast({ title: 'You left the workout' })
     },
-    [pushToast],
+    [pushToast, currentUserId],
   )
 
   const activeHostedCount = useMemo(
     () => workouts.filter((w) => w.hostId === currentUserId).length,
-    [workouts],
+    [workouts, currentUserId],
   )
 
   const createWorkout = useCallback(
@@ -253,7 +269,7 @@ const realUser: User = {
       })
       return workout
     },
-    [pushToast, isPremium],
+    [pushToast, isPremium, currentUserId],
   )
 
   const galleryFor = useCallback(
@@ -262,7 +278,7 @@ const realUser: User = {
       if (userId === currentUserId) return [...ownGallery, ...base]
       return base
     },
-    [getUser, ownGallery],
+    [getUser, ownGallery, currentUserId],
   )
 
   const addGalleryPhoto = useCallback(
@@ -295,7 +311,7 @@ const realUser: User = {
         createdAt: Date.now(),
       },
     ])
-  }, [])
+  }, [currentUserId])
 
   const messagesFor = useCallback(
     (workoutId: string) =>
@@ -318,7 +334,7 @@ const realUser: User = {
 
   const value = useMemo<StoreValue>(
     () => ({
-      currentUserId: currentUserId,
+      currentUserId,
       users,
       workouts,
       messages,
