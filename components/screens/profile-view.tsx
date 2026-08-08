@@ -206,10 +206,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <button
             type="button"
             onClick={back}
-            className="flex size-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
+            className="flex h-9 items-center justify-center gap-1 rounded-full bg-secondary px-3 text-sm font-bold text-secondary-foreground"
             aria-label="Back"
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={20} /> Back
           </button>
         ) : null}
       </header>
