@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import {
   getFriendRequestStates,
+  cancelFriendRequest,
   sendFriendRequest as persistFriendRequest,
   type FriendRequestState,
 } from '@/lib/friend-requests'
@@ -69,6 +70,23 @@ const sendFriendRequest = async (receiverId: string) => {
     title: result.created ? 'Friend request sent' : 'Request already active',
     body: result.created ? 'They will see it in Chats.' : undefined,
   })
+  setSendingTo(null)
+}
+
+const cancelOutgoingRequest = async (receiverId: string) => {
+  if (sendingTo) return
+  setSendingTo(receiverId)
+  setRequestError(null)
+
+  const result = await cancelFriendRequest(currentUserId, receiverId)
+  if (!result.ok) {
+    setRequestError(result.error ?? 'The follow request could not be canceled.')
+    setSendingTo(null)
+    return
+  }
+
+  setRequestStates((prev) => ({ ...prev, [receiverId]: 'none' }))
+  pushToast({ title: 'Follow request canceled' })
   setSendingTo(null)
 }
 
@@ -194,19 +212,25 @@ const realMatchedUsers = useMemo(() => {
 
   <button
     type="button"
-    disabled={sendingTo === u.id || (requestStates[u.id] ?? 'none') !== 'none'}
-    onClick={() => sendFriendRequest(u.id)}
+    disabled={
+      sendingTo === u.id ||
+      requestStates[u.id] === 'accepted' ||
+      requestStates[u.id] === 'pending_incoming'
+    }
+    onClick={() => requestStates[u.id] === 'pending_outgoing'
+      ? cancelOutgoingRequest(u.id)
+      : sendFriendRequest(u.id)}
     className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
   >
     {sendingTo === u.id
-      ? 'Sending...'
+      ? requestStates[u.id] === 'pending_outgoing' ? 'Canceling...' : 'Sending...'
       : requestStates[u.id] === 'accepted'
         ? 'Connected'
         : requestStates[u.id] === 'pending_incoming'
           ? 'Request received'
           : requestStates[u.id] === 'pending_outgoing'
-            ? 'Sent'
-            : 'Add Friend'}
+            ? 'Cancel Request'
+            : 'Follow'}
   </button>
 </div>
               ))}
