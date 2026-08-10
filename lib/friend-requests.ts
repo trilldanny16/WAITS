@@ -116,3 +116,32 @@ export async function sendFriendRequest(
 
   return { ok: true, state: 'pending_outgoing', created: true }
 }
+
+export async function cancelFriendRequest(
+  currentUserId: string,
+  receiverId: string,
+): Promise<FriendRequestResult> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user || user.id !== currentUserId) {
+    return { ok: false, state: 'pending_outgoing', error: 'Your session could not be verified. Please sign in again.' }
+  }
+
+  const { data, error } = await supabase
+    .from('friend_requests')
+    .delete()
+    .eq('sender_id', currentUserId)
+    .eq('receiver_id', receiverId)
+    .eq('status', 'pending')
+    .select('id')
+
+  if (error) return { ok: false, state: 'pending_outgoing', error: error.message }
+  if (!data || data.length === 0) {
+    return { ok: false, state: 'pending_outgoing', error: 'No outgoing request was canceled.' }
+  }
+
+  return { ok: true, state: 'none' }
+}
