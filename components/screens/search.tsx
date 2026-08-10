@@ -77,11 +77,22 @@ const sendFriendRequest = async (receiverId: string) => {
     return
   }
 
+  const { data: receiver, error: receiverError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', receiverId)
+    .maybeSingle()
+
+  if (receiverError || !receiver) {
+    setRequestError(receiverError?.message ?? 'That profile no longer exists.')
+    setSendingTo(null)
+    return
+  }
+
   const { data: duplicate, error: duplicateError } = await supabase
     .from('friend_requests')
     .select('id, status')
-    .eq('sender_id', user.id)
-    .eq('receiver_id', receiverId)
+    .or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`)
     .in('status', ['pending', 'accepted'])
     .maybeSingle()
 
@@ -98,16 +109,28 @@ const sendFriendRequest = async (receiverId: string) => {
     return
   }
 
-  const { error } = await supabase
+  const { data: inserted, error } = await supabase
     .from('friend_requests')
     .insert({
       sender_id: user.id,
-      receiver_id: receiverId,
+      receiver_id: receiver.id,
       status: 'pending',
     })
+    .select('id, sender_id, receiver_id, status')
+    .single()
 
-  if (error) {
-    setRequestError(error.message)
+  if (
+    error ||
+    !inserted ||
+    inserted.sender_id !== user.id ||
+    inserted.receiver_id !== receiver.id ||
+    inserted.status !== 'pending'
+  ) {
+    setRequestError(
+      error?.code === '23505'
+        ? 'A pending or accepted request already exists between these accounts.'
+        : error?.message ?? 'Supabase did not confirm the friend request.',
+    )
     setSendingTo(null)
     return
   }
