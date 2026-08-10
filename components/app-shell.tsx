@@ -16,7 +16,6 @@ import { WorkoutDetail } from './screens/workout-detail'
 import { Chat } from './screens/chat'
 import { CommunityChat } from './screens/community-chat'
 import { Paywall } from './screens/paywall'
-import { SocialList } from './screens/social-list'
 import { useStore } from './store'
 import { supabase } from '@/lib/supabase-client'
 
@@ -50,7 +49,6 @@ function Overlays() {
         {top.type === 'community' && <CommunityChat />}
         {top.type === 'paywall' && <Paywall feature={top.feature} />}
         {top.type === 'user' && <ProfileView userId={top.id} />}
-        {top.type === 'social-list' && <SocialList userId={top.userId} kind={top.kind} />}
       </div>
     </div>
   )
