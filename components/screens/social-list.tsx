@@ -8,9 +8,11 @@ import { useStore } from '../store'
 export function SocialList({
   userId,
   kind,
+  onBack,
 }: {
   userId: string
   kind: 'followers' | 'following'
+  onBack?: () => void
 }) {
   const { currentUserId, followers, following, getUser } = useStore()
   const { back, openUser } = useNav()
@@ -23,7 +25,7 @@ export function SocialList({
       <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
         <button
           type="button"
-          onClick={back}
+          onClick={onBack ?? back}
           className="flex h-9 items-center gap-1 rounded-full bg-secondary px-3 text-sm font-bold text-secondary-foreground"
           aria-label="Back"
         >
