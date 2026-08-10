@@ -62,6 +62,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     isPremium,
     galleryFor,
     addGalleryPhoto,
+    disconnectUser,
+    pushToast,
   } = useStore()
 
   const { back, openWorkout, openPaywall } = useNav()
@@ -76,6 +78,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [editError, setEditError] = useState<string | null>(null)
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
   const [viewedConnectionCount, setViewedConnectionCount] = useState(0)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
 
   useEffect(() => {
     setEditName(user.name)
@@ -179,6 +183,27 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   setEditError(null)
   setIsEditing(false)
 }
+
+  const handleDisconnect = async () => {
+    if (disconnecting) return
+
+    setDisconnecting(true)
+    setConnectionError(null)
+    const result = await disconnectUser(userId)
+
+    if (!result.ok) {
+      setConnectionError(result.error ?? 'The connection could not be removed.')
+      setDisconnecting(false)
+      return
+    }
+
+    setViewedConnectionCount((count) => Math.max(0, count - 1))
+    pushToast({
+      title: 'Disconnected',
+      body: `You and ${user.name.split(' ')[0]} are no longer connected.`,
+    })
+    setDisconnecting(false)
+  }
 
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed
@@ -371,29 +396,36 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
             
           ) : (
-            <button
-              type="button"
-              onClick={() => undefined}
-              disabled
-              className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors',
-                followed
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-secondary text-secondary-foreground',
-              )}
-            >
-              {followed ? (
-                <>
-                  <Check size={16} strokeWidth={3} />
-                  Connected
-                </>
-              ) : (
-                <>
-                  <UserPlus size={16} />
-                  Add from Discover
-                </>
-              )}
-            </button>
+            <div>
+              <button
+                type="button"
+                onClick={followed ? handleDisconnect : undefined}
+                disabled={!followed || disconnecting}
+                className={cn(
+                  'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
+                  followed
+                    ? 'border border-red-500/30 bg-background text-red-500'
+                    : 'bg-secondary text-secondary-foreground',
+                )}
+              >
+                {followed ? (
+                  <>
+                    <Check size={16} strokeWidth={3} />
+                    {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={16} />
+                    Add from Discover
+                  </>
+                )}
+              </button>
+              {connectionError ? (
+                <p role="alert" className="mt-2 text-center text-sm font-medium text-red-500">
+                  {connectionError}
+                </p>
+              ) : null}
+            </div>
           )}
         </div>
 
