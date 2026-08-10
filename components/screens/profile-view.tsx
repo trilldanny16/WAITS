@@ -23,6 +23,11 @@ import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import { SocialList } from './social-list'
+import {
+  getFriendRequestState,
+  sendFriendRequest,
+  type FriendRequestState,
+} from '@/lib/friend-requests'
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -80,6 +85,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [viewedConnectionCount, setViewedConnectionCount] = useState(0)
   const [disconnecting, setDisconnecting] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
+  const [friendRequestState, setFriendRequestState] = useState<FriendRequestState>('none')
+  const [sendingRequest, setSendingRequest] = useState(false)
 
   useEffect(() => {
     setEditName(user.name)
@@ -121,6 +128,21 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
       active = false
     }
   }, [isSelf, userId])
+
+  useEffect(() => {
+    let active = true
+    if (isSelf) return () => { active = false }
+
+    const loadState = async () => {
+      const result = await getFriendRequestState(currentUserId, userId)
+      if (!active) return
+      if (!result.ok) setConnectionError(result.error ?? 'Could not load connection state.')
+      else setFriendRequestState(result.state)
+    }
+
+    void loadState()
+    return () => { active = false }
+  }, [currentUserId, isSelf, userId])
 
   const handleSaveProfile = async () => {
     const trimmedName = editName.trim()
@@ -198,11 +220,32 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     }
 
     setViewedConnectionCount((count) => Math.max(0, count - 1))
+    setFriendRequestState('none')
     pushToast({
-      title: 'Disconnected',
+      title: 'Unfollowed',
       body: `You and ${user.name.split(' ')[0]} are no longer connected.`,
     })
     setDisconnecting(false)
+  }
+
+  const handleAddFriend = async () => {
+    if (sendingRequest || friendRequestState !== 'none') return
+    setSendingRequest(true)
+    setConnectionError(null)
+
+    const result = await sendFriendRequest(currentUserId, userId)
+    if (!result.ok) {
+      setConnectionError(result.error ?? 'The friend request could not be sent.')
+      setSendingRequest(false)
+      return
+    }
+
+    setFriendRequestState(result.state)
+    pushToast({
+      title: result.created ? 'Friend request sent' : 'Request already active',
+      body: result.created ? `${user.name.split(' ')[0]} will see it in Chats.` : undefined,
+    })
+    setSendingRequest(false)
   }
 
   const followed = isFollowing(userId)
@@ -399,8 +442,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <div>
               <button
                 type="button"
-                onClick={followed ? handleDisconnect : undefined}
-                disabled={!followed || disconnecting}
+                onClick={followed ? handleDisconnect : friendRequestState === 'none' ? handleAddFriend : undefined}
+                disabled={disconnecting || sendingRequest || (!followed && friendRequestState !== 'none')}
                 className={cn(
                   'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
                   followed
@@ -411,12 +454,20 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 {followed ? (
                   <>
                     <Check size={16} strokeWidth={3} />
-                    {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                    {disconnecting ? 'Unfollowing...' : 'Unfollow'}
                   </>
                 ) : (
                   <>
                     <UserPlus size={16} />
-                    Add from Discover
+                    {sendingRequest
+                      ? 'Sending...'
+                      : friendRequestState === 'pending_outgoing'
+                        ? 'Sent'
+                      : friendRequestState === 'pending_incoming'
+                        ? 'Request Received'
+                        : friendRequestState === 'accepted'
+                          ? 'Connected'
+                          : 'Add Friend'}
                   </>
                 )}
               </button>
