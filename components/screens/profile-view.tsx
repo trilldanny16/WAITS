@@ -5,7 +5,7 @@ import {
   ChevronLeft,
   MapPin,
   Lock,
-  Check,
+  X,
   UserPlus,
   Dumbbell,
   Crown,
@@ -23,6 +23,12 @@ import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import { SocialList } from './social-list'
+import {
+  getFriendRequestState,
+  cancelFriendRequest,
+  sendFriendRequest,
+  type FriendRequestState,
+} from '@/lib/friend-requests'
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -62,6 +68,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     isPremium,
     galleryFor,
     addGalleryPhoto,
+    disconnectUser,
+    pushToast,
   } = useStore()
 
   const { back, openWorkout, openPaywall } = useNav()
@@ -76,6 +84,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [editError, setEditError] = useState<string | null>(null)
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
   const [viewedConnectionCount, setViewedConnectionCount] = useState(0)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+  const [friendRequestState, setFriendRequestState] = useState<FriendRequestState>('none')
+  const [sendingRequest, setSendingRequest] = useState(false)
 
   useEffect(() => {
     setEditName(user.name)
@@ -117,6 +129,21 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
       active = false
     }
   }, [isSelf, userId])
+
+  useEffect(() => {
+    let active = true
+    if (isSelf) return () => { active = false }
+
+    const loadState = async () => {
+      const result = await getFriendRequestState(currentUserId, userId)
+      if (!active) return
+      if (!result.ok) setConnectionError(result.error ?? 'Could not load connection state.')
+      else setFriendRequestState(result.state)
+    }
+
+    void loadState()
+    return () => { active = false }
+  }, [currentUserId, isSelf, userId])
 
   const handleSaveProfile = async () => {
     const trimmedName = editName.trim()
@@ -179,6 +206,65 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   setEditError(null)
   setIsEditing(false)
 }
+
+  const handleDisconnect = async () => {
+    if (disconnecting) return
+
+    setDisconnecting(true)
+    setConnectionError(null)
+    const result = await disconnectUser(userId)
+
+    if (!result.ok) {
+      setConnectionError(result.error ?? 'The connection could not be removed.')
+      setDisconnecting(false)
+      return
+    }
+
+    setViewedConnectionCount((count) => Math.max(0, count - 1))
+    setFriendRequestState('none')
+    pushToast({
+      title: 'Unfollowed',
+      body: `You and ${user.name.split(' ')[0]} are no longer connected.`,
+    })
+    setDisconnecting(false)
+  }
+
+  const handleAddFriend = async () => {
+    if (sendingRequest || friendRequestState !== 'none') return
+    setSendingRequest(true)
+    setConnectionError(null)
+
+    const result = await sendFriendRequest(currentUserId, userId)
+    if (!result.ok) {
+      setConnectionError(result.error ?? 'The friend request could not be sent.')
+      setSendingRequest(false)
+      return
+    }
+
+    setFriendRequestState(result.state)
+    pushToast({
+      title: result.created ? 'Friend request sent' : 'Request already active',
+      body: result.created ? `${user.name.split(' ')[0]} will see it in Chats.` : undefined,
+    })
+    setSendingRequest(false)
+  }
+
+  const handleCancelRequest = async () => {
+    if (sendingRequest || friendRequestState !== 'pending_outgoing') return
+    setSendingRequest(true)
+    setConnectionError(null)
+
+    const result = await cancelFriendRequest(currentUserId, userId)
+    if (!result.ok) {
+      setConnectionError(result.error ?? 'The follow request could not be canceled.')
+      setSendingRequest(false)
+      return
+    }
+
+    setFriendRequestState('none')
+    pushToast({ title: 'Follow request canceled' })
+    setSendingRequest(false)
+  }
 
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed
@@ -371,29 +457,54 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
             
           ) : (
-            <button
-              type="button"
-              onClick={() => undefined}
-              disabled
-              className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors',
-                followed
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-secondary text-secondary-foreground',
-              )}
-            >
-              {followed ? (
-                <>
-                  <Check size={16} strokeWidth={3} />
-                  Connected
-                </>
-              ) : (
-                <>
-                  <UserPlus size={16} />
-                  Add from Discover
-                </>
-              )}
-            </button>
+            <div>
+              <button
+                type="button"
+                onClick={followed
+                  ? handleDisconnect
+                  : friendRequestState === 'none'
+                    ? handleAddFriend
+                    : friendRequestState === 'pending_outgoing'
+                      ? handleCancelRequest
+                      : undefined}
+                disabled={
+                  disconnecting ||
+                  sendingRequest ||
+                  (!followed && (friendRequestState === 'pending_incoming' || friendRequestState === 'accepted'))
+                }
+                className={cn(
+                  'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
+                  followed
+                    ? 'border border-red-500/30 bg-background text-red-500'
+                    : 'bg-secondary text-secondary-foreground',
+                )}
+              >
+                {followed ? (
+                  <>
+                    <X size={16} strokeWidth={3} />
+                    {disconnecting ? 'Unfollowing...' : 'Unfollow'}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={16} />
+                    {sendingRequest
+                      ? friendRequestState === 'pending_outgoing' ? 'Canceling...' : 'Sending...'
+                      : friendRequestState === 'pending_outgoing'
+                        ? 'Cancel Request'
+                      : friendRequestState === 'pending_incoming'
+                        ? 'Request Received'
+                        : friendRequestState === 'accepted'
+                          ? 'Connected'
+                          : 'Follow'}
+                  </>
+                )}
+              </button>
+              {connectionError ? (
+                <p role="alert" className="mt-2 text-center text-sm font-medium text-red-500">
+                  {connectionError}
+                </p>
+              ) : null}
+            </div>
           )}
         </div>
 

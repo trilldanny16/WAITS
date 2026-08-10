@@ -54,6 +54,7 @@ interface StoreValue {
   followers: string[]
   pendingFriendRequestCount: number
   refreshSocialState: () => Promise<void>
+  disconnectUser: (userId: string) => Promise<{ ok: boolean; error?: string }>
   toasts: Toast[]
   getUser: (id: string) => User
   updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => void
@@ -222,6 +223,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', refreshOnVisibility)
       void supabase.removeChannel(channel)
     }
+  }, [currentUserId, refreshSocialState])
+
+  const disconnectUser = useCallback(async (userId: string) => {
+    if (!currentUserId || userId === currentUserId) {
+      return { ok: false, error: 'That connection cannot be removed.' }
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user || user.id !== currentUserId) {
+      return { ok: false, error: 'Your session could not be verified. Please sign in again.' }
+    }
+
+    const { data, error } = await supabase
+      .from('friend_requests')
+      .delete()
+      .eq('status', 'accepted')
+      .or(
+        `and(sender_id.eq.${currentUserId},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUserId})`,
+      )
+      .select('id')
+
+    if (error) return { ok: false, error: error.message }
+    if (!data || data.length === 0) {
+      return { ok: false, error: 'No accepted connection was removed.' }
+    }
+
+    await refreshSocialState()
+    return { ok: true }
   }, [currentUserId, refreshSocialState])
 
   // Hydrate premium status from localStorage (prototype persistence).
@@ -412,6 +445,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       followers,
       pendingFriendRequestCount,
       refreshSocialState,
+      disconnectUser,
       toasts,
       getUser,
       updateUser,
@@ -441,6 +475,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       followers,
       pendingFriendRequestCount,
       refreshSocialState,
+      disconnectUser,
       toasts,
       getUser,
       updateUser,
