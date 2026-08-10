@@ -5,7 +5,7 @@ import {
   ChevronLeft,
   MapPin,
   Lock,
-  Check,
+  X,
   UserPlus,
   Dumbbell,
   Crown,
@@ -25,6 +25,7 @@ import { supabase } from '@/lib/supabase-client'
 import { SocialList } from './social-list'
 import {
   getFriendRequestState,
+  cancelFriendRequest,
   sendFriendRequest,
   type FriendRequestState,
 } from '@/lib/friend-requests'
@@ -248,6 +249,23 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     setSendingRequest(false)
   }
 
+  const handleCancelRequest = async () => {
+    if (sendingRequest || friendRequestState !== 'pending_outgoing') return
+    setSendingRequest(true)
+    setConnectionError(null)
+
+    const result = await cancelFriendRequest(currentUserId, userId)
+    if (!result.ok) {
+      setConnectionError(result.error ?? 'The follow request could not be canceled.')
+      setSendingRequest(false)
+      return
+    }
+
+    setFriendRequestState('none')
+    pushToast({ title: 'Follow request canceled' })
+    setSendingRequest(false)
+  }
+
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed
   const showProBadge = isSelf && isPremium
@@ -442,8 +460,18 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <div>
               <button
                 type="button"
-                onClick={followed ? handleDisconnect : friendRequestState === 'none' ? handleAddFriend : undefined}
-                disabled={disconnecting || sendingRequest || (!followed && friendRequestState !== 'none')}
+                onClick={followed
+                  ? handleDisconnect
+                  : friendRequestState === 'none'
+                    ? handleAddFriend
+                    : friendRequestState === 'pending_outgoing'
+                      ? handleCancelRequest
+                      : undefined}
+                disabled={
+                  disconnecting ||
+                  sendingRequest ||
+                  (!followed && (friendRequestState === 'pending_incoming' || friendRequestState === 'accepted'))
+                }
                 className={cn(
                   'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
                   followed
@@ -453,21 +481,21 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               >
                 {followed ? (
                   <>
-                    <Check size={16} strokeWidth={3} />
+                    <X size={16} strokeWidth={3} />
                     {disconnecting ? 'Unfollowing...' : 'Unfollow'}
                   </>
                 ) : (
                   <>
                     <UserPlus size={16} />
                     {sendingRequest
-                      ? 'Sending...'
+                      ? friendRequestState === 'pending_outgoing' ? 'Canceling...' : 'Sending...'
                       : friendRequestState === 'pending_outgoing'
-                        ? 'Sent'
+                        ? 'Cancel Request'
                       : friendRequestState === 'pending_incoming'
                         ? 'Request Received'
                         : friendRequestState === 'accepted'
                           ? 'Connected'
-                          : 'Add Friend'}
+                          : 'Follow'}
                   </>
                 )}
               </button>
