@@ -8,7 +8,6 @@ export type Overlay =
   | { type: 'workout'; id: string }
   | { type: 'chat'; id: string }
   | { type: 'user'; id: string }
-  | { type: 'social-list'; userId: string; kind: 'followers' | 'following' }
   | { type: 'create' }
   | { type: 'community' }
   | { type: 'paywall'; feature?: string }
@@ -20,7 +19,6 @@ interface NavValue {
   openWorkout: (id: string) => void
   openChat: (id: string) => void
   openUser: (id: string) => void
-  openSocialList: (userId: string, kind: 'followers' | 'following') => void
   openCreate: () => void
   openCommunity: () => void
   openPaywall: (feature?: string) => void
@@ -48,9 +46,6 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const openUser = useCallback((id: string) => {
     setOverlays((prev) => [...prev, { type: 'user', id }])
   }, [])
-  const openSocialList = useCallback((userId: string, kind: 'followers' | 'following') => {
-    setOverlays((prev) => [...prev, { type: 'social-list', userId, kind }])
-  }, [])
   const openCreate = useCallback(() => {
     setOverlays((prev) => [...prev, { type: 'create' }])
   }, [])
@@ -74,7 +69,6 @@ export function NavProvider({ children }: { children: ReactNode }) {
         openWorkout,
         openChat,
         openUser,
-        openSocialList,
         openCreate,
         openCommunity,
         openPaywall,
