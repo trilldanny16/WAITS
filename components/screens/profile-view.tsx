@@ -22,6 +22,7 @@ import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
+import { SocialList } from './social-list'
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -63,7 +64,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     addGalleryPhoto,
   } = useStore()
 
-  const { back, openWorkout, openPaywall, openSocialList } = useNav()
+  const { back, openWorkout, openPaywall } = useNav()
   const user = getUser(userId)
 
   const [isEditing, setIsEditing] = useState(false)
@@ -72,6 +73,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [editCity, setEditCity] = useState(user.city)
   const [editBio, setEditBio] = useState(user.bio)
   const [editError, setEditError] = useState<string | null>(null)
+  const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
 
   useEffect(() => {
     setEditName(user.name)
@@ -82,8 +84,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   }, [user.name, user.homeGym, user.city, user.bio])
 
   const handleSaveProfile = async () => {
-    console.log('SAVE BUTTON CLICKED')
-
     const trimmedName = editName.trim()
     const nameParts = trimmedName.split(/\s+/).filter(Boolean)
 
@@ -127,12 +127,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     .eq('id', authUser.id)
     .select('id, display_name, home_gym, city, bio')
     .single()
-
-    console.log('PROFILE SAVE DEBUG', {
-  authUserId: authUser.id,
-  savedProfile,
-  error,
-})
 
   if (error || !savedProfile) {
     console.error('Failed to save profile:', error)
@@ -197,6 +191,16 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     return map
   }, [myWorkouts])
 
+  if (socialListKind) {
+    return (
+      <SocialList
+        userId={userId}
+        kind={socialListKind}
+        onBack={() => setSocialListKind(null)}
+      />
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
@@ -244,12 +248,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <Stat
             value={isSelf ? followers.length : 0}
             label="Followers"
-            onClick={() => openSocialList(userId, 'followers')}
+            onClick={() => setSocialListKind('followers')}
           />
           <Stat
             value={isSelf ? following.length : 0}
             label="Following"
-            onClick={() => openSocialList(userId, 'following')}
+            onClick={() => setSocialListKind('following')}
           />
         </div>
 
@@ -591,7 +595,11 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 function Stat({ value, label, onClick }: { value: number; label: string; onClick?: () => void }) {
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className="rounded-xl px-2 py-1 text-center hover:bg-secondary">
+      <button
+        type="button"
+        onClick={onClick}
+        className="relative z-10 min-w-20 touch-manipulation rounded-xl px-2 py-2 text-center hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
+      >
         <p className="text-xl font-extrabold text-foreground">{value}</p>
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
       </button>
