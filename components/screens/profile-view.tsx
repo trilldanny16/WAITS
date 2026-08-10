@@ -66,6 +66,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
   const { back, openWorkout, openPaywall } = useNav()
   const user = getUser(userId)
+  const isSelf = userId === currentUserId
 
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(user.name)
@@ -74,6 +75,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [editBio, setEditBio] = useState(user.bio)
   const [editError, setEditError] = useState<string | null>(null)
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
+  const [viewedConnectionCount, setViewedConnectionCount] = useState(0)
 
   useEffect(() => {
     setEditName(user.name)
@@ -82,6 +84,39 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     setEditBio(user.bio)
     setEditError(null)
   }, [user.name, user.homeGym, user.city, user.bio])
+
+  useEffect(() => {
+    let active = true
+
+    if (isSelf) {
+      setViewedConnectionCount(0)
+      return () => {
+        active = false
+      }
+    }
+
+    const loadViewedConnectionCount = async () => {
+      const { data, error } = await supabase.rpc('get_profile_connection_count', {
+        profile_id: userId,
+      })
+
+      if (!active) return
+
+      if (error) {
+        console.error('Failed to load viewed profile connection count:', error)
+        setViewedConnectionCount(0)
+        return
+      }
+
+      setViewedConnectionCount(Number(data ?? 0))
+    }
+
+    void loadViewedConnectionCount()
+
+    return () => {
+      active = false
+    }
+  }, [isSelf, userId])
 
   const handleSaveProfile = async () => {
     const trimmedName = editName.trim()
@@ -145,7 +180,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   setIsEditing(false)
 }
 
-  const isSelf = userId === currentUserId
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed
   const showProBadge = isSelf && isPremium
@@ -246,12 +280,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         <div className="mt-4 flex items-center justify-center gap-8">
           <Stat value={myWorkouts.length} label="Workouts" />
           <Stat
-            value={isSelf ? followers.length : 0}
+            value={isSelf ? followers.length : viewedConnectionCount}
             label="Followers"
             onClick={() => setSocialListKind('followers')}
           />
           <Stat
-            value={isSelf ? following.length : 0}
+            value={isSelf ? following.length : viewedConnectionCount}
             label="Following"
             onClick={() => setSocialListKind('following')}
           />
