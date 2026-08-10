@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   ChevronLeft,
   MapPin,
@@ -74,6 +74,13 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [editBio, setEditBio] = useState(user.bio)
   const [editError, setEditError] = useState<string | null>(null)
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
+  const profileInstanceId = useRef(Math.random().toString(36).slice(2, 8))
+  const [socialDiagnostic, setSocialDiagnostic] = useState('ready: no click received')
+
+  const openSocialListDiagnostic = (kind: 'followers' | 'following') => {
+    setSocialDiagnostic(`click received: ${kind}`)
+    setSocialListKind(kind)
+  }
 
   useEffect(() => {
     setEditName(user.name)
@@ -193,11 +200,18 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
   if (socialListKind) {
     return (
-      <SocialList
-        userId={userId}
-        kind={socialListKind}
-        onBack={() => setSocialListKind(null)}
-      />
+      <div className="flex h-full flex-col">
+        <div className="z-[100] shrink-0 bg-fuchsia-600 px-3 py-2 text-center text-xs font-extrabold text-white">
+          DIAGNOSTIC — list branch rendered · state={socialListKind} · instance={profileInstanceId.current}
+        </div>
+        <div className="min-h-0 flex-1">
+          <SocialList
+            userId={userId}
+            kind={socialListKind}
+            onBack={() => setSocialListKind(null)}
+          />
+        </div>
+      </div>
     )
   }
 
@@ -218,6 +232,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
+        <div className="sticky top-0 z-[100] mb-2 rounded-xl bg-fuchsia-600 px-3 py-2 text-center text-xs font-extrabold text-white">
+          DIAGNOSTIC — {socialDiagnostic} · state={socialListKind ?? 'null'} · instance={profileInstanceId.current}
+        </div>
         {/* Identity */}
         <div className="flex flex-col items-center pt-4 text-center">
           <Avatar user={user} size={88} />
@@ -248,12 +265,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <Stat
             value={isSelf ? followers.length : 0}
             label="Followers"
-            onClick={() => setSocialListKind('followers')}
+            onClick={() => openSocialListDiagnostic('followers')}
           />
           <Stat
             value={isSelf ? following.length : 0}
             label="Following"
-            onClick={() => setSocialListKind('following')}
+            onClick={() => openSocialListDiagnostic('following')}
           />
         </div>
 
