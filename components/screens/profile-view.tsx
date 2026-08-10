@@ -58,13 +58,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     followers,
     currentUserId,
     isFollowing,
-    toggleFollow,
     isPremium,
     galleryFor,
     addGalleryPhoto,
   } = useStore()
 
-  const { back, openWorkout, openPaywall } = useNav()
+  const { back, openWorkout, openPaywall, openSocialList } = useNav()
   const user = getUser(userId)
 
   const [isEditing, setIsEditing] = useState(false)
@@ -242,8 +241,16 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         {/* Stats */}
         <div className="mt-4 flex items-center justify-center gap-8">
           <Stat value={myWorkouts.length} label="Workouts" />
-          <Stat value={isSelf ? followers.length : Math.floor(4 + user.hue / 20)} label="Followers" />
-          <Stat value={isSelf ? following.length : Math.floor(2 + user.hue / 30)} label="Following" />
+          <Stat
+            value={isSelf ? followers.length : 0}
+            label="Followers"
+            onClick={() => openSocialList(userId, 'followers')}
+          />
+          <Stat
+            value={isSelf ? following.length : 0}
+            label="Following"
+            onClick={() => openSocialList(userId, 'following')}
+          />
         </div>
 
         {/* Follow / edit action */}
@@ -328,23 +335,24 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           ) : (
             <button
               type="button"
-              onClick={() => toggleFollow(userId)}
+              onClick={() => undefined}
+              disabled
               className={cn(
                 'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors',
                 followed
                   ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-primary text-primary-foreground',
+                  : 'bg-secondary text-secondary-foreground',
               )}
             >
               {followed ? (
                 <>
                   <Check size={16} strokeWidth={3} />
-                  {user.isPrivate ? 'Requested' : 'Following'}
+                  Connected
                 </>
               ) : (
                 <>
                   <UserPlus size={16} />
-                  {user.isPrivate ? 'Request to Follow' : 'Follow'}
+                  Add from Discover
                 </>
               )}
             </button>
@@ -580,7 +588,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   )
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, onClick }: { value: number; label: string; onClick?: () => void }) {
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="rounded-xl px-2 py-1 text-center hover:bg-secondary">
+        <p className="text-xl font-extrabold text-foreground">{value}</p>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      </button>
+    )
+  }
   return (
     <div className="text-center">
       <p className="text-xl font-extrabold text-foreground">{value}</p>
