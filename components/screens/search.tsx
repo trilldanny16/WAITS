@@ -9,13 +9,18 @@ import { Avatar } from '../avatar'
 import { WORKOUT_TYPES, type WorkoutType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
+import {
+  getFriendRequestStates,
+  sendFriendRequest as persistFriendRequest,
+  type FriendRequestState,
+} from '@/lib/friend-requests'
 type Filter = 'all' | WorkoutType
 
 export function Search() {
   const { workouts, users, getUser, currentUserId, pushToast } = useStore()
   const { openUser } = useNav()
   const [query, setQuery] = useState('')
-  const [sentRequests, setSentRequests] = useState<string[]>([])
+  const [requestStates, setRequestStates] = useState<Record<string, FriendRequestState>>({})
   const [sendingTo, setSendingTo] = useState<string | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -39,104 +44,31 @@ useEffect(() => {
 
     setRealUsers((data ?? []).filter((profile) => profile.id !== currentUserId))
 
-    const { data: existing } = await supabase
-      .from('friend_requests')
-      .select('receiver_id')
-      .eq('sender_id', currentUserId)
-      .in('status', ['pending', 'accepted'])
-    setSentRequests((existing ?? []).map((request) => request.receiver_id))
+    const result = await getFriendRequestStates(currentUserId)
+    if (result.error) setRequestError(result.error)
+    else setRequestStates(result.states)
   }
 
   loadUsers()
 }, [currentUserId])
 const sendFriendRequest = async (receiverId: string) => {
-  if (sendingTo || sentRequests.includes(receiverId)) return
-
-  if (receiverId === currentUserId) {
-    setRequestError('You cannot send a friend request to yourself.')
-    return
-  }
+  if (sendingTo || (requestStates[receiverId] ?? 'none') !== 'none') return
 
   setSendingTo(receiverId)
   setRequestError(null)
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    setRequestError('Your session could not be verified. Please sign in again.')
+  const result = await persistFriendRequest(currentUserId, receiverId)
+  if (!result.ok) {
+    setRequestError(result.error ?? 'The friend request could not be sent.')
     setSendingTo(null)
     return
   }
 
-  if (user.id !== currentUserId) {
-    setRequestError('Your account changed. Refresh and try again.')
-    setSendingTo(null)
-    return
-  }
-
-  const { data: receiver, error: receiverError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', receiverId)
-    .maybeSingle()
-
-  if (receiverError || !receiver) {
-    setRequestError(receiverError?.message ?? 'That profile no longer exists.')
-    setSendingTo(null)
-    return
-  }
-
-  const { data: duplicate, error: duplicateError } = await supabase
-    .from('friend_requests')
-    .select('id, status')
-    .or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`)
-    .in('status', ['pending', 'accepted'])
-    .maybeSingle()
-
-  if (duplicateError) {
-    setRequestError(duplicateError.message)
-    setSendingTo(null)
-    return
-  }
-
-  if (duplicate) {
-    setSentRequests((prev) => prev.includes(receiverId) ? prev : [...prev, receiverId])
-    pushToast({ title: duplicate.status === 'accepted' ? 'Already friends' : 'Request already pending' })
-    setSendingTo(null)
-    return
-  }
-
-  const { data: inserted, error } = await supabase
-    .from('friend_requests')
-    .insert({
-      sender_id: user.id,
-      receiver_id: receiver.id,
-      status: 'pending',
-    })
-    .select('id, sender_id, receiver_id, status')
-    .single()
-
-  if (
-    error ||
-    !inserted ||
-    inserted.sender_id !== user.id ||
-    inserted.receiver_id !== receiver.id ||
-    inserted.status !== 'pending'
-  ) {
-    setRequestError(
-      error?.code === '23505'
-        ? 'A pending or accepted request already exists between these accounts.'
-        : error?.message ?? 'Supabase did not confirm the friend request.',
-    )
-    setSendingTo(null)
-    return
-  }
-
-  setSentRequests((prev) => [...prev, receiverId])
-  pushToast({ title: 'Friend request sent', body: 'They will see it in Chats.' })
+  setRequestStates((prev) => ({ ...prev, [receiverId]: result.state }))
+  pushToast({
+    title: result.created ? 'Friend request sent' : 'Request already active',
+    body: result.created ? 'They will see it in Chats.' : undefined,
+  })
   setSendingTo(null)
 }
 
@@ -262,15 +194,19 @@ const realMatchedUsers = useMemo(() => {
 
   <button
     type="button"
-    disabled={sendingTo === u.id || sentRequests.includes(u.id)}
+    disabled={sendingTo === u.id || (requestStates[u.id] ?? 'none') !== 'none'}
     onClick={() => sendFriendRequest(u.id)}
     className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
   >
     {sendingTo === u.id
       ? 'Sending...'
-      : sentRequests.includes(u.id)
-        ? 'Sent'
-        : 'Add Friend'}
+      : requestStates[u.id] === 'accepted'
+        ? 'Connected'
+        : requestStates[u.id] === 'pending_incoming'
+          ? 'Request received'
+          : requestStates[u.id] === 'pending_outgoing'
+            ? 'Sent'
+            : 'Add Friend'}
   </button>
 </div>
               ))}
