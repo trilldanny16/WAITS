@@ -22,6 +22,7 @@ import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
+import { SocialList } from './social-list'
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -58,7 +59,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     followers,
     currentUserId,
     isFollowing,
-    toggleFollow,
     isPremium,
     galleryFor,
     addGalleryPhoto,
@@ -73,6 +73,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [editCity, setEditCity] = useState(user.city)
   const [editBio, setEditBio] = useState(user.bio)
   const [editError, setEditError] = useState<string | null>(null)
+  const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
 
   useEffect(() => {
     setEditName(user.name)
@@ -83,8 +84,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   }, [user.name, user.homeGym, user.city, user.bio])
 
   const handleSaveProfile = async () => {
-    console.log('SAVE BUTTON CLICKED')
-
     const trimmedName = editName.trim()
     const nameParts = trimmedName.split(/\s+/).filter(Boolean)
 
@@ -128,12 +127,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     .eq('id', authUser.id)
     .select('id, display_name, home_gym, city, bio')
     .single()
-
-    console.log('PROFILE SAVE DEBUG', {
-  authUserId: authUser.id,
-  savedProfile,
-  error,
-})
 
   if (error || !savedProfile) {
     console.error('Failed to save profile:', error)
@@ -198,6 +191,16 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     return map
   }, [myWorkouts])
 
+  if (socialListKind) {
+    return (
+      <SocialList
+        userId={userId}
+        kind={socialListKind}
+        onBack={() => setSocialListKind(null)}
+      />
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
@@ -206,10 +209,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <button
             type="button"
             onClick={back}
-            className="flex size-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
+            className="flex h-9 items-center justify-center gap-1 rounded-full bg-secondary px-3 text-sm font-bold text-secondary-foreground"
             aria-label="Back"
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={20} /> Back
           </button>
         ) : null}
       </header>
@@ -242,8 +245,16 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         {/* Stats */}
         <div className="mt-4 flex items-center justify-center gap-8">
           <Stat value={myWorkouts.length} label="Workouts" />
-          <Stat value={isSelf ? followers.length : Math.floor(4 + user.hue / 20)} label="Followers" />
-          <Stat value={isSelf ? following.length : Math.floor(2 + user.hue / 30)} label="Following" />
+          <Stat
+            value={isSelf ? followers.length : 0}
+            label="Followers"
+            onClick={() => setSocialListKind('followers')}
+          />
+          <Stat
+            value={isSelf ? following.length : 0}
+            label="Following"
+            onClick={() => setSocialListKind('following')}
+          />
         </div>
 
         {/* Follow / edit action */}
@@ -328,23 +339,24 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           ) : (
             <button
               type="button"
-              onClick={() => toggleFollow(userId)}
+              onClick={() => undefined}
+              disabled
               className={cn(
                 'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors',
                 followed
                   ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-primary text-primary-foreground',
+                  : 'bg-secondary text-secondary-foreground',
               )}
             >
               {followed ? (
                 <>
                   <Check size={16} strokeWidth={3} />
-                  {user.isPrivate ? 'Requested' : 'Following'}
+                  Connected
                 </>
               ) : (
                 <>
                   <UserPlus size={16} />
-                  {user.isPrivate ? 'Request to Follow' : 'Follow'}
+                  Add from Discover
                 </>
               )}
             </button>
@@ -580,7 +592,19 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   )
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, onClick }: { value: number; label: string; onClick?: () => void }) {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="relative z-10 min-w-20 touch-manipulation rounded-xl px-2 py-2 text-center hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <p className="text-xl font-extrabold text-foreground">{value}</p>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      </button>
+    )
+  }
   return (
     <div className="text-center">
       <p className="text-xl font-extrabold text-foreground">{value}</p>

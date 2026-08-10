@@ -98,8 +98,17 @@ if (data.session?.user) {
       const signedIn = Boolean(session)
       setHasSession(signedIn)
 
-      if (signedIn) {
-        setStep(1)
+      if (session?.user) {
+        void supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data: profile }) => {
+            if (!mounted) return
+            if (profile?.onboarding_completed) onDone()
+            else setStep(1)
+          })
       }
     })
 
@@ -107,7 +116,7 @@ if (data.session?.user) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [onDone])
 
   const toggleDay = (day: string) => {
     setDays((previousDays) =>

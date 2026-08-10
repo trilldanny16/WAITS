@@ -3,6 +3,7 @@
 import { Home, Search, Plus, MessageCircle, User } from 'lucide-react'
 import { useNav, type Tab } from './navigation'
 import { cn } from '@/lib/utils'
+import { useStore } from './store'
 
 const ITEMS: { tab: Tab; label: string; icon: typeof Home }[] = [
   { tab: 'home', label: 'Feed', icon: Home },
@@ -14,6 +15,7 @@ const ITEMS: { tab: Tab; label: string; icon: typeof Home }[] = [
 
 export function BottomNav() {
   const { tab, setTab, openCreate } = useNav()
+  const { pendingFriendRequestCount, refreshSocialState } = useStore()
 
   return (
     <nav
@@ -41,14 +43,24 @@ export function BottomNav() {
           <button
             key={t}
             type="button"
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setTab(t)
+              if (t === 'chats') void refreshSocialState()
+            }}
             aria-current={active ? 'page' : undefined}
             className={cn(
               'flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 text-[10px] font-medium transition-colors',
               active ? 'text-primary' : 'text-muted-foreground',
             )}
           >
-            <Icon size={23} strokeWidth={active ? 2.6 : 2} />
+            <span className="relative">
+              <Icon size={23} strokeWidth={active ? 2.6 : 2} />
+              {t === 'chats' && pendingFriendRequestCount > 0 ? (
+                <span className="absolute -right-2 -top-2 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-extrabold leading-4 text-white">
+                  {pendingFriendRequestCount > 9 ? '9+' : pendingFriendRequestCount}
+                </span>
+              ) : null}
+            </span>
             {label}
           </button>
         )
