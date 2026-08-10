@@ -158,18 +158,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refreshSocialState = useCallback(async () => {
     if (!currentUserId) return
 
-    const { data, error } = await supabase
-      .from('friend_requests')
-      .select('sender_id, receiver_id, status')
-      .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
+    const [sentResult, receivedResult] = await Promise.all([
+      supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id, status')
+        .eq('sender_id', currentUserId),
+      supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id, status')
+        .eq('receiver_id', currentUserId),
+    ])
 
-    if (error) {
-      console.error('Failed to refresh social state:', error)
+    if (sentResult.error || receivedResult.error) {
+      console.error(
+        'Failed to refresh social state:',
+        sentResult.error ?? receivedResult.error,
+      )
       return
     }
 
+    const requests = [...(sentResult.data ?? []), ...(receivedResult.data ?? [])]
+
     const acceptedConnections = Array.from(new Set(
-      (data ?? [])
+      requests
         .filter((request) => request.status === 'accepted')
         .map((request) => request.sender_id === currentUserId ? request.receiver_id : request.sender_id),
     ))
@@ -179,7 +190,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setFollowing(acceptedConnections)
     setFollowers(acceptedConnections)
     setPendingFriendRequestCount(
-      (data ?? []).filter(
+      requests.filter(
         (request) => request.receiver_id === currentUserId && request.status === 'pending',
       ).length,
     )
