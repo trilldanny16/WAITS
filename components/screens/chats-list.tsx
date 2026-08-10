@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MessageCircle, Globe, ChevronRight, Crown, Lock, Bell } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -11,7 +11,7 @@ import { COMMUNITY_CHANNEL_ID } from '@/lib/seed'
 import { supabase } from '@/lib/supabase-client'
 
 export function ChatsList() {
-  const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast } = useStore()
+  const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
   const { openChat, openCommunity, openPaywall } = useNav()
 
   type FriendRequest = {
@@ -26,8 +26,8 @@ export function ChatsList() {
   const [requestError, setRequestError] = useState<string | null>(null)
   const openCrew = (id: string) => (isPremium ? openChat(id) : openPaywall('Crew chats'))
 
-  useEffect(() => {
-  const loadFriendRequests = async () => {
+  const loadFriendRequests = useCallback(async () => {
+    setRequestError(null)
     const { data: requests, error } = await supabase
       .from('friend_requests')
       .select('id, sender_id')
@@ -35,7 +35,7 @@ export function ChatsList() {
       .eq('status', 'pending')
 
     if (error) {
-      console.error('Failed to load friend requests:', error)
+      setRequestError(`Could not load friend requests: ${error.message}`)
       return
     }
 
@@ -53,7 +53,6 @@ export function ChatsList() {
 
     if (profileError) {
       console.error('Failed to load sender profiles:', profileError)
-      return
     }
 
     setFriendRequests(
@@ -68,30 +67,54 @@ export function ChatsList() {
         }
       }),
     )
-  }
+  }, [currentUserId])
 
-  void loadFriendRequests()
-}, [currentUserId])
+  useEffect(() => {
+    void loadFriendRequests()
+
+    const channel = supabase
+      .channel(`incoming-friend-requests:${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friend_requests',
+          filter: `receiver_id=eq.${currentUserId}`,
+        },
+        () => void loadFriendRequests(),
+      )
+      .subscribe()
+
+    const refresh = () => void loadFriendRequests()
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUserId, loadFriendRequests])
 
 const acceptFriendRequest = async (requestId: string) => {
   setRespondingTo(requestId)
   setRequestError(null)
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('friend_requests')
     .update({ status: 'accepted' })
     .eq('id', requestId)
     .eq('receiver_id', currentUserId)
     .eq('status', 'pending')
+    .select('id, status')
+    .single()
 
-  if (error) {
-    setRequestError(error.message)
+  if (error || data?.status !== 'accepted') {
+    setRequestError(error?.message ?? 'The request was not accepted. Refresh and try again.')
     setRespondingTo(null)
     return
   }
 
-  setFriendRequests((current) =>
-    current.filter((request) => request.id !== requestId),
-  )
+  await Promise.all([loadFriendRequests(), refreshSocialState()])
   pushToast({ title: 'Friend request accepted' })
   setRespondingTo(null)
 }
@@ -99,22 +122,22 @@ const acceptFriendRequest = async (requestId: string) => {
 const declineFriendRequest = async (requestId: string) => {
   setRespondingTo(requestId)
   setRequestError(null)
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('friend_requests')
     .update({ status: 'declined' })
     .eq('id', requestId)
     .eq('receiver_id', currentUserId)
     .eq('status', 'pending')
+    .select('id, status')
+    .single()
 
-  if (error) {
-    setRequestError(error.message)
+  if (error || data?.status !== 'declined') {
+    setRequestError(error?.message ?? 'The request was not declined. Refresh and try again.')
     setRespondingTo(null)
     return
   }
 
-  setFriendRequests((current) =>
-    current.filter((request) => request.id !== requestId),
-  )
+  await Promise.all([loadFriendRequests(), refreshSocialState()])
   pushToast({ title: 'Friend request declined' })
   setRespondingTo(null)
 }
