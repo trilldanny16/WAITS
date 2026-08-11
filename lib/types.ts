@@ -75,6 +75,8 @@ export interface User {
   streak?: number
   /** premium profile theme accent (CSS color) */
   themeColor?: string
+  /** Server-verified paid entitlement; never inferred from seed identity. */
+  isVerifiedPro?: boolean
 }
 
 export interface ChatMessage {
