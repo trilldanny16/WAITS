@@ -2,6 +2,11 @@
 
 Run `migrations/202608100001_community_messages_24h.sql` in the Supabase SQL editor first.
 
+If the table was created by an earlier version of this migration, rerun the
+migration to add the owner-only UPDATE and DELETE policies. These policies do
+not allow edits to another user's messages, and editing does not modify
+`created_at`.
+
 ## Schedule cleanup
 
 Do not assume `pg_cron` is available. Check it first:
