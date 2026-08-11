@@ -7,6 +7,7 @@ import {
 } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { PRO_PLAN } from '@/lib/products'
+import { supabase } from '@/lib/supabase-client'
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 const stripePromise = stripePublishableKey
@@ -18,9 +19,11 @@ export function PremiumCheckout({ onSuccess }: { onSuccess: () => void }) {
   const publishableKeyMissing = !stripePublishableKey
 
   const fetchClientSecret = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Sign in before starting checkout.')
     const response = await fetch('/api/stripe/create-session', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ planId: PRO_PLAN.id }),
     })
 
@@ -39,9 +42,11 @@ export function PremiumCheckout({ onSuccess }: { onSuccess: () => void }) {
     const sessionId = sessionIdRef.current
     if (!sessionId) return
 
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
     const response = await fetch('/api/stripe/confirm-session', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ sessionId }),
     })
 
