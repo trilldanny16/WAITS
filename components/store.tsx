@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -30,6 +29,7 @@ export const FREE_MAX_ACTIVE_WORKOUTS = 3
 export const FREE_MAX_PARTICIPANTS = 3
 export const PRO_MAX_PARTICIPANTS = 6
 const PREMIUM_STORAGE_KEY = 'waits:premium'
+const SUPABASE_USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 interface NewWorkoutInput {
   gym: string
@@ -97,7 +97,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [isPremium, setIsPremium] = useState(false)
   // Extra gallery photos the current user adds this session, keyed by user id.
   const [ownGallery, setOwnGallery] = useState<string[]>([])
-  const persistedAttendeesRef = useRef<Map<string, string[]>>(new Map())
 
   useEffect(() => {
   const loadCurrentUser = async () => {
@@ -331,12 +330,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     setWorkouts((previous) => previous.map((workout) => {
-      const oldPersisted = persistedAttendeesRef.current.get(workout.id) ?? []
-      const baseAttendees = workout.attendees.filter((id) => !oldPersisted.includes(id))
+      // Seed identities model the prototype's default crowd. Real Supabase
+      // users are rebuilt exclusively from workout_attendees so a deleted join
+      // can never survive in local state. A real workout host remains an
+      // attendee by definition, even though prototype workouts are local-only.
+      const defaultAttendees = workout.attendees.filter(
+        (id) => !SUPABASE_USER_ID_PATTERN.test(id) || id === workout.hostId,
+      )
       const persisted = nextPersisted.get(workout.id) ?? []
-      return { ...workout, attendees: Array.from(new Set([...baseAttendees, ...persisted])) }
+      return { ...workout, attendees: Array.from(new Set([...defaultAttendees, ...persisted])) }
     }))
-    persistedAttendeesRef.current = nextPersisted
     return { ok: true }
   }, [currentUserId])
 
@@ -403,15 +406,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const leaveWorkout = useCallback(
     async (id: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('workout_attendees')
         .delete()
         .eq('workout_id', id)
         .eq('user_id', currentUserId)
+        .select('workout_id, user_id')
 
       if (error) {
         pushToast({ title: 'Could not leave workout', body: error.message })
         return { ok: false, error: error.message }
+      }
+
+      if (!data || data.length === 0) {
+        await refreshWorkoutAttendance()
+        const message = 'No persisted attendance was removed.'
+        pushToast({ title: 'Could not confirm leave', body: message })
+        return { ok: false, error: message }
       }
 
       const refreshed = await refreshWorkoutAttendance()
