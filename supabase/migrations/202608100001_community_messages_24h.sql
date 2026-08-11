@@ -16,14 +16,18 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  new.created_at := now();
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+  else
+    new.created_at := old.created_at;
+  end if;
   return new;
 end;
 $$;
 
 drop trigger if exists set_community_message_created_at on public.community_messages;
 create trigger set_community_message_created_at
-  before insert on public.community_messages
+  before insert or update on public.community_messages
   for each row execute function public.set_community_message_created_at();
 
 alter table public.community_messages enable row level security;
@@ -37,6 +41,17 @@ drop policy if exists "Authenticated users send community messages" on public.co
 create policy "Authenticated users send community messages"
   on public.community_messages for insert to authenticated
   with check (user_id = auth.uid());
+
+drop policy if exists "Users update their own community messages" on public.community_messages;
+create policy "Users update their own community messages"
+  on public.community_messages for update to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "Users delete their own community messages" on public.community_messages;
+create policy "Users delete their own community messages"
+  on public.community_messages for delete to authenticated
+  using (user_id = auth.uid());
 
 create or replace function public.purge_expired_community_messages()
 returns bigint
