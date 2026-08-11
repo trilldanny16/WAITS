@@ -68,6 +68,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     isPremium,
     galleryFor,
     addGalleryPhoto,
+    removeGalleryPhoto,
     disconnectUser,
     pushToast,
   } = useStore()
@@ -81,6 +82,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [editHomeGym, setEditHomeGym] = useState(user.homeGym)
   const [editCity, setEditCity] = useState(user.city)
   const [editBio, setEditBio] = useState(user.bio)
+  const [editFavoriteSplit, setEditFavoriteSplit] = useState(user.favoriteSplit)
   const [editError, setEditError] = useState<string | null>(null)
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
   const [viewedConnectionCount, setViewedConnectionCount] = useState(0)
@@ -94,8 +96,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     setEditHomeGym(user.homeGym)
     setEditCity(user.city)
     setEditBio(user.bio)
+    setEditFavoriteSplit(user.favoriteSplit)
     setEditError(null)
-  }, [user.name, user.homeGym, user.city, user.bio])
+  }, [user.name, user.homeGym, user.city, user.bio, user.favoriteSplit])
 
   useEffect(() => {
     let active = true
@@ -184,10 +187,11 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
       home_gym: editHomeGym.trim(),
       city: editCity.trim(),
       bio: editBio.trim(),
+      favorite_split: editFavoriteSplit.trim() || 'Not set',
       updated_at: new Date().toISOString(),
     })
     .eq('id', authUser.id)
-    .select('id, display_name, home_gym, city, bio')
+    .select('id, display_name, home_gym, city, bio, favorite_split')
     .single()
 
   if (error || !savedProfile) {
@@ -201,6 +205,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     homeGym: savedProfile.home_gym ?? '',
     city: savedProfile.city ?? '',
     bio: savedProfile.bio ?? '',
+    favoriteSplit: savedProfile.favorite_split ?? 'Not set',
   })
 
   setEditError(null)
@@ -268,7 +273,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed
-  const showProBadge = isSelf && isPremium
+  const showProBadge = user.isVerifiedPro === true
   const gallery = galleryFor(userId)
   // Free users can view their own gallery, but need Pro to see others'.
   const galleryLocked = !isSelf && !isPremium
@@ -288,10 +293,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
    window.location.reload()
   }
 
-  const myWorkouts = useMemo(
+  const hostedWorkouts = useMemo(
+    () => workouts.filter((workout) => workout.hostId === userId),
+    [workouts, userId],
+  )
+
+  const scheduledWorkouts = useMemo(
     () =>
       workouts
-        .filter((w) => w.hostId === userId)
+        .filter((workout) => workout.hostId === userId || workout.attendees.includes(userId))
         .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
     [workouts, userId],
   )
@@ -299,8 +309,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   // Weekly schedule keyed by weekday (Mon=0 .. Sun=6) so recurring
   // workouts show on their weekday regardless of the calendar week.
   const weekMap = useMemo(() => {
-    const map: typeof myWorkouts[] = [[], [], [], [], [], [], []]
-    for (const w of myWorkouts) {
+    const map: typeof scheduledWorkouts[] = [[], [], [], [], [], [], []]
+    for (const w of scheduledWorkouts) {
       const [y, m, d] = w.date.split('-').map((n) => Number.parseInt(n, 10))
       const jsDay = new Date(y, m - 1, d).getDay() // 0 Sun .. 6 Sat
       const idx = (jsDay + 6) % 7 // 0 Mon .. 6 Sun
@@ -309,7 +319,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     // sort each day's entries by time
     map.forEach((day) => day.sort((a, b) => a.time.localeCompare(b.time)))
     return map
-  }, [myWorkouts])
+  }, [scheduledWorkouts])
 
   if (socialListKind) {
     return (
@@ -364,7 +374,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
         {/* Stats */}
         <div className="mt-4 flex items-center justify-center gap-8">
-          <Stat value={myWorkouts.length} label="Workouts" />
+          <Stat value={hostedWorkouts.length} label="Workouts" />
           <Stat
             value={isSelf ? followers.length : viewedConnectionCount}
             label="Followers"
@@ -416,6 +426,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
                     rows={3}
                   />
+                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">Favorite Split</label>
+                  <input value={editFavoriteSplit} onChange={(event) => setEditFavoriteSplit(event.target.value)} placeholder="Push / Pull / Legs" className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none" />
                   {editError ? (
                     <p className="mt-3 text-sm font-medium text-red-500">{editError}</p>
                   ) : null}
@@ -558,14 +570,14 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               <BarChart3 size={14} />
               Reliability &amp; Stats
             </h2>
-            {isPremium ? (
+            {(isSelf ? user.isVerifiedPro === true : isPremium) ? (
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
                   <p className="text-xs font-semibold text-muted-foreground">Reliability</p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.reliability ?? 90}%
+                    {user.reliability == null ? 'Not available' : `${user.reliability}%`}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Shows up when they say they will</p>
+                  <p className="text-[11px] text-muted-foreground">{user.reliability == null ? 'Requires verified workout completion and no-show events.' : 'Based on verified attendance.'}</p>
                 </div>
                 <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
                   <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
@@ -573,7 +585,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     Streak
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.streak ?? 4} wks
+                    {user.streak == null ? 'Not available' : `${user.streak} wks`}
                   </p>
                   <p className="text-[11px] text-muted-foreground">Consecutive active weeks</p>
                 </div>
@@ -655,13 +667,18 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                   </button>
                 ) : null}
                 {gallery.map((src, i) => (
-                  <div key={i} className="overflow-hidden rounded-2xl ring-1 ring-border">
+                  <div key={`${src}-${i}`} className="relative overflow-hidden rounded-2xl ring-1 ring-border">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={src || '/placeholder.svg'}
                       alt="Gym photo"
                       className="aspect-square w-full object-cover"
                     />
+                    {isSelf ? (
+                      <button type="button" onClick={() => removeGalleryPhoto(src)} className="absolute bottom-1.5 right-1.5 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground shadow" aria-label="Remove photo">
+                        Remove
+                      </button>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -718,13 +735,13 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             </section>
 
             {/* Upcoming workouts */}
-            {myWorkouts.length > 0 ? (
+            {scheduledWorkouts.length > 0 ? (
               <section className="mt-6">
                 <h2 className="mb-3 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   Upcoming Workouts
                 </h2>
                 <div className="space-y-3">
-                  {myWorkouts.map((w) => (
+                  {scheduledWorkouts.map((w) => (
                     <WorkoutCard key={w.id} workout={w} />
                   ))}
                 </div>
