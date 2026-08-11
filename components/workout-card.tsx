@@ -104,7 +104,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
               }}
               className="block w-full rounded-full bg-accent px-4 py-2.5 text-center text-xs font-bold uppercase text-accent-foreground transition-transform active:scale-95 disabled:opacity-50 mt-2"
             >
-              {changingAttendance ? 'Undoing…' : 'Undo'}
+              {changingAttendance ? 'Leaving…' : 'Leave'}
             </button>
           ) : full ? (
             <span className="block w-full rounded-full bg-destructive/15 px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-wide text-destructive mt-2">
