@@ -5,7 +5,6 @@ import { X, Minus, Plus, Globe, Lock, Check, Crown } from 'lucide-react'
 import {
   useStore,
   FREE_MAX_PARTICIPANTS,
-  PRO_MAX_PARTICIPANTS,
   FREE_MAX_ACTIVE_WORKOUTS,
 } from '../store'
 import { todayISO, weekdayShort, formatTime, timeToMinutes } from '@/lib/date-utils'
@@ -87,7 +86,7 @@ export function CreateWorkout() {
   const { createWorkout, isPremium, activeHostedCount, pushToast } = useStore()
   const { back, openWorkout, openPaywall } = useNav()
 
-  const participantCap = isPremium ? PRO_MAX_PARTICIPANTS : FREE_MAX_PARTICIPANTS
+  const participantCap = isPremium ? Number.POSITIVE_INFINITY : FREE_MAX_PARTICIPANTS
   const atWorkoutLimit = !isPremium && activeHostedCount >= FREE_MAX_ACTIVE_WORKOUTS
 
   const days = next7Days()
@@ -145,7 +144,7 @@ export function CreateWorkout() {
   const [visibility, setVisibility] = useState<Visibility>('friends')
   const [recurring, setRecurring] = useState<'none' | 'daily' | 'weekly'>('none')
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (types.length === 0) return
     if (!gymName.trim() || !gymAddress.trim()) {
       pushToast({
@@ -168,7 +167,7 @@ export function CreateWorkout() {
     const addressTrim = gymAddress.trim()
     const parts = addressTrim.split(',').map((p) => p.trim())
     const parsedCity = parts.length >= 2 ? parts[1] : ''
-    const w = createWorkout({
+    const w = await createWorkout({
       gym: gymName.trim(),
       city: parsedCity,
       address: addressTrim,
@@ -180,6 +179,7 @@ export function CreateWorkout() {
       visibility,
       recurring,
     })
+    if (!w) return
     back()
     openWorkout(w.id)
   }
@@ -426,7 +426,7 @@ export function CreateWorkout() {
               className="mt-2 flex w-full items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-left text-xs font-semibold text-accent-foreground"
             >
               <Crown size={14} className="shrink-0" />
-              Free plan caps groups at {FREE_MAX_PARTICIPANTS}. Go Pro for up to {PRO_MAX_PARTICIPANTS}.
+              Free plan caps groups at {FREE_MAX_PARTICIPANTS}. Go Pro for unlimited participants.
             </button>
           ) : null}
         </div>
@@ -504,7 +504,7 @@ export function CreateWorkout() {
       <div className="shrink-0 border-t border-border bg-card/95 px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur">
         <button
           type="button"
-          onClick={handleCreate}
+          onClick={() => void handleCreate()}
           disabled={types.length === 0}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-extrabold text-lime-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
