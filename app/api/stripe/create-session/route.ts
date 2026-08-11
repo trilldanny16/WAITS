@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { PRO_PLAN } from '@/lib/products'
+import { authenticatedUserFromRequest } from '@/lib/supabase-admin'
 
 export async function POST(request: Request) {
   try {
+    const user = await authenticatedUserFromRequest(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const body = await request.json()
     const planId = body.planId as string | undefined
 
@@ -36,6 +39,10 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
+      client_reference_id: user.id,
+      customer_email: user.email,
+      metadata: { user_id: user.id },
+      subscription_data: { metadata: { user_id: user.id } },
     }
 
     console.log('Stripe checkout params:', JSON.stringify(checkoutParams, null, 2))
