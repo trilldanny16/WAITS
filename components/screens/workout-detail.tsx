@@ -30,7 +30,7 @@ function getDirectionsUrl(lat: number, lng: number) {
 }
 
 export function WorkoutDetail({ id }: { id: string }) {
-  const { workouts, getUser, isFull, hasJoined, joinWorkout, leaveWorkout, cancelWorkout, isPremium } =
+  const { workouts, getUser, isFull, hasJoined, joinWorkout, leaveWorkout, cancelWorkout, isPremium, currentUserId } =
     useStore()
   const { back, openChat, openUser, openPaywall } = useNav()
 
@@ -51,7 +51,7 @@ export function WorkoutDetail({ id }: { id: string }) {
   }
 
   const host = getUser(workout.hostId)
-  const isHost = workout.hostId === 'u_danny'
+  const isHost = workout.hostId === currentUserId
   const joined = hasJoined(workout)
   const full = isFull(workout)
   const spotsLeft = workout.maxParticipants - workout.attendees.length
@@ -158,7 +158,7 @@ export function WorkoutDetail({ id }: { id: string }) {
                 >
                   <Avatar user={u} size={48} />
                   <span className="w-full truncate text-center text-[11px] font-medium text-muted-foreground">
-                    {a === 'u_danny' ? 'You' : u.name.split(' ')[0]}
+                    {a === currentUserId ? 'You' : u.name.split(' ')[0]}
                   </span>
                 </button>
               )
@@ -178,8 +178,9 @@ export function WorkoutDetail({ id }: { id: string }) {
           <button
             type="button"
             onClick={() => {
-              cancelWorkout(workout.id)
-              back()
+              void cancelWorkout(workout.id).then((canceled) => {
+                if (canceled) back()
+              })
             }}
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-destructive/10 py-3 text-sm font-bold text-destructive"
           >
