@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -27,8 +28,6 @@ export interface Toast {
 /** Free-tier limits (Waits Pro removes these) */
 export const FREE_MAX_ACTIVE_WORKOUTS = 3
 export const FREE_MAX_PARTICIPANTS = 3
-export const PRO_MAX_PARTICIPANTS = 6
-const PREMIUM_STORAGE_KEY = 'waits:premium'
 const SUPABASE_USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 interface NewWorkoutInput {
@@ -58,13 +57,13 @@ interface StoreValue {
   disconnectUser: (userId: string) => Promise<{ ok: boolean; error?: string }>
   toasts: Toast[]
   getUser: (id: string) => User
-  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => void
+  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
   joinWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
   leaveWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
-  createWorkout: (input: NewWorkoutInput) => Workout
-  cancelWorkout: (id: string) => void
+  createWorkout: (input: NewWorkoutInput) => Promise<Workout | null>
+  cancelWorkout: (id: string) => Promise<boolean>
   sendMessage: (workoutId: string, text: string) => void
   messagesFor: (workoutId: string) => ChatMessage[]
   toggleFollow: (id: string) => void
@@ -77,6 +76,7 @@ interface StoreValue {
   activeHostedCount: number
   galleryFor: (userId: string) => string[]
   addGalleryPhoto: (src: string) => void
+  removeGalleryPhoto: (src: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -97,6 +97,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [isPremium, setIsPremium] = useState(false)
   // Extra gallery photos the current user adds this session, keyed by user id.
   const [ownGallery, setOwnGallery] = useState<string[]>([])
+  const [removedGalleryPhotos, setRemovedGalleryPhotos] = useState<string[]>([])
+  const persistedWorkoutIdsRef = useRef<string[]>([])
 
   useEffect(() => {
   const loadCurrentUser = async () => {
@@ -112,7 +114,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, email, display_name, home_gym, city, bio')
+      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro')
     const profile = profiles?.find((candidate) => candidate.id === user.id)
 
     const email = profile?.email ?? user.email ?? ''
@@ -127,10 +129,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       bio: row.bio ?? '',
       homeGym: row.home_gym ?? 'Add your home gym',
       city: row.city ?? '',
-      favoriteSplit: 'Not set',
+      favoriteSplit: row.favorite_split ?? 'Not set',
       hue: 210,
       isPrivate: false,
       gallery: [],
+      isVerifiedPro: row.is_pro === true,
     })
 
     const realUser: User = profile
@@ -140,9 +143,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           name: displayName,
           username: email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || `user_${user.id.slice(0, 6)}`,
           bio: '', homeGym: 'Add your home gym', city: '', favoriteSplit: 'Not set',
-          hue: 210, isPrivate: false, gallery: [],
+          hue: 210, isPrivate: false, gallery: [], isVerifiedPro: false,
         }
     setCurrentUserId(user.id)
+    setIsPremium(profile?.is_pro === true)
 
     const realUsers = (profiles ?? []).map(toUser)
     setUsers((previous) => [
@@ -258,24 +262,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return { ok: true }
   }, [currentUserId, refreshSocialState])
 
-  // Hydrate premium status from localStorage (prototype persistence).
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(PREMIUM_STORAGE_KEY) === '1') setIsPremium(true)
-    } catch {
-      /* ignore */
-    }
-  }, [])
-
   const setPremium = useCallback((v: boolean) => {
     setIsPremium(v)
-    try {
-      if (v) localStorage.setItem(PREMIUM_STORAGE_KEY, '1')
-      else localStorage.removeItem(PREMIUM_STORAGE_KEY)
-    } catch {
-      /* ignore */
-    }
-  }, [])
+    setUsers((previous) => previous.map((user) =>
+      user.id === currentUserId ? { ...user, isVerifiedPro: v } : user,
+    ))
+  }, [currentUserId])
 
   const getUser = useCallback(
     (id: string) => users.find((u) => u.id === id) ?? ({
@@ -295,7 +287,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const updateUser = useCallback(
-    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => {
+    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => {
       setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, ...updates } : user)))
     },
     [],
@@ -312,6 +304,52 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [currentUserId],
   )
 
+
+  const refreshPersistedWorkouts = useCallback(async () => {
+    const [workoutResult, attendanceResult] = await Promise.all([
+      supabase
+        .from('workouts')
+        .select('id, host_id, gym, city, address, lat, lng, workout_date, workout_time, workout_types, notes, max_participants, visibility, recurring')
+        .order('workout_date', { ascending: true }),
+      supabase.from('workout_attendees').select('workout_id, user_id'),
+    ])
+    if (workoutResult.error || attendanceResult.error) {
+      return { ok: false, error: (workoutResult.error ?? attendanceResult.error)?.message }
+    }
+    const attendanceByWorkout = new Map<string, string[]>()
+    for (const row of attendanceResult.data ?? []) {
+      const attendees = attendanceByWorkout.get(row.workout_id) ?? []
+      attendees.push(row.user_id)
+      attendanceByWorkout.set(row.workout_id, attendees)
+    }
+    const persisted: Workout[] = (workoutResult.data ?? []).map((row) => ({
+      id: row.id, hostId: row.host_id, gym: row.gym, city: row.city, address: row.address,
+      lat: row.lat ?? undefined, lng: row.lng ?? undefined, date: row.workout_date,
+      time: row.workout_time.slice(0, 5), types: row.workout_types as WorkoutType[],
+      notes: row.notes ?? '', maxParticipants: row.max_participants,
+      visibility: row.visibility as Visibility,
+      attendees: Array.from(new Set([row.host_id, ...(attendanceByWorkout.get(row.id) ?? [])])),
+      recurring: row.recurring as Workout['recurring'],
+    }))
+    setWorkouts((previous) => {
+      const prototype = previous.filter((workout) => !persistedWorkoutIdsRef.current.includes(workout.id))
+      return [...persisted, ...prototype]
+    })
+    persistedWorkoutIdsRef.current = persisted.map((workout) => workout.id)
+    return { ok: true }
+  }, [])
+
+  useEffect(() => {
+    if (!currentUserId) return
+    void refreshPersistedWorkouts()
+    const channel = supabase
+      .channel('persisted-workouts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workouts' }, () => {
+        void refreshPersistedWorkouts()
+      })
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [currentUserId, refreshPersistedWorkouts])
 
   const refreshWorkoutAttendance = useCallback(async () => {
     if (!currentUserId) return { ok: false, error: 'Your session is not ready.' }
@@ -442,35 +480,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
 
   const createWorkout = useCallback(
-    (input: NewWorkoutInput) => {
-      // Clamp participant count to the free-tier max unless premium.
-      const cappedMax = isPremium
-        ? Math.min(input.maxParticipants, PRO_MAX_PARTICIPANTS)
-        : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
-      const workout: Workout = {
-        id: nextId('w'),
-        hostId: currentUserId,
-        attendees: [currentUserId],
-        ...input,
-        maxParticipants: cappedMax,
+    async (input: NewWorkoutInput) => {
+      const cappedMax = isPremium ? input.maxParticipants : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
+      const { data, error } = await supabase.from('workouts').insert({
+        host_id: currentUserId, gym: input.gym, city: input.city, address: input.address,
+        lat: input.lat ?? null, lng: input.lng ?? null, workout_date: input.date,
+        workout_time: input.time, workout_types: input.types, notes: input.notes,
+        max_participants: cappedMax, visibility: input.visibility, recurring: input.recurring,
+      }).select('id').single()
+      if (error || !data) {
+        pushToast({ title: 'Workout was not posted', body: error?.message ?? 'Supabase did not confirm the workout.' })
+        return null
       }
-      setWorkouts((prev) => [workout, ...prev])
-      pushToast({
-        title: 'Workout posted 🔥',
-        body: 'Your followers were notified. Come Thru?',
-      })
+      const workout: Workout = { id: data.id, hostId: currentUserId, attendees: [currentUserId], ...input, maxParticipants: cappedMax }
+      await refreshPersistedWorkouts()
+      pushToast({ title: 'Workout posted 🔥', body: 'Your followers were notified. Come Thru?' })
       return workout
     },
-    [pushToast, isPremium, currentUserId],
+    [pushToast, isPremium, currentUserId, refreshPersistedWorkouts],
   )
 
   const galleryFor = useCallback(
     (userId: string) => {
       const base = (getUser(userId).gallery ?? []).slice()
-      if (userId === currentUserId) return [...ownGallery, ...base]
+      if (userId === currentUserId) {
+        return [...ownGallery, ...base].filter((src) => !removedGalleryPhotos.includes(src))
+      }
       return base
     },
-    [getUser, ownGallery, currentUserId],
+    [getUser, ownGallery, removedGalleryPhotos, currentUserId],
   )
 
   const addGalleryPhoto = useCallback(
@@ -481,13 +519,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [pushToast],
   )
 
+  const removeGalleryPhoto = useCallback((src: string) => {
+    setOwnGallery((previous) => previous.filter((photo) => photo !== src))
+    setRemovedGalleryPhotos((previous) => previous.includes(src) ? previous : [...previous, src])
+    pushToast({ title: 'Photo removed', body: 'Gallery photos are still prototype-only and are not stored in Supabase.' })
+  }, [pushToast])
+
   const cancelWorkout = useCallback(
-    (id: string) => {
-      setWorkouts((prev) => prev.filter((w) => w.id !== id))
-      setMessages((prev) => prev.filter((m) => m.workoutId !== id))
+    async (id: string) => {
+      const { data, error } = await supabase.from('workouts').delete().eq('id', id).eq('host_id', currentUserId).select('id')
+      if (error || !data || data.length === 0) {
+        pushToast({ title: 'Workout was not canceled', body: error?.message ?? 'No hosted workout was removed.' })
+        return false
+      }
+      await refreshPersistedWorkouts()
+      setMessages((prev) => prev.filter((message) => message.workoutId !== id))
       pushToast({ title: 'Workout canceled', body: 'Attendees were notified.' })
+      return true
     },
-    [pushToast],
+    [pushToast, currentUserId, refreshPersistedWorkouts],
   )
 
   const sendMessage = useCallback((workoutId: string, text: string) => {
@@ -555,6 +605,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       activeHostedCount,
       galleryFor,
       addGalleryPhoto,
+      removeGalleryPhoto,
     }),
     [
       users,
@@ -585,6 +636,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       activeHostedCount,
       galleryFor,
       addGalleryPhoto,
+      removeGalleryPhoto,
     ],
   )
 
