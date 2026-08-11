@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -60,8 +61,8 @@ interface StoreValue {
   updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
-  joinWorkout: (id: string) => void
-  leaveWorkout: (id: string) => void
+  joinWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
+  leaveWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
   createWorkout: (input: NewWorkoutInput) => Workout
   cancelWorkout: (id: string) => void
   sendMessage: (workoutId: string, text: string) => void
@@ -96,6 +97,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [isPremium, setIsPremium] = useState(false)
   // Extra gallery photos the current user adds this session, keyed by user id.
   const [ownGallery, setOwnGallery] = useState<string[]>([])
+  const persistedAttendeesRef = useRef<Map<string, string[]>>(new Map())
 
   useEffect(() => {
   const loadCurrentUser = async () => {
@@ -311,40 +313,116 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [currentUserId],
   )
 
-  const joinWorkout = useCallback(
-    (id: string) => {
-      setWorkouts((prev) =>
-        prev.map((w) => {
-          if (w.id !== id) return w
-          if (w.attendees.includes(currentUserId)) return w
-          if (w.attendees.length >= w.maxParticipants) return w
-          return { ...w, attendees: [...w.attendees, currentUserId] }
-        }),
+
+  const refreshWorkoutAttendance = useCallback(async () => {
+    if (!currentUserId) return { ok: false, error: 'Your session is not ready.' }
+
+    const { data, error } = await supabase
+      .from('workout_attendees')
+      .select('workout_id, user_id')
+
+    if (error) return { ok: false, error: error.message }
+
+    const nextPersisted = new Map<string, string[]>()
+    for (const row of data ?? []) {
+      const attendees = nextPersisted.get(row.workout_id) ?? []
+      if (!attendees.includes(row.user_id)) attendees.push(row.user_id)
+      nextPersisted.set(row.workout_id, attendees)
+    }
+
+    setWorkouts((previous) => previous.map((workout) => {
+      const oldPersisted = persistedAttendeesRef.current.get(workout.id) ?? []
+      const baseAttendees = workout.attendees.filter((id) => !oldPersisted.includes(id))
+      const persisted = nextPersisted.get(workout.id) ?? []
+      return { ...workout, attendees: Array.from(new Set([...baseAttendees, ...persisted])) }
+    }))
+    persistedAttendeesRef.current = nextPersisted
+    return { ok: true }
+  }, [currentUserId])
+
+  useEffect(() => {
+    if (!currentUserId) return
+    void refreshWorkoutAttendance()
+
+    const channel = supabase
+      .channel('workout-attendees')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'workout_attendees' },
+        () => void refreshWorkoutAttendance(),
       )
-      const w = workouts.find((x) => x.id === id)
-      if (w) {
-        const host = getUser(w.hostId)
-        pushToast({
-          title: `You’re in for ${w.types.join(' + ')} 💪`,
-          body: `Chat with ${host.name.split(' ')[0]} is now open.`,
-        })
+      .subscribe()
+
+    const refresh = () => void refreshWorkoutAttendance()
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUserId, refreshWorkoutAttendance])
+
+  const joinWorkout = useCallback(
+    async (id: string) => {
+      const workout = workouts.find((candidate) => candidate.id === id)
+      if (!workout) return { ok: false, error: 'That workout is no longer available.' }
+      if (workout.attendees.includes(currentUserId)) return { ok: true }
+      if (workout.attendees.length >= workout.maxParticipants) {
+        const error = 'That workout is full.'
+        pushToast({ title: 'Could not join', body: error })
+        return { ok: false, error }
       }
+
+      const { data, error } = await supabase
+        .from('workout_attendees')
+        .insert({ workout_id: id, user_id: currentUserId })
+        .select('workout_id, user_id')
+        .single()
+
+      if (error || !data) {
+        if (error?.code === '23505') {
+          const refreshed = await refreshWorkoutAttendance()
+          if (refreshed.ok) return { ok: true }
+        }
+        const message = error?.message ?? 'Supabase did not confirm the join.'
+        pushToast({ title: 'Could not join', body: message })
+        return { ok: false, error: message }
+      }
+
+      await refreshWorkoutAttendance()
+      const host = getUser(workout.hostId)
+      pushToast({
+        title: `You’re in for ${workout.types.join(' + ')} 💪`,
+        body: `Chat with ${host.name.split(' ')[0]} is now open.`,
+      })
+      return { ok: true }
     },
-    [workouts, getUser, pushToast, currentUserId],
+    [workouts, getUser, pushToast, currentUserId, refreshWorkoutAttendance],
   )
 
   const leaveWorkout = useCallback(
-    (id: string) => {
-      setWorkouts((prev) =>
-        prev.map((w) =>
-          w.id === id
-            ? { ...w, attendees: w.attendees.filter((a) => a !== currentUserId) }
-            : w,
-        ),
-      )
+    async (id: string) => {
+      const { error } = await supabase
+        .from('workout_attendees')
+        .delete()
+        .eq('workout_id', id)
+        .eq('user_id', currentUserId)
+
+      if (error) {
+        pushToast({ title: 'Could not leave workout', body: error.message })
+        return { ok: false, error: error.message }
+      }
+
+      const refreshed = await refreshWorkoutAttendance()
+      if (!refreshed.ok) {
+        pushToast({ title: 'Could not confirm the change', body: refreshed.error })
+        return refreshed
+      }
       pushToast({ title: 'You left the workout' })
+      return { ok: true }
     },
-    [pushToast, currentUserId],
+    [pushToast, currentUserId, refreshWorkoutAttendance],
   )
 
   const activeHostedCount = useMemo(
