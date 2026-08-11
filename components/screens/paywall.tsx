@@ -11,7 +11,7 @@ const PERKS = [
   { icon: MessageCircle, title: 'Crew chats', body: 'Message everyone in a workout you join or host.' },
   { icon: Images, title: 'See everyone’s gallery', body: 'Unlock other members’ gym progress photos.' },
   { icon: BarChart3, title: 'Reliability & stats', body: 'Attendance streaks, reliability score & weekly insights.' },
-  { icon: Users, title: 'Bigger groups & unlimited workouts', body: 'Host up to 6 people and post as many sessions as you want.' },
+  { icon: Users, title: 'Unlimited groups & workouts', body: 'Choose any participant capacity and post as many sessions as you want.' },
   { icon: Sparkles, title: 'Pro profile', body: 'A Pro badge and a custom profile accent color.' },
 ]
 
