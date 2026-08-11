@@ -217,7 +217,7 @@ export function WorkoutDetail({ id }: { id: string }) {
           {isHost ? null : joined ? (
             <button
               type="button"
-              onClick={() => leaveWorkout(workout.id)}
+              onClick={() => void leaveWorkout(workout.id)}
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border py-4 text-sm font-bold text-foreground"
             >
               Leave
@@ -229,7 +229,7 @@ export function WorkoutDetail({ id }: { id: string }) {
           ) : (
             <button
               type="button"
-              onClick={() => joinWorkout(workout.id)}
+              onClick={() => void joinWorkout(workout.id)}
               className="flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-sm font-extrabold uppercase tracking-wide text-lime-foreground transition-transform active:scale-[0.98]"
             >
               Come Thru

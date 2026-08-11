@@ -29,6 +29,7 @@ export const FREE_MAX_ACTIVE_WORKOUTS = 3
 export const FREE_MAX_PARTICIPANTS = 3
 export const PRO_MAX_PARTICIPANTS = 6
 const PREMIUM_STORAGE_KEY = 'waits:premium'
+const SUPABASE_USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 interface NewWorkoutInput {
   gym: string
@@ -60,8 +61,8 @@ interface StoreValue {
   updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
-  joinWorkout: (id: string) => void
-  leaveWorkout: (id: string) => void
+  joinWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
+  leaveWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
   createWorkout: (input: NewWorkoutInput) => Workout
   cancelWorkout: (id: string) => void
   sendMessage: (workoutId: string, text: string) => void
@@ -311,40 +312,128 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [currentUserId],
   )
 
-  const joinWorkout = useCallback(
-    (id: string) => {
-      setWorkouts((prev) =>
-        prev.map((w) => {
-          if (w.id !== id) return w
-          if (w.attendees.includes(currentUserId)) return w
-          if (w.attendees.length >= w.maxParticipants) return w
-          return { ...w, attendees: [...w.attendees, currentUserId] }
-        }),
+
+  const refreshWorkoutAttendance = useCallback(async () => {
+    if (!currentUserId) return { ok: false, error: 'Your session is not ready.' }
+
+    const { data, error } = await supabase
+      .from('workout_attendees')
+      .select('workout_id, user_id')
+
+    if (error) return { ok: false, error: error.message }
+
+    const nextPersisted = new Map<string, string[]>()
+    for (const row of data ?? []) {
+      const attendees = nextPersisted.get(row.workout_id) ?? []
+      if (!attendees.includes(row.user_id)) attendees.push(row.user_id)
+      nextPersisted.set(row.workout_id, attendees)
+    }
+
+    setWorkouts((previous) => previous.map((workout) => {
+      // Seed identities model the prototype's default crowd. Real Supabase
+      // users are rebuilt exclusively from workout_attendees so a deleted join
+      // can never survive in local state. A real workout host remains an
+      // attendee by definition, even though prototype workouts are local-only.
+      const defaultAttendees = workout.attendees.filter(
+        (id) => !SUPABASE_USER_ID_PATTERN.test(id) || id === workout.hostId,
       )
-      const w = workouts.find((x) => x.id === id)
-      if (w) {
-        const host = getUser(w.hostId)
-        pushToast({
-          title: `You’re in for ${w.types.join(' + ')} 💪`,
-          body: `Chat with ${host.name.split(' ')[0]} is now open.`,
-        })
+      const persisted = nextPersisted.get(workout.id) ?? []
+      return { ...workout, attendees: Array.from(new Set([...defaultAttendees, ...persisted])) }
+    }))
+    return { ok: true }
+  }, [currentUserId])
+
+  useEffect(() => {
+    if (!currentUserId) return
+    void refreshWorkoutAttendance()
+
+    const channel = supabase
+      .channel('workout-attendees')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'workout_attendees' },
+        () => void refreshWorkoutAttendance(),
+      )
+      .subscribe()
+
+    const refresh = () => void refreshWorkoutAttendance()
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUserId, refreshWorkoutAttendance])
+
+  const joinWorkout = useCallback(
+    async (id: string) => {
+      const workout = workouts.find((candidate) => candidate.id === id)
+      if (!workout) return { ok: false, error: 'That workout is no longer available.' }
+      if (workout.attendees.includes(currentUserId)) return { ok: true }
+      if (workout.attendees.length >= workout.maxParticipants) {
+        const error = 'That workout is full.'
+        pushToast({ title: 'Could not join', body: error })
+        return { ok: false, error }
       }
+
+      const { data, error } = await supabase
+        .from('workout_attendees')
+        .insert({ workout_id: id, user_id: currentUserId })
+        .select('workout_id, user_id')
+        .single()
+
+      if (error || !data) {
+        if (error?.code === '23505') {
+          const refreshed = await refreshWorkoutAttendance()
+          if (refreshed.ok) return { ok: true }
+        }
+        const message = error?.message ?? 'Supabase did not confirm the join.'
+        pushToast({ title: 'Could not join', body: message })
+        return { ok: false, error: message }
+      }
+
+      await refreshWorkoutAttendance()
+      const host = getUser(workout.hostId)
+      pushToast({
+        title: `You’re in for ${workout.types.join(' + ')} 💪`,
+        body: `Chat with ${host.name.split(' ')[0]} is now open.`,
+      })
+      return { ok: true }
     },
-    [workouts, getUser, pushToast, currentUserId],
+    [workouts, getUser, pushToast, currentUserId, refreshWorkoutAttendance],
   )
 
   const leaveWorkout = useCallback(
-    (id: string) => {
-      setWorkouts((prev) =>
-        prev.map((w) =>
-          w.id === id
-            ? { ...w, attendees: w.attendees.filter((a) => a !== currentUserId) }
-            : w,
-        ),
-      )
+    async (id: string) => {
+      const { data, error } = await supabase
+        .from('workout_attendees')
+        .delete()
+        .eq('workout_id', id)
+        .eq('user_id', currentUserId)
+        .select('workout_id, user_id')
+
+      if (error) {
+        pushToast({ title: 'Could not leave workout', body: error.message })
+        return { ok: false, error: error.message }
+      }
+
+      if (!data || data.length === 0) {
+        await refreshWorkoutAttendance()
+        const message = 'No persisted attendance was removed.'
+        pushToast({ title: 'Could not confirm leave', body: message })
+        return { ok: false, error: message }
+      }
+
+      const refreshed = await refreshWorkoutAttendance()
+      if (!refreshed.ok) {
+        pushToast({ title: 'Could not confirm the change', body: refreshed.error })
+        return refreshed
+      }
       pushToast({ title: 'You left the workout' })
+      return { ok: true }
     },
-    [pushToast, currentUserId],
+    [pushToast, currentUserId, refreshWorkoutAttendance],
   )
 
   const activeHostedCount = useMemo(
