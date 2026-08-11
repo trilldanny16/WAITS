@@ -7,7 +7,6 @@ import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-utils'
-import { COMMUNITY_CHANNEL_ID } from '@/lib/seed'
 import { supabase } from '@/lib/supabase-client'
 
 export function ChatsList() {
@@ -142,11 +141,6 @@ const declineFriendRequest = async (requestId: string) => {
   setRespondingTo(null)
 }
 
-  const communityCount = useMemo(
-    () => messages.filter((m) => m.workoutId === COMMUNITY_CHANNEL_ID).length,
-    [messages],
-  )
-
   const myWorkouts = useMemo(
     () =>
       workouts
@@ -231,7 +225,7 @@ const declineFriendRequest = async (requestId: string) => {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-extrabold">Waits Community</p>
             <p className="truncate text-xs text-primary-foreground/80">
-              Public channel · {communityCount} posts
+              Public channel · Messages expire after 24 hours
             </p>
           </div>
           <ChevronRight size={20} className="shrink-0 text-primary-foreground/70" />
