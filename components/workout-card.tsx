@@ -11,7 +11,7 @@ import { formatDateLabel, formatTime, todayISO } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 
 export function WorkoutCard({ workout }: { workout: Workout }) {
-  const { getUser, isFull, hasJoined, joinWorkout, leaveWorkout } = useStore()
+  const { getUser, isFull, hasJoined, joinWorkout, leaveWorkout, currentUserId } = useStore()
   const [changingAttendance, setChangingAttendance] = useState(false)
   const { openWorkout, openUser } = useNav()
 
@@ -19,7 +19,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
   const full = isFull(workout)
   const joined = hasJoined(workout)
   const spotsLeft = workout.maxParticipants - workout.attendees.length
-  const isHost = workout.hostId === 'u_danny'
+  const isHost = workout.hostId === currentUserId
   const futureWorkout = workout.date !== todayISO()
   const visibilityLabel = workout.visibility === 'friends' ? 'Friends' : 'Public'
   const dateLabel = futureWorkout ? formatDateLabel(workout.date) : null
