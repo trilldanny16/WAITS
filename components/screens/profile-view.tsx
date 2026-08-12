@@ -15,6 +15,7 @@ import {
   Flame,
   Pencil,
   Clock,
+  ShieldCheck,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -686,28 +687,35 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         {/* Reliability & stats (Waits Pro) */}
         {!locked ? (
           <section className="mt-6">
-            <h2 className="mb-3 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <h2 className="mb-3 flex items-center justify-center gap-2 px-1 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <BarChart3 size={14} />
               Reliability &amp; Stats
             </h2>
             {(isSelf ? user.isVerifiedPro === true : isPremium) ? (
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="text-xs font-semibold text-muted-foreground">Reliability</p>
+                <div className="rounded-2xl bg-card p-4 text-center ring-1 ring-border">
+                  <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
+                    <ShieldCheck size={12} className="text-primary" />
+                    Reliability
+                  </p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
                     {user.reliability == null ? 'Not available' : `${user.reliability}%`}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">{user.reliability == null ? 'Requires verified workout completion and no-show events.' : 'Based on verified attendance.'}</p>
+                  <p className="mx-auto mt-1 max-w-[10rem] text-pretty text-[11px] leading-relaxed text-muted-foreground">
+                    {user.reliability == null
+                      ? 'Available after verified attendance, completions, and no-show history.'
+                      : 'Based on verified attendance.'}
+                  </p>
                 </div>
-                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                <div className="rounded-2xl bg-card p-4 text-center ring-1 ring-border">
+                  <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
                     <Flame size={12} className="text-primary" />
                     Streak
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.streak == null ? 'Not available' : `${user.streak} wks`}
+                    {user.streak == null ? 'Not available' : `${user.streak} WEEKS`}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Consecutive active weeks</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Consecutive active weeks</p>
                 </div>
               </div>
             ) : (
