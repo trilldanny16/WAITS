@@ -57,7 +57,7 @@ interface StoreValue {
   disconnectUser: (userId: string) => Promise<{ ok: boolean; error?: string }>
   toasts: Toast[]
   getUser: (id: string) => User
-  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => void
+  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
   joinWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
@@ -114,7 +114,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro')
+      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
     const profile = profiles?.find((candidate) => candidate.id === user.id)
 
     const email = profile?.email ?? user.email ?? ''
@@ -134,6 +134,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       isPrivate: false,
       gallery: [],
       isVerifiedPro: row.is_pro === true,
+      avatar: row.avatar_path
+        ? supabase.storage.from('profile-media').getPublicUrl(row.avatar_path).data.publicUrl
+        : undefined,
     })
 
     const realUser: User = profile
@@ -287,7 +290,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const updateUser = useCallback(
-    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => {
+    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => {
       setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, ...updates } : user)))
     },
     [],
@@ -434,7 +437,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refreshWorkoutAttendance()
       const host = getUser(workout.hostId)
       pushToast({
-        title: `You’re in for ${workout.types.join(' + ')} 💪`,
+        title: `Youâ€™re in for ${workout.types.join(' + ')} ðŸ’ª`,
         body: `Chat with ${host.name.split(' ')[0]} is now open.`,
       })
       return { ok: true }
@@ -494,7 +497,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       const workout: Workout = { id: data.id, hostId: currentUserId, attendees: [currentUserId], ...input, maxParticipants: cappedMax }
       await refreshPersistedWorkouts()
-      pushToast({ title: 'Workout posted 🔥', body: 'Your followers were notified. Come Thru?' })
+      pushToast({ title: 'Workout posted ðŸ”¥', body: 'Your followers were notified. Come Thru?' })
       return workout
     },
     [pushToast, isPremium, currentUserId, refreshPersistedWorkouts],
@@ -514,7 +517,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addGalleryPhoto = useCallback(
     (src: string) => {
       setOwnGallery((prev) => [src, ...prev])
-      pushToast({ title: 'Photo added to your gallery 📸' })
+      pushToast({ title: 'Photo added to your gallery ðŸ“¸' })
     },
     [pushToast],
   )
@@ -650,3 +653,4 @@ export function useStore(): StoreValue {
   if (!ctx) throw new Error('useStore must be used within StoreProvider')
   return ctx
 }
+
