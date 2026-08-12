@@ -8,6 +8,7 @@ import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-utils'
 import { supabase } from '@/lib/supabase-client'
+import { isPersistedWorkoutId } from '@/lib/workout-identity'
 
 export function ChatsList() {
   const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
@@ -144,7 +145,7 @@ const declineFriendRequest = async (requestId: string) => {
   const myWorkouts = useMemo(
     () =>
       workouts
-        .filter((w) => w.hostId === currentUserId || hasJoined(w))
+        .filter((w) => isPersistedWorkoutId(w.id) && (w.hostId === currentUserId || hasJoined(w)))
         .sort((a, b) => a.date.localeCompare(b.date)),
     [workouts, hasJoined, currentUserId],
   )
