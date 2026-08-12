@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, Send, Users } from 'lucide-react'
+import { Check, ChevronLeft, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
@@ -9,9 +9,16 @@ import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-uti
 import { cn } from '@/lib/utils'
 
 export function Chat({ id }: { id: string }) {
-  const { workouts, getUser, messagesFor, sendMessage, currentUserId } = useStore()
+  const { workouts, getUser, messagesFor, sendMessage, editMessage, deleteMessage, currentUserId, pushToast } = useStore()
   const { back } = useNav()
   const [text, setText] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -43,6 +50,40 @@ export function Chat({ id }: { id: string }) {
     if (!text.trim()) return
     sendMessage(id, text)
     setText('')
+  }
+
+  const saveEdit = async (messageId: string) => {
+    if (!editText.trim() || savingId) return
+    setSavingId(messageId)
+    setActionError(null)
+    const result = await editMessage(messageId, editText)
+    if (!result.ok) {
+      const error = result.error ?? 'The message could not be updated.'
+      setActionError(error)
+      pushToast({ title: 'Edit failed', body: error })
+      setSavingId(null)
+      return
+    }
+    setEditingId(null)
+    setEditText('')
+    setSavingId(null)
+  }
+
+  const removeMessage = async (messageId: string) => {
+    if (deletingId) return
+    setDeletingId(messageId)
+    setActionError(null)
+    const result = await deleteMessage(messageId)
+    if (!result.ok) {
+      const error = result.error ?? 'The message could not be deleted.'
+      setActionError(error)
+      pushToast({ title: 'Delete failed', body: error })
+      setDeletingId(null)
+      return
+    }
+    setOpenMenuId(null)
+    setConfirmDeleteId(null)
+    setDeletingId(null)
   }
 
   return (
@@ -98,30 +139,133 @@ export function Chat({ id }: { id: string }) {
                       {u.name.split(' ')[0]}
                     </p>
                   ) : null}
-                  <div
-                    className={cn(
-                      'rounded-2xl px-3.5 py-2 text-sm',
-                      mine
-                        ? 'rounded-br-md bg-primary text-primary-foreground'
-                        : 'rounded-bl-md bg-card text-card-foreground ring-1 ring-border',
-                    )}
-                  >
-                    {m.text}
+                  {editingId === m.id ? (
+                    <div className="rounded-2xl rounded-br-md bg-primary p-2 text-left text-primary-foreground">
+                      <input
+                        value={editText}
+                        onChange={(event) => setEditText(event.target.value)}
+                        autoFocus
+                        className="w-full rounded-xl bg-background/15 px-3 py-2 text-sm text-primary-foreground outline-none"
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(null)
+                            setEditText('')
+                          }}
+                          className="inline-flex items-center gap-1 rounded-full bg-background/15 px-2.5 py-1 text-xs font-bold"
+                        >
+                          <X size={13} />
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void saveEdit(m.id)}
+                          disabled={!editText.trim() || savingId === m.id}
+                          className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1 text-xs font-bold text-foreground disabled:opacity-50"
+                        >
+                          <Check size={13} />
+                          {savingId === m.id ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        'rounded-2xl px-3.5 py-2 text-sm',
+                        mine
+                          ? 'rounded-br-md bg-primary text-primary-foreground'
+                          : 'rounded-bl-md bg-card text-card-foreground ring-1 ring-border',
+                      )}
+                    >
+                      {m.text}
+                    </div>
+                  )}
+                  <div className={cn('mt-0.5 flex items-center gap-1 px-1', mine && 'justify-end')}>
+                    <p className="text-[10px] text-muted-foreground">
+                      {relativeMessageTime(m.createdAt)}
+                    </p>
+                    {mine && editingId !== m.id ? (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenMenuId((current) => current === m.id ? null : m.id)
+                            setConfirmDeleteId(null)
+                          }}
+                          className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary"
+                          aria-label="Message actions"
+                        >
+                          <MoreHorizontal size={14} />
+                        </button>
+                        {openMenuId === m.id ? (
+                          <div className="absolute bottom-7 right-0 z-20 w-32 rounded-xl bg-card p-1 shadow-lg ring-1 ring-border">
+                            {confirmDeleteId === m.id ? (
+                              <div className="p-1">
+                                <p className="px-1 pb-2 text-left text-[11px] font-semibold text-card-foreground">
+                                  Delete message?
+                                </p>
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    className="flex-1 rounded-lg bg-secondary px-2 py-1 text-[10px] font-bold"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void removeMessage(m.id)}
+                                    disabled={deletingId === m.id}
+                                    className="flex-1 rounded-lg bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground disabled:opacity-50"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingId(m.id)
+                                    setEditText(m.text)
+                                    setOpenMenuId(null)
+                                    setActionError(null)
+                                  }}
+                                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-card-foreground hover:bg-secondary"
+                                >
+                                  <Pencil size={13} />
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(m.id)}
+                                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 size={13} />
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
-                  <p
-                    className={cn(
-                      'mt-0.5 px-1 text-[10px] text-muted-foreground',
-                      mine && 'text-right',
-                    )}
-                  >
-                    {relativeMessageTime(m.createdAt)}
-                  </p>
                 </div>
               </div>
             )
           })
         )}
       </div>
+
+      {actionError ? (
+        <p className="shrink-0 bg-destructive/10 px-4 py-2 text-center text-xs font-semibold text-destructive">
+          {actionError}
+        </p>
+      ) : null}
 
       {/* Composer */}
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
