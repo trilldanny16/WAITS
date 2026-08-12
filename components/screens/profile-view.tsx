@@ -16,6 +16,7 @@ import {
   Pencil,
   Clock,
   ShieldCheck,
+  TrendingUp,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -687,9 +688,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         {/* Reliability & stats (Waits Pro) */}
         {!locked ? (
           <section className="mt-6">
-            <h2 className="mb-3 flex items-center justify-center gap-2 px-1 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              <BarChart3 size={14} />
-              Reliability &amp; Stats
+            <h2 className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <BarChart3 size={14} className="justify-self-end" />
+              <span className="text-center">Statistics</span>
+              <TrendingUp size={14} className="justify-self-start" />
             </h2>
             {(isSelf ? user.isVerifiedPro === true : isPremium) ? (
               <div className="grid grid-cols-2 gap-2">
@@ -740,9 +742,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         {/* Photo gallery */}
         {!locked ? (
           <section className="mt-6">
-            <h2 className="mb-3 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <h2 className="mb-3 flex items-center justify-center gap-2 px-1 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <Images size={14} />
-              POST PHOTOS WITH WAITS PRO
+              Gym Gallery
             </h2>
 
             {galleryLocked ? (
@@ -767,7 +769,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     <Lock size={22} />
                   </span>
                   <p className="px-6 text-sm font-bold text-foreground">
-                    See {user.name.split(' ')[0]}&apos;s photos with Waits Pro
+                    POST PHOTOS WITH WAITS PRO
                   </p>
                   <span className="inline-flex items-center gap-1 rounded-full bg-lime px-3 py-1 text-xs font-extrabold text-lime-foreground">
                     <Crown size={12} />
