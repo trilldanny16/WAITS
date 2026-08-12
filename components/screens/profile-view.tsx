@@ -704,7 +704,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     {user.reliability == null ? '90%' : `${user.reliability}%`}
                   </p>
                   <p className="mx-auto mt-1 max-w-[10rem] text-pretty text-[11px] leading-relaxed text-muted-foreground">
-                    Verified attendance
+                    Verified Attendance
                   </p>
                 </div>
                 <div className="rounded-2xl bg-card p-4 text-center ring-1 ring-border">
@@ -715,7 +715,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
                     {user.streak == null ? '4 WEEKS' : `${user.streak} WEEKS`}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">Consecutive active weeks</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Consecutive Active Weeks</p>
                 </div>
               </div>
             ) : (
@@ -745,6 +745,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <h2 className="mb-3 flex items-center justify-center gap-2 px-1 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <Images size={14} />
               Gym Gallery
+              <span aria-hidden="true">📷</span>
             </h2>
 
             {galleryLocked ? (
@@ -828,7 +829,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <>
             {/* Weekly schedule */}
             <section className="mt-6">
-              <h2 className="mb-3 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <h2 className="mb-3 px-1 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Weekly Schedule
               </h2>
               <div className="space-y-1.5 rounded-3xl bg-card p-3 ring-1 ring-border">
