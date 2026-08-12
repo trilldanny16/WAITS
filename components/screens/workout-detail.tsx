@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback, useEffect, useState } from 'react'
 import {
   ChevronLeft,
   MapPin,
@@ -20,6 +21,8 @@ import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime, formatDateLabel } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
+import type { Workout } from '@/lib/types'
+import { supabase } from '@/lib/supabase-client'
 
 function getDirectionsUrl(lat: number, lng: number) {
   const destination = `${lat},${lng}`
@@ -30,11 +33,10 @@ function getDirectionsUrl(lat: number, lng: number) {
 }
 
 export function WorkoutDetail({ id }: { id: string }) {
-  const { workouts, getUser, isFull, hasJoined, joinWorkout, leaveWorkout, cancelWorkout, isPremium, currentUserId } =
-    useStore()
-  const { back, openChat, openUser, openPaywall } = useNav()
+  const { workouts } = useStore()
+  const { back } = useNav()
+  const workout = workouts.find((candidate) => candidate.id === id)
 
-  const workout = workouts.find((w) => w.id === id)
   if (!workout) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-background p-6 text-center">
@@ -50,12 +52,78 @@ export function WorkoutDetail({ id }: { id: string }) {
     )
   }
 
+  return <WorkoutDetailContent workout={workout} />
+}
+
+function WorkoutDetailContent({ workout }: { workout: Workout }) {
+  const { getUser, isFull, hasJoined, joinWorkout, leaveWorkout, cancelWorkout, isPremium, currentUserId } =
+    useStore()
+  const { back, openChat, openUser, openPaywall } = useNav()
+  const [persistedAttendees, setPersistedAttendees] = useState<string[]>([])
+  const [attendanceOutcomes, setAttendanceOutcomes] = useState<Record<string, 'attended' | 'no_show'>>({})
+  const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
+
   const host = getUser(workout.hostId)
   const isHost = workout.hostId === currentUserId
   const joined = hasJoined(workout)
   const full = isFull(workout)
   const spotsLeft = workout.maxParticipants - workout.attendees.length
   const canChat = joined || isHost
+  const persistedWorkoutId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workout.id)
+  const workoutHasPassed = new Date(`${workout.date}T${workout.time}:00`).getTime() <= Date.now()
+
+  const loadAttendanceVerification = useCallback(async () => {
+    if (!isHost || !persistedWorkoutId || !workoutHasPassed) {
+      setPersistedAttendees([])
+      setAttendanceOutcomes({})
+      return
+    }
+
+    const [attendeeResult, outcomeResult] = await Promise.all([
+      supabase
+        .from('workout_attendees')
+        .select('user_id')
+        .eq('workout_id', workout.id),
+      supabase
+        .from('workout_attendance_outcomes')
+        .select('participant_id, outcome')
+        .eq('workout_id', workout.id),
+    ])
+
+    if (attendeeResult.error || outcomeResult.error) {
+      setVerificationError((attendeeResult.error ?? outcomeResult.error)?.message ?? 'Verification data could not be loaded.')
+      return
+    }
+
+    setPersistedAttendees((attendeeResult.data ?? []).map((row) => row.user_id))
+    setAttendanceOutcomes(Object.fromEntries(
+      (outcomeResult.data ?? []).map((row) => [row.participant_id, row.outcome as 'attended' | 'no_show']),
+    ))
+    setVerificationError(null)
+  }, [isHost, persistedWorkoutId, workout.date, workout.id, workout.time, workoutHasPassed])
+
+  useEffect(() => {
+    void loadAttendanceVerification()
+  }, [loadAttendanceVerification])
+
+  const verifyAttendance = async (participantId: string, outcome: 'attended' | 'no_show') => {
+    if (verifyingUserId) return
+    setVerifyingUserId(participantId)
+    setVerificationError(null)
+    const { error } = await supabase.rpc('verify_workout_attendance', {
+      target_workout_id: workout.id,
+      target_participant_id: participantId,
+      target_outcome: outcome,
+    })
+    if (error) {
+      setVerificationError(error.message)
+      setVerifyingUserId(null)
+      return
+    }
+    await loadAttendanceVerification()
+    setVerifyingUserId(null)
+  }
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -172,6 +240,58 @@ export function WorkoutDetail({ id }: { id: string }) {
               </div>
             ))}
           </div>
+          {isHost && persistedWorkoutId && workoutHasPassed && persistedAttendees.length > 0 ? (
+            <div className="mt-3 rounded-2xl bg-card p-3 ring-1 ring-border">
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Verify attendance
+              </p>
+              <div className="space-y-2">
+                {persistedAttendees.map((participantId) => {
+                  const participant = getUser(participantId)
+                  const selected = attendanceOutcomes[participantId]
+                  return (
+                    <div key={participantId} className="flex items-center gap-2">
+                      <Avatar user={participant} size={30} />
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-card-foreground">
+                        {participant.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void verifyAttendance(participantId, 'attended')}
+                        disabled={verifyingUserId === participantId}
+                        className={cn(
+                          'rounded-full px-2.5 py-1 text-[10px] font-bold',
+                          selected === 'attended'
+                            ? 'bg-lime text-lime-foreground'
+                            : 'bg-secondary text-secondary-foreground',
+                        )}
+                      >
+                        Attended
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void verifyAttendance(participantId, 'no_show')}
+                        disabled={verifyingUserId === participantId}
+                        className={cn(
+                          'rounded-full px-2.5 py-1 text-[10px] font-bold',
+                          selected === 'no_show'
+                            ? 'bg-destructive text-destructive-foreground'
+                            : 'bg-secondary text-secondary-foreground',
+                        )}
+                      >
+                        No Show
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+              {verificationError ? (
+                <p role="alert" className="mt-2 text-xs font-medium text-destructive">
+                  {verificationError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {isHost ? (
