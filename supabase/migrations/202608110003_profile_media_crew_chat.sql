@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.4 seconds
-Output:
 alter table public.profiles add column if not exists avatar_path text;
 insert into storage.buckets (id, name, public) values ('profile-media', 'profile-media', true) on conflict (id) do update set public = true;
 create policy "Users upload own profile media" on storage.objects for insert to authenticated with check (bucket_id='profile-media' and (storage.foldername(name))[1]=auth.uid()::text);
