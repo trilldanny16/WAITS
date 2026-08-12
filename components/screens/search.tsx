@@ -5,10 +5,12 @@ import { Search as SearchIcon, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { WorkoutCard } from '../workout-card'
+import { DemoWorkoutCard } from '../demo-workout-card'
 import { Avatar } from '../avatar'
 import { WORKOUT_TYPES, type WorkoutType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
+import { demoDiscoveryWorkouts } from '@/lib/seed'
 import {
   getFriendRequestStates,
   cancelFriendRequest,
@@ -145,6 +147,16 @@ const realMatchedUsers = useMemo(() => {
     })
   }, [workouts, filter, q, getUser])
 
+  const matchedDemos = useMemo(() => {
+    if (workouts.length > 0) return []
+    return demoDiscoveryWorkouts().filter((workout) => {
+      if (filter !== 'all' && !workout.types.includes(filter)) return false
+      if (!q) return true
+      return [workout.gym, workout.city, ...workout.types]
+        .some((value) => value.toLowerCase().includes(q))
+    })
+  }, [workouts.length, filter, q])
+
   return (
     <div className="flex h-full flex-col">
       <header className="shrink-0 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+16px)]">
@@ -250,17 +262,16 @@ const realMatchedUsers = useMemo(() => {
         ) : null}
 
         <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          {matchedWorkouts.length} Workout{matchedWorkouts.length === 1 ? '' : 's'}
+          {matchedWorkouts.length || matchedDemos.length} Workout{(matchedWorkouts.length || matchedDemos.length) === 1 ? '' : 's'}
         </h2>
-        {matchedWorkouts.length === 0 ? (
+        {matchedWorkouts.length === 0 && matchedDemos.length === 0 ? (
           <p className="pt-6 text-center text-sm text-muted-foreground">
             No workouts match your search.
           </p>
         ) : (
           <div className="space-y-3">
-            {matchedWorkouts.map((w) => (
-              <WorkoutCard key={w.id} workout={w} />
-            ))}
+            {matchedWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} />)}
+            {matchedDemos.map((w) => <DemoWorkoutCard key={w.id} workout={w} />)}
           </div>
         )}
       </div>
