@@ -792,8 +792,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 </div>
               </button>
             ) : gallery.length === 0 && !isSelf ? (
-              <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground ring-1 ring-border">
-                No photos yet.
+              <p className="rounded-2xl bg-card p-4 text-center text-sm text-muted-foreground ring-1 ring-border">
+                No Photos Yet.
               </p>
             ) : (
               <div className="grid grid-cols-3 gap-1.5">
