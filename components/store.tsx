@@ -112,10 +112,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const { data: profiles } = await supabase
+    let { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
-    const profile = profiles?.find((candidate) => candidate.id === user.id)
+    if (profilesError) {
+      console.error('Failed to load authenticated profile entitlement', {
+        userId: user.id,
+        error: profilesError.message,
+      })
+    }
+    let profile = profiles?.find((candidate) => candidate.id === user.id)
+
+    if (!profilesError && profile && profile.is_pro !== true) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const response = await fetch('/api/stripe/sync-entitlement', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const result = await response.json()
+        if (response.ok && result.isPro === true) {
+          const refreshed = await supabase
+            .from('profiles')
+            .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
+          if (!refreshed.error) {
+            profiles = refreshed.data
+            profile = profiles?.find((candidate) => candidate.id === user.id)
+          }
+        } else if (!response.ok) {
+          console.error('Failed to reconcile authenticated Pro entitlement', {
+            userId: user.id,
+            error: result.error ?? response.statusText,
+          })
+        }
+      }
+    }
 
     const email = profile?.email ?? user.email ?? ''
     const displayName = profile?.display_name?.trim() || 'WAITS User'
