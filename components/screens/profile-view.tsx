@@ -37,8 +37,7 @@ import {
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-// Preset gym shots a free user can add to their own gallery (prototype:
-// no runtime upload, so we cycle through a small sample pool).
+// Preset gym shots are used only as blurred placeholders behind the Free-user lock.
 const PRESET_PHOTOS = [
   '/gallery/danny-1.png',
   '/gallery/danny-2.png',
@@ -86,6 +85,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const [galleryUploading, setGalleryUploading] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
   const [portalError, setPortalError] = useState<string | null>(null)
   const [editName, setEditName] = useState(user.name)
@@ -371,11 +372,16 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const locked = user.isPrivate && !isSelf && !followed
   const showProBadge = user.isVerifiedPro === true
   const gallery = galleryFor(userId)
-  // Free users can view their own gallery, but need Pro to see others'.
+  // Gallery access is enforced by both the Pro UI gate and Supabase RLS.
   const galleryLocked = !isPremium
-  const handleAddPhoto = () => {
-    const next = PRESET_PHOTOS[gallery.length % PRESET_PHOTOS.length]
-    addGalleryPhoto(next)
+  const handleAddPhoto = () => galleryInputRef.current?.click()
+  const handleGalleryChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || galleryUploading) return
+    setGalleryUploading(true)
+    await addGalleryPhoto(file)
+    setGalleryUploading(false)
   }
 
     const handleSignOut = async () => {
@@ -786,15 +792,25 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             ) : (
               <div className="grid grid-cols-3 gap-1.5">
                 {isSelf ? (
-                  <button
-                    type="button"
-                    onClick={handleAddPhoto}
-                    className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                    aria-label="Add photo"
-                  >
-                    <Plus size={22} />
-                    <span className="text-[10px] font-bold uppercase tracking-wide">Add</span>
-                  </button>
+                  <>
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleGalleryChange}
+                      className="sr-only"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddPhoto}
+                      disabled={galleryUploading}
+                      className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+                      aria-label="Add photo"
+                    >
+                      <Plus size={22} />
+                      <span className="text-[10px] font-bold uppercase tracking-wide">Add</span>
+                    </button>
+                  </>
                 ) : null}
                 {gallery.map((src, i) => (
                   <div key={`${src}-${i}`} className="relative overflow-hidden rounded-2xl ring-1 ring-border">
@@ -805,7 +821,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                       className="aspect-square w-full object-cover"
                     />
                     {isSelf ? (
-                      <button type="button" onClick={() => removeGalleryPhoto(src)} className="absolute bottom-1.5 right-1.5 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground shadow" aria-label="Remove photo">
+                      <button type="button" onClick={() => void removeGalleryPhoto(src)} className="absolute bottom-1.5 right-1.5 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground shadow" aria-label="Remove photo">
                         Remove
                       </button>
                     ) : null}
