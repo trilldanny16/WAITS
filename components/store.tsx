@@ -75,8 +75,8 @@ interface StoreValue {
   setPremium: (v: boolean) => void
   activeHostedCount: number
   galleryFor: (userId: string) => string[]
-  addGalleryPhoto: (src: string) => void
-  removeGalleryPhoto: (src: string) => void
+  addGalleryPhoto: (file: File) => Promise<boolean>
+  removeGalleryPhoto: (src: string) => Promise<boolean>
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -95,9 +95,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [pendingFriendRequestCount, setPendingFriendRequestCount] = useState(0)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [isPremium, setIsPremium] = useState(false)
-  // Extra gallery photos the current user adds this session, keyed by user id.
-  const [ownGallery, setOwnGallery] = useState<string[]>([])
-  const [removedGalleryPhotos, setRemovedGalleryPhotos] = useState<string[]>([])
+  const [persistedGallery, setPersistedGallery] = useState<Record<string, Array<{ id: string; storagePath: string; url: string; createdAt: string }>>>({})
   const persistedWorkoutIdsRef = useRef<string[]>([])
 
   useEffect(() => {
@@ -503,30 +501,165 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [pushToast, isPremium, currentUserId, refreshPersistedWorkouts],
   )
 
-  const galleryFor = useCallback(
-    (userId: string) => {
-      const base = (getUser(userId).gallery ?? []).slice()
-      if (userId === currentUserId) {
-        return [...ownGallery, ...base].filter((src) => !removedGalleryPhotos.includes(src))
+  const refreshGallery = useCallback(async () => {
+    if (!currentUserId || !isPremium) {
+      setPersistedGallery({})
+      return { ok: true }
+    }
+
+    const { data, error } = await supabase
+      .from('profile_photos')
+      .select('id, user_id, storage_path, created_at')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Failed to load persisted gallery photos:', error)
+      return { ok: false, error: error.message }
+    }
+
+    const resolved = await Promise.all((data ?? []).map(async (photo) => {
+      const signed = await supabase.storage
+        .from('profile-gallery')
+        .createSignedUrl(photo.storage_path, 60 * 60)
+
+      if (signed.error || !signed.data?.signedUrl) {
+        console.error('Failed to resolve persisted gallery photo:', signed.error)
+        return null
       }
-      return base
-    },
-    [getUser, ownGallery, removedGalleryPhotos, currentUserId],
+
+      return {
+        id: photo.id,
+        userId: photo.user_id,
+        storagePath: photo.storage_path,
+        createdAt: photo.created_at,
+        url: signed.data.signedUrl,
+      }
+    }))
+
+    const next: Record<string, Array<{ id: string; storagePath: string; url: string; createdAt: string }>> = {}
+    for (const photo of resolved) {
+      if (!photo) continue
+      next[photo.userId] = [...(next[photo.userId] ?? []), {
+        id: photo.id,
+        storagePath: photo.storagePath,
+        url: photo.url,
+        createdAt: photo.createdAt,
+      }]
+    }
+    setPersistedGallery(next)
+    return { ok: true }
+  }, [currentUserId, isPremium])
+
+  useEffect(() => {
+    void refreshGallery()
+  }, [refreshGallery])
+
+  const galleryFor = useCallback(
+    (userId: string) => (persistedGallery[userId] ?? []).map((photo) => photo.url),
+    [persistedGallery],
   )
 
-  const addGalleryPhoto = useCallback(
-    (src: string) => {
-      setOwnGallery((prev) => [src, ...prev])
-      pushToast({ title: 'Photo added to your gallery 📸' })
-    },
-    [pushToast],
-  )
+  const addGalleryPhoto = useCallback(async (file: File) => {
+    if (!currentUserId || !isPremium) {
+      pushToast({ title: 'WAITS Pro required', body: 'Upgrade to post Gym Gallery photos.' })
+      return false
+    }
 
-  const removeGalleryPhoto = useCallback((src: string) => {
-    setOwnGallery((previous) => previous.filter((photo) => photo !== src))
-    setRemovedGalleryPhotos((previous) => previous.includes(src) ? previous : [...previous, src])
-    pushToast({ title: 'Photo removed', body: 'Gallery photos are still prototype-only and are not stored in Supabase.' })
-  }, [pushToast])
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+    if (!allowedTypes.has(file.type)) {
+      pushToast({ title: 'Photo was not added', body: 'Choose a JPG, PNG, WebP, or GIF image.' })
+      return false
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      pushToast({ title: 'Photo was not added', body: 'Gallery photos must be 10 MB or smaller.' })
+      return false
+    }
+
+    const extensionByType: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    }
+    const path = `${currentUserId}/gallery-${crypto.randomUUID()}.${extensionByType[file.type]}`
+    const upload = await supabase.storage.from('profile-gallery').upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    })
+    if (upload.error) {
+      console.error('Failed to upload gallery photo:', upload.error)
+      pushToast({ title: 'Photo was not added', body: upload.error.message })
+      return false
+    }
+
+    const saved = await supabase
+      .from('profile_photos')
+      .insert({ user_id: currentUserId, storage_path: path })
+      .select('id')
+      .single()
+    if (saved.error) {
+      await supabase.storage.from('profile-gallery').remove([path])
+      console.error('Failed to save gallery photo metadata:', saved.error)
+      pushToast({ title: 'Photo was not added', body: saved.error.message })
+      return false
+    }
+
+    const refreshed = await refreshGallery()
+    if (!refreshed.ok) {
+      pushToast({ title: 'Photo saved', body: 'Refresh to load it in your gallery.' })
+      return true
+    }
+    pushToast({ title: 'Photo added to your gallery' })
+    return true
+  }, [currentUserId, isPremium, pushToast, refreshGallery])
+
+  const removeGalleryPhoto = useCallback(async (src: string) => {
+    if (!currentUserId || !isPremium) {
+      pushToast({ title: 'Photo was not removed', body: 'WAITS Pro is required to manage Gallery photos.' })
+      return false
+    }
+
+    const photo = (persistedGallery[currentUserId] ?? []).find((candidate) => candidate.url === src)
+    if (!photo) {
+      pushToast({ title: 'Photo was not removed', body: 'The stored photo could not be found.' })
+      return false
+    }
+
+    const removedMetadata = await supabase
+      .from('profile_photos')
+      .delete()
+      .eq('id', photo.id)
+      .eq('user_id', currentUserId)
+      .select('id')
+    if (removedMetadata.error || !removedMetadata.data?.length) {
+      const message = removedMetadata.error?.message ?? 'Supabase did not confirm the deletion.'
+      console.error('Failed to delete gallery photo metadata:', removedMetadata.error)
+      pushToast({ title: 'Photo was not removed', body: message })
+      return false
+    }
+
+    const removedFile = await supabase.storage.from('profile-gallery').remove([photo.storagePath])
+    if (removedFile.error) {
+      const restored = await supabase.from('profile_photos').insert({
+        id: photo.id,
+        user_id: currentUserId,
+        storage_path: photo.storagePath,
+        created_at: photo.createdAt,
+      })
+      console.error('Failed to delete gallery photo file:', removedFile.error)
+      if (restored.error) console.error('Failed to restore gallery photo metadata:', restored.error)
+      pushToast({ title: 'Photo was not removed', body: removedFile.error.message })
+      return false
+    }
+
+    const refreshed = await refreshGallery()
+    if (!refreshed.ok) {
+      pushToast({ title: 'Photo removed', body: 'Refresh to update your gallery.' })
+      return true
+    }
+    pushToast({ title: 'Photo removed' })
+    return true
+  }, [currentUserId, isPremium, persistedGallery, pushToast, refreshGallery])
 
   const cancelWorkout = useCallback(
     async (id: string) => {
