@@ -239,8 +239,8 @@ export function seedWorkouts(): Workout[] {
   ]
 }
 
-/** Static discovery examples only. Never add these rows to authenticated workout state. */
-export function demoDiscoveryWorkouts(): Workout[] {
+/** Display-only discovery content. Never add these rows to authenticated workout state. */
+export function displayWorkouts(): Workout[] {
   return seedWorkouts()
     .filter((workout) => workout.hostId !== CURRENT_USER_ID)
     .map((workout) => ({ ...workout, attendees: [] }))
