@@ -189,6 +189,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [friendRequestState, setFriendRequestState] = useState<FriendRequestState>('none')
   const [sendingRequest, setSendingRequest] = useState(false)
+  const [verifiedReliability, setVerifiedReliability] = useState<number | null>(null)
+  const [verifiedStreak, setVerifiedStreak] = useState<number | null>(null)
 
   useEffect(() => {
     setEditName(user.name)
@@ -250,6 +252,62 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     void loadState()
     return () => { active = false }
   }, [currentUserId, isPersistedProfile, isSelf, userId])
+
+  useEffect(() => {
+    let active = true
+    if (!isPersistedUserId(userId)) {
+      setVerifiedReliability(null)
+      setVerifiedStreak(null)
+      return () => { active = false }
+    }
+
+    const loadVerifiedStatistics = async () => {
+      const { data, error } = await supabase.rpc('get_profile_verified_attendance', {
+        target_profile_id: userId,
+      })
+      if (!active) return
+      if (error) {
+        console.error('Failed to load verified attendance statistics:', error)
+        setVerifiedReliability(null)
+        setVerifiedStreak(null)
+        return
+      }
+
+      const outcomes = (data ?? []) as Array<{ outcome: 'attended' | 'no_show'; workout_date: string }>
+      const attended = outcomes.filter((row) => row.outcome === 'attended')
+      const noShows = outcomes.filter((row) => row.outcome === 'no_show')
+      const verifiedTotal = attended.length + noShows.length
+      setVerifiedReliability(
+        verifiedTotal === 0 ? null : Math.round((attended.length / verifiedTotal) * 100),
+      )
+
+      const weekStarts = Array.from(new Set(attended.map((row) => {
+        const date = new Date(`${row.workout_date}T12:00:00`)
+        const day = (date.getDay() + 6) % 7
+        date.setDate(date.getDate() - day)
+        return date.toISOString().slice(0, 10)
+      }))).sort().reverse()
+
+      if (weekStarts.length === 0) {
+        setVerifiedStreak(null)
+        return
+      }
+
+      let streak = 1
+      let previous = new Date(`${weekStarts[0]}T12:00:00`)
+      for (const weekStart of weekStarts.slice(1)) {
+        const expected = new Date(previous)
+        expected.setDate(expected.getDate() - 7)
+        if (weekStart !== expected.toISOString().slice(0, 10)) break
+        streak += 1
+        previous = new Date(`${weekStart}T12:00:00`)
+      }
+      setVerifiedStreak(streak)
+    }
+
+    void loadVerifiedStatistics()
+    return () => { active = false }
+  }, [userId])
 
   const handleSaveProfile = async () => {
     const trimmedName = editName.trim()
@@ -714,7 +772,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     Reliability
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.reliability == null ? '90%' : `${user.reliability}%`}
+                    {verifiedReliability == null ? 'Not available' : `${verifiedReliability}%`}
                   </p>
                   <p className="mx-auto mt-1 max-w-[10rem] text-pretty text-[11px] leading-relaxed text-muted-foreground">
                     Verified Attendance
@@ -726,7 +784,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     Streak
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.streak == null ? '4 WEEKS' : `${user.streak} WEEKS`}
+                    {verifiedStreak == null ? 'Not available' : `${verifiedStreak} ${verifiedStreak === 1 ? 'WEEK' : 'WEEKS'}`}
                   </p>
                   <p className="mt-1 text-[11px] text-muted-foreground">Consecutive Active Weeks</p>
                 </div>
