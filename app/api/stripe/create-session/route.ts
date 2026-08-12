@@ -45,8 +45,9 @@ export async function POST(request: Request) {
       subscription_data: { metadata: { user_id: user.id } },
     }
 
+    console.log('Stripe checkout params:', JSON.stringify(checkoutParams, null, 2))
+
     const session = await stripe.checkout.sessions.create(checkoutParams)
-    console.info('Stripe checkout session created', { sessionId: session.id, userId: user.id })
 
     return NextResponse.json({
       clientSecret: session.client_secret,

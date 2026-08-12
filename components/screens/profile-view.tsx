@@ -90,7 +90,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [friendRequestState, setFriendRequestState] = useState<FriendRequestState>('none')
   const [sendingRequest, setSendingRequest] = useState(false)
-  const [persistedPhotos, setPersistedPhotos] = useState<{ id: string; path: string; url: string }[]>([])
 
   useEffect(() => {
     setEditName(user.name)
@@ -148,14 +147,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     void loadState()
     return () => { active = false }
   }, [currentUserId, isSelf, userId])
-
-  useEffect(() => {
-    const loadPhotos = async () => {
-      const { data } = await supabase.from('profile_photos').select('id, storage_path').eq('user_id', userId).order('created_at')
-      setPersistedPhotos((data ?? []).map((photo) => ({ id: photo.id, path: photo.storage_path, url: supabase.storage.from('profile-media').getPublicUrl(photo.storage_path).data.publicUrl })))
-    }
-    void loadPhotos()
-  }, [userId])
 
   const handleSaveProfile = async () => {
     const trimmedName = editName.trim()
@@ -283,7 +274,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed
   const showProBadge = user.isVerifiedPro === true
-  const gallery = [...persistedPhotos.map((photo) => photo.url), ...galleryFor(userId)]
+  const gallery = galleryFor(userId)
   // Free users can view their own gallery, but need Pro to see others'.
   const galleryLocked = !isSelf && !isPremium
   const handleAddPhoto = () => {
@@ -310,7 +301,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const scheduledWorkouts = useMemo(
     () =>
       workouts
-        .filter((w) => w.hostId === userId || w.attendees.includes(userId))
+        .filter((workout) => workout.hostId === userId || workout.attendees.includes(userId))
         .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
     [workouts, userId],
   )
@@ -356,32 +347,18 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         ) : null}
       </header>
 
-      <div className="no-scrollbar relative flex-1 overflow-y-auto px-5 pb-6">
+      <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
         {/* Identity */}
         <div className="flex flex-col items-center pt-4 text-center">
-          <div className="relative">
-            <Avatar user={user} size={88} />
-            {isSelf ? (
-              <label className="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground shadow">
-                Edit
-                <input type="file" accept="image/*" className="hidden" onChange={async (event) => {
-                  const file = event.target.files?.[0]
-                  if (!file) return
-                  const extension = file.name.split('.').pop() || 'jpg'
-                  const path = `${currentUserId}/avatar-${crypto.randomUUID()}.${extension}`
-                  const { error: uploadError } = await supabase.storage.from('profile-media').upload(path, file)
-                  if (uploadError) { pushToast({ title: 'Avatar upload failed', body: uploadError.message }); return }
-                  const { error: saveError } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', currentUserId)
-                  if (saveError) { pushToast({ title: 'Avatar was not saved', body: saveError.message }); return }
-                  const { data } = supabase.storage.from('profile-media').getPublicUrl(path)
-                  updateUser(currentUserId, { avatar: data.publicUrl } as never)
-                  pushToast({ title: 'Profile picture updated' })
-                }} />
-              </label>
-            ) : null}
-          </div>
+          <Avatar user={user} size={88} />
           <h1 className="mt-3 flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
             {user.name}
+            {showProBadge ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-primary-foreground">
+                <Crown size={11} />
+                Pro
+              </span>
+            ) : null}
           </h1>
           <p className="text-sm text-muted-foreground">@{user.username}</p>
           <p className="mt-1 flex items-center gap-1 text-sm font-medium text-foreground">
@@ -449,15 +426,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
                     rows={3}
                   />
-                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-                    Favorite Split
-                  </label>
-                  <input
-                    value={editFavoriteSplit}
-                    onChange={(event) => setEditFavoriteSplit(event.target.value)}
-                    placeholder="Push / Pull / Legs"
-                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
-                  />
+                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">Favorite Split</label>
+                  <input value={editFavoriteSplit} onChange={(event) => setEditFavoriteSplit(event.target.value)} placeholder="Push / Pull / Legs" className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none" />
                   {editError ? (
                     <p className="mt-3 text-sm font-medium text-red-500">{editError}</p>
                   ) : null}
@@ -551,30 +521,17 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         </div>
 
         {/* Waits Pro upgrade / status (own profile) */}
-        {showProBadge ? (
-          <span className="absolute right-5 top-4 flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow">
-            <Crown size={24} />
-          </span>
-        ) : null}
-
         {isSelf ? (
           isPremium ? (
-            <button type="button" onClick={async () => {
-              const { data: { session } } = await supabase.auth.getSession()
-              if (!session) return
-              const response = await fetch('/api/stripe/customer-portal', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } })
-              const data = await response.json()
-              if (response.ok && data.url) window.location.href = data.url
-              else pushToast({ title: 'Billing unavailable', body: data.error ?? 'Could not open billing settings.' })
-            }} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left ring-1 ring-border">
+            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground">
               <Crown size={22} className="shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-extrabold">Pro Settings &amp; Billing</p>
+                <p className="text-sm font-extrabold">Waits Pro member</p>
                 <p className="text-xs text-primary-foreground/80">
-                  Manage payment method, subscription, and billing status.
+                  Crew chats, galleries, stats &amp; more are unlocked.
                 </p>
               </div>
-            </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -614,23 +571,21 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               Reliability &amp; Stats
             </h2>
             {(isSelf ? user.isVerifiedPro === true : isPremium) ? (
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">ðŸ›¡ï¸ Reliability</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
+                  <p className="text-xs font-semibold text-muted-foreground">Reliability</p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
                     {user.reliability == null ? 'Not available' : `${user.reliability}%`}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {user.reliability == null ? 'Requires verified workout completion and no-show events.' : 'Based on verified attendance.'}
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">{user.reliability == null ? 'Requires verified workout completion and no-show events.' : 'Based on verified attendance.'}</p>
                 </div>
-                <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
+                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
+                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
                     <Flame size={12} className="text-primary" />
                     Streak
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.streak == null ? 'Not available' : `${user.streak} WEEKS`}
+                    {user.streak == null ? 'Not available' : `${user.streak} wks`}
                   </p>
                   <p className="text-[11px] text-muted-foreground">Consecutive active weeks</p>
                 </div>
@@ -701,22 +656,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             ) : (
               <div className="grid grid-cols-3 gap-1.5">
                 {isSelf ? (
-                  <label
+                  <button
+                    type="button"
+                    onClick={handleAddPhoto}
                     className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                    aria-label="Add photo"
                   >
                     <Plus size={22} />
                     <span className="text-[10px] font-bold uppercase tracking-wide">Add</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={async (event) => {
-                      const file = event.target.files?.[0]
-                      if (!file) return
-                      const path = `${currentUserId}/gallery-${crypto.randomUUID()}.${file.name.split('.').pop() || 'jpg'}`
-                      const upload = await supabase.storage.from('profile-media').upload(path, file)
-                      if (upload.error) { pushToast({ title: 'Photo upload failed', body: upload.error.message }); return }
-                      const inserted = await supabase.from('profile_photos').insert({ user_id: currentUserId, storage_path: path }).select('id').single()
-                      if (inserted.error || !inserted.data) { pushToast({ title: 'Photo was not saved', body: inserted.error?.message }); return }
-                      setPersistedPhotos((previous) => [...previous, { id: inserted.data.id, path, url: supabase.storage.from('profile-media').getPublicUrl(path).data.publicUrl }])
-                    }} />
-                  </label>
+                  </button>
                 ) : null}
                 {gallery.map((src, i) => (
                   <div key={`${src}-${i}`} className="relative overflow-hidden rounded-2xl ring-1 ring-border">
@@ -727,19 +675,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                       className="aspect-square w-full object-cover"
                     />
                     {isSelf ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const persisted = persistedPhotos.find((photo) => photo.url === src)
-                          if (!persisted) { removeGalleryPhoto(src); return }
-                          const deleted = await supabase.from('profile_photos').delete().eq('id', persisted.id).eq('user_id', currentUserId).select('id').single()
-                          if (deleted.error) { pushToast({ title: 'Photo was not removed', body: deleted.error.message }); return }
-                          await supabase.storage.from('profile-media').remove([persisted.path])
-                          setPersistedPhotos((previous) => previous.filter((photo) => photo.id !== persisted.id))
-                        }}
-                        className="absolute bottom-1.5 right-1.5 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground shadow"
-                        aria-label="Remove photo"
-                      >
+                      <button type="button" onClick={() => removeGalleryPhoto(src)} className="absolute bottom-1.5 right-1.5 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground shadow" aria-label="Remove photo">
                         Remove
                       </button>
                     ) : null}
@@ -787,7 +723,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                               className="inline-flex items-center gap-1.5 rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-lime-foreground"
                             >
                               <WorkoutTypeIcon type={w.types[0]} size={12} />
-                              {w.types.join(' + ')} Â· {formatTime(w.time)}
+                              {w.types.join(' + ')} · {formatTime(w.time)}
                             </button>
                           ))
                         )}
@@ -838,4 +774,3 @@ function Stat({ value, label, onClick }: { value: number; label: string; onClick
     </div>
   )
 }
-

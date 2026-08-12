@@ -239,13 +239,6 @@ export function seedWorkouts(): Workout[] {
   ]
 }
 
-/** Display-only discovery content. Never add these rows to authenticated workout state. */
-export function displayWorkouts(): Workout[] {
-  return seedWorkouts()
-    .filter((workout) => workout.hostId !== CURRENT_USER_ID)
-    .map((workout) => ({ ...workout, attendees: [] }))
-}
-
 export function seedMessages(): ChatMessage[] {
   const now = Date.now()
   return [

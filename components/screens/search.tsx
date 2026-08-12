@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search as SearchIcon, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -9,7 +9,6 @@ import { Avatar } from '../avatar'
 import { WORKOUT_TYPES, type WorkoutType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
-import { displayWorkouts } from '@/lib/seed'
 import {
   getFriendRequestStates,
   cancelFriendRequest,
@@ -33,7 +32,8 @@ export function Search() {
     display_name: string | null
   }[]
 >([])
-const loadUsers = useCallback(async () => {
+useEffect(() => {
+  const loadUsers = async () => {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, email, display_name')
@@ -48,22 +48,10 @@ const loadUsers = useCallback(async () => {
     const result = await getFriendRequestStates(currentUserId)
     if (result.error) setRequestError(result.error)
     else setRequestStates(result.states)
-}, [currentUserId])
-
-useEffect(() => {
-  void loadUsers()
-  const channel = supabase.channel(`search-relationships:${currentUserId}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => void loadUsers())
-    .subscribe()
-  const refresh = () => void loadUsers()
-  window.addEventListener('focus', refresh)
-  document.addEventListener('visibilitychange', refresh)
-  return () => {
-    window.removeEventListener('focus', refresh)
-    document.removeEventListener('visibilitychange', refresh)
-    void supabase.removeChannel(channel)
   }
-}, [currentUserId, loadUsers])
+
+  loadUsers()
+}, [currentUserId])
 const sendFriendRequest = async (receiverId: string) => {
   if (sendingTo || (requestStates[receiverId] ?? 'none') !== 'none') return
 
@@ -132,8 +120,7 @@ const realMatchedUsers = useMemo(() => {
   }, [q, users, currentUserId])
 
   const matchedWorkouts = useMemo(() => {
-    const source = workouts.length > 0 ? workouts : displayWorkouts()
-    return source.filter((w) => {
+    return workouts.filter((w) => {
       if (filter !== 'all' && !w.types.includes(filter)) return false
       if (!q) return true
       const host = getUser(w.hostId)
@@ -260,7 +247,9 @@ const realMatchedUsers = useMemo(() => {
           </p>
         ) : (
           <div className="space-y-3">
-            {matchedWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} displayOnly={workouts.length === 0} />)}
+            {matchedWorkouts.map((w) => (
+              <WorkoutCard key={w.id} workout={w} />
+            ))}
           </div>
         )}
       </div>

@@ -10,7 +10,7 @@ import { WorkoutTypeIcon } from './workout-type-icon'
 import { formatDateLabel, formatTime, todayISO } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 
-export function WorkoutCard({ workout, displayOnly = false }: { workout: Workout; displayOnly?: boolean }) {
+export function WorkoutCard({ workout }: { workout: Workout }) {
   const { getUser, isFull, hasJoined, joinWorkout, leaveWorkout, currentUserId } = useStore()
   const [changingAttendance, setChangingAttendance] = useState(false)
   const { openWorkout, openUser } = useNav()
@@ -28,7 +28,7 @@ export function WorkoutCard({ workout, displayOnly = false }: { workout: Workout
     <article className="overflow-hidden rounded-3xl bg-card shadow-sm ring-1 ring-border">
       <button
         type="button"
-        onClick={() => { if (!displayOnly) openWorkout(workout.id) }}
+        onClick={() => openWorkout(workout.id)}
         className="block w-full text-left"
       >
         <div className="flex items-start gap-4 px-4 pt-4">
@@ -37,7 +37,7 @@ export function WorkoutCard({ workout, displayOnly = false }: { workout: Workout
               <span
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (!displayOnly) openUser(host.id)
+                  openUser(host.id)
                 }}
               >
                 <Avatar user={host} size={46} />
@@ -89,7 +89,7 @@ export function WorkoutCard({ workout, displayOnly = false }: { workout: Workout
 
       <div className="px-4 pb-4">
         <div className="w-full">
-          {displayOnly ? null : isHost ? (
+          {isHost ? (
             <span className="block w-full rounded-full bg-secondary px-4 py-2.5 text-center text-xs font-bold uppercase text-secondary-foreground mt-2">
               YOUR WORKOUT
             </span>

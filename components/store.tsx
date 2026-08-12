@@ -57,7 +57,7 @@ interface StoreValue {
   disconnectUser: (userId: string) => Promise<{ ok: boolean; error?: string }>
   toasts: Toast[]
   getUser: (id: string) => User
-  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => void
+  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
   joinWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
@@ -88,7 +88,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>(SEED_USERS)
   const [currentUserId, setCurrentUserId] = useState('')
   const [authReady, setAuthReady] = useState(false)
-  const [workouts, setWorkouts] = useState<Workout[]>([])
+  const [workouts, setWorkouts] = useState<Workout[]>(() => seedWorkouts())
   const [messages, setMessages] = useState<ChatMessage[]>(() => seedMessages())
   const [following, setFollowing] = useState<string[]>([])
   const [followers, setFollowers] = useState<string[]>([])
@@ -112,41 +112,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    let { data: profiles, error: profilesError } = await supabase
+    const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
-    if (profilesError) {
-      console.error('Failed to load authenticated profile entitlement', {
-        userId: user.id,
-        error: profilesError.message,
-      })
-    }
-    let profile = profiles?.find((candidate) => candidate.id === user.id)
-
-    if (!profilesError && profile && profile.is_pro !== true) {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        const response = await fetch('/api/stripe/sync-entitlement', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        })
-        const result = await response.json()
-        if (response.ok && result.isPro === true) {
-          const refreshed = await supabase
-            .from('profiles')
-            .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
-          if (!refreshed.error) {
-            profiles = refreshed.data
-            profile = profiles?.find((candidate) => candidate.id === user.id)
-          }
-        } else if (!response.ok) {
-          console.error('Failed to reconcile authenticated Pro entitlement', {
-            userId: user.id,
-            error: result.error ?? response.statusText,
-          })
-        }
-      }
-    }
+      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro')
+    const profile = profiles?.find((candidate) => candidate.id === user.id)
 
     const email = profile?.email ?? user.email ?? ''
     const displayName = profile?.display_name?.trim() || 'WAITS User'
@@ -165,7 +134,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       isPrivate: false,
       gallery: [],
       isVerifiedPro: row.is_pro === true,
-      avatar: row.avatar_path ? supabase.storage.from('profile-media').getPublicUrl(row.avatar_path).data.publicUrl : undefined,
     })
 
     const realUser: User = profile
@@ -319,7 +287,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const updateUser = useCallback(
-    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => {
+    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => {
       setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, ...updates } : user)))
     },
     [],
@@ -336,6 +304,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [currentUserId],
   )
 
+
   const refreshPersistedWorkouts = useCallback(async () => {
     const [workoutResult, attendanceResult] = await Promise.all([
       supabase
@@ -344,37 +313,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .order('workout_date', { ascending: true }),
       supabase.from('workout_attendees').select('workout_id, user_id'),
     ])
-
     if (workoutResult.error || attendanceResult.error) {
       return { ok: false, error: (workoutResult.error ?? attendanceResult.error)?.message }
     }
-
     const attendanceByWorkout = new Map<string, string[]>()
     for (const row of attendanceResult.data ?? []) {
       const attendees = attendanceByWorkout.get(row.workout_id) ?? []
       attendees.push(row.user_id)
       attendanceByWorkout.set(row.workout_id, attendees)
     }
-
     const persisted: Workout[] = (workoutResult.data ?? []).map((row) => ({
-      id: row.id,
-      hostId: row.host_id,
-      gym: row.gym,
-      city: row.city,
-      address: row.address,
-      lat: row.lat ?? undefined,
-      lng: row.lng ?? undefined,
-      date: row.workout_date,
-      time: row.workout_time.slice(0, 5),
-      types: row.workout_types as WorkoutType[],
-      notes: row.notes ?? '',
-      maxParticipants: row.max_participants,
+      id: row.id, hostId: row.host_id, gym: row.gym, city: row.city, address: row.address,
+      lat: row.lat ?? undefined, lng: row.lng ?? undefined, date: row.workout_date,
+      time: row.workout_time.slice(0, 5), types: row.workout_types as WorkoutType[],
+      notes: row.notes ?? '', maxParticipants: row.max_participants,
       visibility: row.visibility as Visibility,
       attendees: Array.from(new Set([row.host_id, ...(attendanceByWorkout.get(row.id) ?? [])])),
       recurring: row.recurring as Workout['recurring'],
     }))
-
-    setWorkouts(persisted)
+    setWorkouts((previous) => {
+      const prototype = previous.filter((workout) => !persistedWorkoutIdsRef.current.includes(workout.id))
+      return [...persisted, ...prototype]
+    })
     persistedWorkoutIdsRef.current = persisted.map((workout) => workout.id)
     return { ok: true }
   }, [])
@@ -446,10 +406,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const joinWorkout = useCallback(
     async (id: string) => {
-      const w = workouts.find((x) => x.id === id)
-      if (!w) return { ok: false, error: 'That workout is no longer available.' }
-      if (w.attendees.includes(currentUserId)) return { ok: true }
-      if (w.attendees.length >= w.maxParticipants) {
+      const workout = workouts.find((candidate) => candidate.id === id)
+      if (!workout) return { ok: false, error: 'That workout is no longer available.' }
+      if (workout.attendees.includes(currentUserId)) return { ok: true }
+      if (workout.attendees.length >= workout.maxParticipants) {
         const error = 'That workout is full.'
         pushToast({ title: 'Could not join', body: error })
         return { ok: false, error }
@@ -472,9 +432,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       await refreshWorkoutAttendance()
-      const host = getUser(w.hostId)
+      const host = getUser(workout.hostId)
       pushToast({
-        title: `Youâ€™re in for ${w.types.join(' + ')} ðŸ’ª`,
+        title: `You’re in for ${workout.types.join(' + ')} 💪`,
         body: `Chat with ${host.name.split(' ')[0]} is now open.`,
       })
       return { ok: true }
@@ -521,39 +481,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const createWorkout = useCallback(
     async (input: NewWorkoutInput) => {
-      // Clamp participant count to the free-tier max unless premium.
-      const cappedMax = isPremium
-        ? input.maxParticipants
-        : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
-      const { data, error } = await supabase
-        .from('workouts')
-        .insert({
-          host_id: currentUserId,
-          gym: input.gym,
-          city: input.city,
-          address: input.address,
-          lat: input.lat ?? null,
-          lng: input.lng ?? null,
-          workout_date: input.date,
-          workout_time: input.time,
-          workout_types: input.types,
-          notes: input.notes,
-          max_participants: cappedMax,
-          visibility: input.visibility,
-          recurring: input.recurring,
-        })
-        .select('id')
-        .single()
+      const cappedMax = isPremium ? input.maxParticipants : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
+      const { data, error } = await supabase.from('workouts').insert({
+        host_id: currentUserId, gym: input.gym, city: input.city, address: input.address,
+        lat: input.lat ?? null, lng: input.lng ?? null, workout_date: input.date,
+        workout_time: input.time, workout_types: input.types, notes: input.notes,
+        max_participants: cappedMax, visibility: input.visibility, recurring: input.recurring,
+      }).select('id').single()
       if (error || !data) {
         pushToast({ title: 'Workout was not posted', body: error?.message ?? 'Supabase did not confirm the workout.' })
         return null
       }
       const workout: Workout = { id: data.id, hostId: currentUserId, attendees: [currentUserId], ...input, maxParticipants: cappedMax }
       await refreshPersistedWorkouts()
-      pushToast({
-        title: 'Workout posted ðŸ”¥',
-        body: 'Your followers were notified. Come Thru?',
-      })
+      pushToast({ title: 'Workout posted 🔥', body: 'Your followers were notified. Come Thru?' })
       return workout
     },
     [pushToast, isPremium, currentUserId, refreshPersistedWorkouts],
@@ -573,7 +514,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addGalleryPhoto = useCallback(
     (src: string) => {
       setOwnGallery((prev) => [src, ...prev])
-      pushToast({ title: 'Photo added to your gallery ðŸ“¸' })
+      pushToast({ title: 'Photo added to your gallery 📸' })
     },
     [pushToast],
   )
@@ -581,26 +522,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const removeGalleryPhoto = useCallback((src: string) => {
     setOwnGallery((previous) => previous.filter((photo) => photo !== src))
     setRemovedGalleryPhotos((previous) => previous.includes(src) ? previous : [...previous, src])
-    pushToast({
-      title: 'Photo removed',
-      body: 'Gallery photos are still prototype-only and are not stored in Supabase.',
-    })
+    pushToast({ title: 'Photo removed', body: 'Gallery photos are still prototype-only and are not stored in Supabase.' })
   }, [pushToast])
 
   const cancelWorkout = useCallback(
     async (id: string) => {
-      const { data, error } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', id)
-        .eq('host_id', currentUserId)
-        .select('id')
+      const { data, error } = await supabase.from('workouts').delete().eq('id', id).eq('host_id', currentUserId).select('id')
       if (error || !data || data.length === 0) {
         pushToast({ title: 'Workout was not canceled', body: error?.message ?? 'No hosted workout was removed.' })
         return false
       }
       await refreshPersistedWorkouts()
-      setMessages((prev) => prev.filter((m) => m.workoutId !== id))
+      setMessages((prev) => prev.filter((message) => message.workoutId !== id))
       pushToast({ title: 'Workout canceled', body: 'Attendees were notified.' })
       return true
     },
@@ -717,4 +650,3 @@ export function useStore(): StoreValue {
   if (!ctx) throw new Error('useStore must be used within StoreProvider')
   return ctx
 }
-

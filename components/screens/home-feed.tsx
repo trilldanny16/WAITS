@@ -9,7 +9,6 @@ import { Avatar } from '../avatar'
 import { Wordmark } from '../wordmark'
 import { relativeBucket, timeToMinutes } from '@/lib/date-utils'
 import type { Workout } from '@/lib/types'
-import { displayWorkouts } from '@/lib/seed'
 
 function greeting(): string {
   const choices = [
@@ -25,12 +24,10 @@ function Section({
   title,
   accent,
   workouts,
-  displayOnly = false,
 }: {
   title: string
   accent?: boolean
   workouts: Workout[]
-  displayOnly?: boolean
 }) {
   if (workouts.length === 0) return null
   return (
@@ -41,7 +38,7 @@ function Section({
       </h2>
       <div className="space-y-3">
         {workouts.map((w) => (
-          <WorkoutCard key={w.id} workout={w} displayOnly={displayOnly} />
+          <WorkoutCard key={w.id} workout={w} />
         ))}
       </div>
     </section>
@@ -53,14 +50,8 @@ export function HomeFeed() {
   const { openUser } = useNav()
   const me = getUser(currentUserId)
 
-  const usingDisplayContent = workouts.length === 0
-  const visibleWorkouts = useMemo(
-    () => usingDisplayContent ? displayWorkouts() : workouts,
-    [usingDisplayContent, workouts],
-  )
-
   const { today, week } = useMemo(() => {
-    const sorted = [...visibleWorkouts].sort(
+    const sorted = [...workouts].sort(
       (a, b) =>
         a.date.localeCompare(b.date) || timeToMinutes(a.time) - timeToMinutes(b.time),
     )
@@ -68,18 +59,18 @@ export function HomeFeed() {
       today: sorted.filter((w) => ['today', 'tonight'].includes(relativeBucket(w.date, w.time))),
       week: sorted.filter((w) => relativeBucket(w.date, w.time) === 'week'),
     }
-  }, [visibleWorkouts])
+  }, [workouts])
 
   const empty = today.length + week.length === 0
 
   // friends training this week, for the top rail
   const railUsers = useMemo(() => {
     const ids = new Set<string>()
-    for (const w of visibleWorkouts) {
+    for (const w of workouts) {
       if (w.hostId !== currentUserId) ids.add(w.hostId)
     }
     return [...ids].map(getUser)
-  }, [visibleWorkouts, getUser, currentUserId])
+  }, [workouts, getUser, currentUserId])
 
   return (
     <div className="flex h-full flex-col">
@@ -124,8 +115,8 @@ export function HomeFeed() {
           <EmptyFeed />
         ) : (
           <>
-            <Section title="Today" workouts={today} displayOnly={usingDisplayContent} />
-            <Section title="This Week" workouts={week} displayOnly={usingDisplayContent} />
+            <Section title="Today" workouts={today} />
+            <Section title="This Week" workouts={week} />
           </>
         )}
       </div>
