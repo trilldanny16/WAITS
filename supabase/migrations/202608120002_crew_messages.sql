@@ -1,6 +1,6 @@
 create table if not exists public.crew_messages (
   id uuid primary key default gen_random_uuid(),
-  workout_id text not null,
+  workout_id uuid not null references public.workouts(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade,
   text text not null check (char_length(btrim(text)) between 1 and 2000),
   created_at timestamptz not null default now(),
@@ -22,13 +22,13 @@ create policy "Crew members read messages"
     exists (
       select 1
       from public.workouts workout
-      where workout.id::text = crew_messages.workout_id
+      where workout.id = crew_messages.workout_id
         and workout.host_id = auth.uid()
     )
     or exists (
       select 1
       from public.workout_attendees attendee
-      where attendee.workout_id = crew_messages.workout_id
+      where attendee.workout_id = crew_messages.workout_id::text
         and attendee.user_id = auth.uid()
     )
   );
@@ -42,13 +42,13 @@ create policy "Crew members send own messages"
       exists (
         select 1
         from public.workouts workout
-        where workout.id::text = crew_messages.workout_id
+        where workout.id = crew_messages.workout_id
           and workout.host_id = auth.uid()
       )
       or exists (
         select 1
         from public.workout_attendees attendee
-        where attendee.workout_id = crew_messages.workout_id
+        where attendee.workout_id = crew_messages.workout_id::text
           and attendee.user_id = auth.uid()
       )
     )
