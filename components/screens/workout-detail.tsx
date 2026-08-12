@@ -20,7 +20,6 @@ import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime, formatDateLabel } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
-import { isPersistedWorkoutId } from '@/lib/workout-identity'
 
 function getDirectionsUrl(lat: number, lng: number) {
   const destination = `${lat},${lng}`
@@ -56,8 +55,7 @@ export function WorkoutDetail({ id }: { id: string }) {
   const joined = hasJoined(workout)
   const full = isFull(workout)
   const spotsLeft = workout.maxParticipants - workout.attendees.length
-  const persistedWorkout = isPersistedWorkoutId(workout.id)
-  const canChat = persistedWorkout && (joined || isHost)
+  const canChat = joined || isHost
 
   return (
     <div className="flex h-full flex-col bg-background">
