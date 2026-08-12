@@ -18,6 +18,7 @@ import {
   seedWorkouts,
 } from '@/lib/seed'
 import { supabase } from '@/lib/supabase-client'
+import { isPersistedWorkoutId } from '@/lib/workout-identity'
 
 export interface Toast {
   id: string
@@ -409,6 +410,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const workout = workouts.find((candidate) => candidate.id === id)
       if (!workout) return { ok: false, error: 'That workout is no longer available.' }
+      if (!isPersistedWorkoutId(id)) {
+        const error = 'This display workout is not available for attendance.'
+        pushToast({ title: 'Could not join', body: error })
+        return { ok: false, error }
+      }
       if (workout.attendees.includes(currentUserId)) return { ok: true }
       if (workout.attendees.length >= workout.maxParticipants) {
         const error = 'That workout is full.'
@@ -445,6 +451,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const leaveWorkout = useCallback(
     async (id: string) => {
+      if (!isPersistedWorkoutId(id)) {
+        const error = 'This display workout has no persisted attendance.'
+        pushToast({ title: 'Could not leave', body: error })
+        return { ok: false, error }
+      }
+
       const { data, error } = await supabase
         .from('workout_attendees')
         .delete()
@@ -663,6 +675,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const cancelWorkout = useCallback(
     async (id: string) => {
+      if (!isPersistedWorkoutId(id)) {
+        pushToast({ title: 'Workout was not canceled', body: 'Display workouts are not persisted.' })
+        return false
+      }
       const { data, error } = await supabase.from('workouts').delete().eq('id', id).eq('host_id', currentUserId).select('id')
       if (error || !data || data.length === 0) {
         pushToast({ title: 'Workout was not canceled', body: error?.message ?? 'No hosted workout was removed.' })
