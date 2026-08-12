@@ -1,5 +1,12 @@
 import { supabase } from '@/lib/supabase-client'
 
+export const SUPABASE_USER_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function isPersistedUserId(id: string): boolean {
+  return SUPABASE_USER_ID_PATTERN.test(id)
+}
+
 export type FriendRequestState =
   | 'none'
   | 'pending_outgoing'
@@ -23,6 +30,10 @@ function stateFor(
 }
 
 export async function getFriendRequestStates(currentUserId: string) {
+  if (!isPersistedUserId(currentUserId)) {
+    return { states: {} as Record<string, FriendRequestState> }
+  }
+
   const { data, error } = await supabase
     .from('friend_requests')
     .select('sender_id, receiver_id, status')
@@ -46,7 +57,10 @@ export async function getFriendRequestState(
   currentUserId: string,
   otherUserId: string,
 ): Promise<FriendRequestResult> {
-  if (!currentUserId || currentUserId === otherUserId) {
+  if (!isPersistedUserId(currentUserId) || !isPersistedUserId(otherUserId)) {
+    return { ok: false, state: 'none', error: 'This display profile is not available for persisted social requests.' }
+  }
+  if (currentUserId === otherUserId) {
     return { ok: false, state: 'none', error: 'You cannot send a friend request to yourself.' }
   }
 
@@ -67,6 +81,10 @@ export async function sendFriendRequest(
   currentUserId: string,
   receiverId: string,
 ): Promise<FriendRequestResult> {
+  if (!isPersistedUserId(currentUserId) || !isPersistedUserId(receiverId)) {
+    return { ok: false, state: 'none', error: 'This display profile cannot receive persisted follow requests.' }
+  }
+
   const {
     data: { user },
     error: userError,
@@ -121,6 +139,10 @@ export async function cancelFriendRequest(
   currentUserId: string,
   receiverId: string,
 ): Promise<FriendRequestResult> {
+  if (!isPersistedUserId(currentUserId) || !isPersistedUserId(receiverId)) {
+    return { ok: false, state: 'none', error: 'This display profile has no persisted follow request.' }
+  }
+
   const {
     data: { user },
     error: userError,
