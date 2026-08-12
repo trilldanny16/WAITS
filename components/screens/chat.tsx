@@ -17,6 +17,7 @@ import { Avatar } from '../avatar'
 import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
+import { isPersistedWorkoutId } from '@/lib/workout-identity'
 
 interface CrewMessage {
   id: string
@@ -63,8 +64,16 @@ export function Chat({ id }: { id: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const workout = workouts.find((workout) => workout.id === id)
+  const persistedWorkout = isPersistedWorkoutId(id)
 
   const loadMessages = useCallback(async () => {
+    if (!persistedWorkout) {
+      setMessages([])
+      setMessageError('Crew Chat is available only for live workouts.')
+      setLoading(false)
+      return false
+    }
+
     const { data, error } = await supabase
       .from('crew_messages')
       .select('id, workout_id, user_id, text, created_at, updated_at')
@@ -82,9 +91,11 @@ export function Chat({ id }: { id: string }) {
     setMessageError(null)
     setLoading(false)
     return true
-  }, [id])
+  }, [id, persistedWorkout])
 
   useEffect(() => {
+    if (!persistedWorkout) return
+
     void loadMessages()
 
     const channel = supabase
@@ -108,7 +119,7 @@ export function Chat({ id }: { id: string }) {
       window.removeEventListener('focus', refreshOnFocus)
       void supabase.removeChannel(channel)
     }
-  }, [id, loadMessages])
+  }, [id, loadMessages, persistedWorkout])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -117,10 +128,10 @@ export function Chat({ id }: { id: string }) {
     })
   }, [loading, messages.length])
 
-  if (!workout) {
+  if (!workout || !persistedWorkout) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-background p-6 text-center">
-        <p className="text-sm text-muted-foreground">This chat is no longer available.</p>
+        <p className="text-sm text-muted-foreground">{!workout ? 'This chat is no longer available.' : 'Crew Chat is available only for live workouts.'}</p>
         <button
           type="button"
           onClick={back}
