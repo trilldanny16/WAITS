@@ -33,6 +33,7 @@ import {
   cancelFriendRequest,
   sendFriendRequest,
   type FriendRequestState,
+  isPersistedUserId,
 } from '@/lib/friend-requests'
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -80,6 +81,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const { back, openWorkout, openPaywall } = useNav()
   const user = getUser(userId)
   const isSelf = userId === currentUserId
+  const isPersistedProfile = isPersistedUserId(userId)
 
   const [isEditing, setIsEditing] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -200,7 +202,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   useEffect(() => {
     let active = true
 
-    if (isSelf) {
+    if (isSelf || !isPersistedProfile) {
       setViewedConnectionCount(0)
       return () => {
         active = false
@@ -228,11 +230,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     return () => {
       active = false
     }
-  }, [isSelf, userId])
+  }, [isPersistedProfile, isSelf, userId])
 
   useEffect(() => {
     let active = true
-    if (isSelf) return () => { active = false }
+    if (isSelf || !isPersistedProfile) {
+      setFriendRequestState('none')
+      setConnectionError(null)
+      return () => { active = false }
+    }
 
     const loadState = async () => {
       const result = await getFriendRequestState(currentUserId, userId)
@@ -243,7 +249,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
     void loadState()
     return () => { active = false }
-  }, [currentUserId, isSelf, userId])
+  }, [currentUserId, isPersistedProfile, isSelf, userId])
 
   const handleSaveProfile = async () => {
     const trimmedName = editName.trim()
