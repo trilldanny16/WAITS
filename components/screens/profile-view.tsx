@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useRef, useState, useEffect, type ChangeEvent } from 'react'
 import {
   ChevronLeft,
   MapPin,
@@ -13,6 +13,7 @@ import {
   Images,
   BarChart3,
   Flame,
+  Pencil,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -78,12 +79,69 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const isSelf = userId === currentUserId
 
   const [isEditing, setIsEditing] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
   const [editName, setEditName] = useState(user.name)
   const [editHomeGym, setEditHomeGym] = useState(user.homeGym)
   const [editCity, setEditCity] = useState(user.city)
   const [editBio, setEditBio] = useState(user.bio)
   const [editFavoriteSplit, setEditFavoriteSplit] = useState(user.favoriteSplit)
   const [editError, setEditError] = useState<string | null>(null)
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || avatarUploading) return
+
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+    if (!allowedTypes.has(file.type)) {
+      setAvatarError('Choose a JPG, PNG, WebP, or GIF image.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Profile pictures must be 5 MB or smaller.')
+      return
+    }
+
+    setAvatarUploading(true)
+    setAvatarError(null)
+    const extensionByType: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    }
+    const extension = extensionByType[file.type]
+    const path = `${currentUserId}/avatar-${Date.now()}.${extension}`
+    const upload = await supabase.storage.from('profile-media').upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    })
+    if (upload.error) {
+      setAvatarError(upload.error.message)
+      setAvatarUploading(false)
+      return
+    }
+
+    const saved = await supabase
+      .from('profiles')
+      .update({ avatar_path: path })
+      .eq('id', currentUserId)
+      .select('id')
+      .single()
+    if (saved.error) {
+      await supabase.storage.from('profile-media').remove([path])
+      setAvatarError(saved.error.message)
+      setAvatarUploading(false)
+      return
+    }
+
+    const avatar = supabase.storage.from('profile-media').getPublicUrl(path).data.publicUrl
+    updateUser(currentUserId, { avatar })
+    pushToast({ title: 'Profile picture updated' })
+    setAvatarUploading(false)
+  }
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
   const [viewedConnectionCount, setViewedConnectionCount] = useState(0)
   const [disconnecting, setDisconnecting] = useState(false)
@@ -350,7 +408,30 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
         {/* Identity */}
         <div className="flex flex-col items-center pt-4 text-center">
-          <Avatar user={user} size={88} />
+          <div className="relative">
+            <Avatar user={user} size={88} />
+            {isSelf ? (
+              <>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="absolute -bottom-1 -right-1 flex items-center gap-1 rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-secondary-foreground shadow ring-1 ring-border disabled:opacity-60"
+                  aria-label="Edit profile picture"
+                >
+                  <Pencil size={10} /> {avatarUploading ? 'Savingâ€¦' : 'Edit'}
+                </button>
+              </>
+            ) : null}
+          </div>
+          {avatarError ? <p className="mt-2 text-xs font-medium text-red-500">{avatarError}</p> : null}
           <h1 className="mt-3 flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
             {user.name}
             {showProBadge ? (
@@ -555,12 +636,13 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
             <Dumbbell size={20} />
           </span>
-          <div>
+          <div className="flex-1 text-center">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Favorite Split
             </p>
             <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
           </div>
+          <span aria-hidden="true" className="size-10 shrink-0" />
         </div>
 
         {/* Reliability & stats (Waits Pro) */}
@@ -723,7 +805,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                               className="inline-flex items-center gap-1.5 rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-lime-foreground"
                             >
                               <WorkoutTypeIcon type={w.types[0]} size={12} />
-                              {w.types.join(' + ')} · {formatTime(w.time)}
+                              {w.types.join(' + ')} Â· {formatTime(w.time)}
                             </button>
                           ))
                         )}
@@ -774,3 +856,4 @@ function Stat({ value, label, onClick }: { value: number; label: string; onClick
     </div>
   )
 }
+
