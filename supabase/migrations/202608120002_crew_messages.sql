@@ -15,6 +15,7 @@ create index if not exists crew_messages_workout_created_idx
 
 alter table public.crew_messages enable row level security;
 
+drop policy if exists "Crew members read" on public.crew_messages;
 drop policy if exists "Crew members read messages" on public.crew_messages;
 create policy "Crew members read messages"
   on public.crew_messages for select to authenticated
@@ -33,6 +34,7 @@ create policy "Crew members read messages"
     )
   );
 
+drop policy if exists "Crew members send" on public.crew_messages;
 drop policy if exists "Crew members send own messages" on public.crew_messages;
 create policy "Crew members send own messages"
   on public.crew_messages for insert to authenticated
@@ -54,12 +56,14 @@ create policy "Crew members send own messages"
     )
   );
 
+drop policy if exists "Owners edit crew messages" on public.crew_messages;
 drop policy if exists "Message owners update their messages" on public.crew_messages;
 create policy "Message owners update their messages"
   on public.crew_messages for update to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "Owners delete crew messages" on public.crew_messages;
 drop policy if exists "Message owners delete their messages" on public.crew_messages;
 create policy "Message owners delete their messages"
   on public.crew_messages for delete to authenticated
