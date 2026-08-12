@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 2.9 seconds
-Output:
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
