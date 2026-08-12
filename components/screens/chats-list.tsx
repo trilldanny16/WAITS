@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase-client'
 import { isPersistedWorkoutId } from '@/lib/workout-identity'
 
 export function ChatsList() {
-  const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
+  const { workouts, messages, getUser, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
   const { openChat, openCommunity, openPaywall } = useNav()
 
   type FriendRequest = {
@@ -24,6 +24,7 @@ export function ChatsList() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
+  const [activeCrewWorkoutIds, setActiveCrewWorkoutIds] = useState<string[]>([])
   const openCrew = (id: string) => (isPremium ? openChat(id) : openPaywall('Crew chats'))
 
   const loadFriendRequests = useCallback(async () => {
@@ -96,6 +97,67 @@ export function ChatsList() {
     }
   }, [currentUserId, loadFriendRequests])
 
+  const loadActiveCrewWorkouts = useCallback(async () => {
+    const [hostedResult, attendanceResult] = await Promise.all([
+      supabase.from('workouts').select('id').eq('host_id', currentUserId),
+      supabase.from('workout_attendees').select('workout_id').eq('user_id', currentUserId),
+    ])
+
+    if (hostedResult.error || attendanceResult.error) {
+      console.error(
+        'Failed to load active Crew Chats:',
+        hostedResult.error ?? attendanceResult.error,
+      )
+      return
+    }
+
+    const persistedIds = new Set<string>()
+    for (const workout of hostedResult.data ?? []) {
+      if (isPersistedWorkoutId(workout.id)) persistedIds.add(workout.id)
+    }
+    for (const attendance of attendanceResult.data ?? []) {
+      if (isPersistedWorkoutId(attendance.workout_id)) {
+        persistedIds.add(attendance.workout_id)
+      }
+    }
+    setActiveCrewWorkoutIds(Array.from(persistedIds))
+  }, [currentUserId])
+
+  useEffect(() => {
+    void loadActiveCrewWorkouts()
+
+    const channel = supabase
+      .channel(`active-crew-chats:${currentUserId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'workouts' },
+        () => void loadActiveCrewWorkouts(),
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workout_attendees',
+          filter: `user_id=eq.${currentUserId}`,
+        },
+        () => void loadActiveCrewWorkouts(),
+      )
+      .subscribe()
+
+    const refresh = () => void loadActiveCrewWorkouts()
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUserId, loadActiveCrewWorkouts])
+
 const acceptFriendRequest = async (requestId: string) => {
   setRespondingTo(requestId)
   setRequestError(null)
@@ -142,12 +204,16 @@ const declineFriendRequest = async (requestId: string) => {
   setRespondingTo(null)
 }
 
+  const activeCrewWorkoutIdSet = useMemo(
+    () => new Set(activeCrewWorkoutIds),
+    [activeCrewWorkoutIds],
+  )
   const myWorkouts = useMemo(
     () =>
       workouts
-        .filter((w) => isPersistedWorkoutId(w.id) && (w.hostId === currentUserId || hasJoined(w)))
+        .filter((workout) => activeCrewWorkoutIdSet.has(workout.id))
         .sort((a, b) => a.date.localeCompare(b.date)),
-    [workouts, hasJoined, currentUserId],
+    [workouts, activeCrewWorkoutIdSet],
   )
 
   return (
