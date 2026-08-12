@@ -1,6 +1,9 @@
+Exit code: 0
+Wall time: 1.6 seconds
+Output:
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Search as SearchIcon, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -32,8 +35,7 @@ export function Search() {
     display_name: string | null
   }[]
 >([])
-useEffect(() => {
-  const loadUsers = async () => {
+const loadUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, email, display_name')
@@ -48,10 +50,22 @@ useEffect(() => {
     const result = await getFriendRequestStates(currentUserId)
     if (result.error) setRequestError(result.error)
     else setRequestStates(result.states)
-  }
-
-  loadUsers()
 }, [currentUserId])
+
+useEffect(() => {
+  void loadUsers()
+  const channel = supabase.channel(`search-relationships:${currentUserId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => void loadUsers())
+    .subscribe()
+  const refresh = () => void loadUsers()
+  window.addEventListener('focus', refresh)
+  document.addEventListener('visibilitychange', refresh)
+  return () => {
+    window.removeEventListener('focus', refresh)
+    document.removeEventListener('visibilitychange', refresh)
+    void supabase.removeChannel(channel)
+  }
+}, [currentUserId, loadUsers])
 const sendFriendRequest = async (receiverId: string) => {
   if (sendingTo || (requestStates[receiverId] ?? 'none') !== 'none') return
 
@@ -256,3 +270,4 @@ const realMatchedUsers = useMemo(() => {
     </div>
   )
 }
+
