@@ -651,7 +651,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           ) : (
             <button
               type="button"
-              onClick={() => openPaywall()
+              onClick={() => openPaywall()}
               className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground"
             >
               <Crown size={22} className="shrink-0" />
