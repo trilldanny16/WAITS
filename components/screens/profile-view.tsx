@@ -1,5 +1,5 @@
 Exit code: 0
-Wall time: 1.7 seconds
+Wall time: 5.1 seconds
 Output:
 'use client'
 
@@ -359,7 +359,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         ) : null}
       </header>
 
-      <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
+      <div className="no-scrollbar relative flex-1 overflow-y-auto px-5 pb-6">
         {/* Identity */}
         <div className="flex flex-col items-center pt-4 text-center">
           <div className="relative">
@@ -617,9 +617,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               Reliability &amp; Stats
             </h2>
             {(isSelf ? user.isVerifiedPro === true : isPremium) ? (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="text-xs font-semibold text-muted-foreground">Reliability</p>
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl bg-card p-4 ring-1 ring-border">
+                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">ðŸ›¡ï¸ Reliability</p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
                     {user.reliability == null ? 'Not available' : `${user.reliability}%`}
                   </p>
@@ -627,13 +627,13 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     {user.reliability == null ? 'Requires verified workout completion and no-show events.' : 'Based on verified attendance.'}
                   </p>
                 </div>
-                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl bg-card p-4 ring-1 ring-border">
+                  <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
                     <Flame size={12} className="text-primary" />
                     Streak
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.streak == null ? 'Not available' : `${user.streak} wks`}
+                    {user.streak == null ? 'Not available' : `${user.streak} WEEKS`}
                   </p>
                   <p className="text-[11px] text-muted-foreground">Consecutive active weeks</p>
                 </div>
