@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 5.1 seconds
-Output:
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
