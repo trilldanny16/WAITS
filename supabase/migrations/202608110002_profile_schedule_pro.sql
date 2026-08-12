@@ -10,10 +10,11 @@ create unique index if not exists profiles_stripe_customer_id_idx
 create unique index if not exists profiles_stripe_subscription_id_idx
   on public.profiles (stripe_subscription_id) where stripe_subscription_id is not null;
 
+-- Authenticated profile edits may not grant or alter paid entitlement fields.
 create or replace function public.protect_profile_entitlement_fields()
 returns trigger language plpgsql set search_path = public as $$
 begin
-  if auth.uid() is not null then
+  if auth.role() = 'authenticated' then
     new.is_pro := old.is_pro;
     new.stripe_customer_id := old.stripe_customer_id;
     new.stripe_subscription_id := old.stripe_subscription_id;
