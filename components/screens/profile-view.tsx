@@ -14,6 +14,7 @@ import {
   BarChart3,
   Flame,
   Pencil,
+  Clock,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -150,21 +151,30 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       setPortalError('Sign in again to manage your membership.')
+      pushToast({ title: 'Billing unavailable', body: 'Sign in again to manage your membership.' })
       setOpeningPortal(false)
       return
     }
 
-    const response = await fetch('/api/stripe/customer-portal', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-    const result = await response.json()
-    if (!response.ok || !result.url) {
-      setPortalError(result.error ?? 'Billing settings are temporarily unavailable.')
+    try {
+      const response = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const result = await response.json()
+      if (!response.ok || !result.url) {
+        const message = result.error ?? 'Billing settings are temporarily unavailable.'
+        setPortalError(message)
+        pushToast({ title: 'Billing unavailable', body: message })
+        setOpeningPortal(false)
+        return
+      }
+      window.location.href = result.url
+    } catch {
+      setPortalError('Billing settings are temporarily unavailable.')
+      pushToast({ title: 'Billing unavailable', body: 'Billing settings are temporarily unavailable.' })
       setOpeningPortal(false)
-      return
     }
-    window.location.assign(result.url)
   }
 
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
@@ -359,7 +369,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const showProBadge = user.isVerifiedPro === true
   const gallery = galleryFor(userId)
   // Free users can view their own gallery, but need Pro to see others'.
-  const galleryLocked = !isSelf && !isPremium
+  const galleryLocked = !isPremium
   const handleAddPhoto = () => {
     const next = PRESET_PHOTOS[gallery.length % PRESET_PHOTOS.length]
     addGalleryPhoto(next)
@@ -628,19 +638,20 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         {/* Waits Pro upgrade / status (own profile) */}
         {isSelf ? (
           isPremium ? (
-            <button type="button" onClick={openBillingPortal} disabled={openingPortal} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-primary p-4 text-left text-primary-foreground disabled:opacity-70">
-              <Crown size={22} className="shrink-0" />
-              <div className="flex-1">
+            <button type="button" onClick={openBillingPortal} disabled={openingPortal} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-primary p-4 text-center text-primary-foreground disabled:opacity-70">
+              <span aria-hidden="true" className="text-xl">👑</span>
+              <div className="flex-1 text-center">
                 <p className="text-sm font-extrabold">Pro Settings &amp; Billing</p>
                 <p className="text-xs text-primary-foreground/80">
                   {openingPortal ? 'Opening billing settings…' : 'Manage membership, payment method, or cancellation.'}
                 </p>
               </div>
+              <span aria-hidden="true" className="text-xl">👑</span>
             </button>
           ) : (
             <button
               type="button"
-              onClick={() => openPaywall()}
+              onClick={() => openPaywall()
               className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground"
             >
               <Crown size={22} className="shrink-0" />
@@ -667,7 +678,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             </p>
             <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
           </div>
-          <span aria-hidden="true" className="size-10 shrink-0" />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <Clock size={20} />
+          </span>
         </div>
 
         {/* Reliability & stats (Waits Pro) */}
