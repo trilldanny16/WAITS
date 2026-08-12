@@ -437,7 +437,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refreshWorkoutAttendance()
       const host = getUser(workout.hostId)
       pushToast({
-        title: `Youâ€™re in for ${workout.types.join(' + ')} ðŸ’ª`,
+        title: `You’re in for ${workout.types.join(' + ')} 💪`,
         body: `Chat with ${host.name.split(' ')[0]} is now open.`,
       })
       return { ok: true }
@@ -497,7 +497,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       const workout: Workout = { id: data.id, hostId: currentUserId, attendees: [currentUserId], ...input, maxParticipants: cappedMax }
       await refreshPersistedWorkouts()
-      pushToast({ title: 'Workout posted ðŸ”¥', body: 'Your followers were notified. Come Thru?' })
+      pushToast({ title: 'Workout posted 🔥', body: 'Your followers were notified. Come Thru?' })
       return workout
     },
     [pushToast, isPremium, currentUserId, refreshPersistedWorkouts],
@@ -517,7 +517,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addGalleryPhoto = useCallback(
     (src: string) => {
       setOwnGallery((prev) => [src, ...prev])
-      pushToast({ title: 'Photo added to your gallery ðŸ“¸' })
+      pushToast({ title: 'Photo added to your gallery 📸' })
     },
     [pushToast],
   )
@@ -653,4 +653,3 @@ export function useStore(): StoreValue {
   if (!ctx) throw new Error('useStore must be used within StoreProvider')
   return ctx
 }
-
