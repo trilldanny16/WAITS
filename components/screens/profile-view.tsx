@@ -679,7 +679,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
           </div>
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            <Clock size={20} />
+            {isPremium ? <Clock size={20} /> : <Clock size={20} className="shrink-0" />}
           </span>
         </div>
 
