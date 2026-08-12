@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 2 seconds
+Output:
 'use client'
 
 import {
@@ -57,7 +60,7 @@ interface StoreValue {
   disconnectUser: (userId: string) => Promise<{ ok: boolean; error?: string }>
   toasts: Toast[]
   getUser: (id: string) => User
-  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => void
+  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
   joinWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
@@ -88,7 +91,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>(SEED_USERS)
   const [currentUserId, setCurrentUserId] = useState('')
   const [authReady, setAuthReady] = useState(false)
-  const [workouts, setWorkouts] = useState<Workout[]>(() => seedWorkouts())
+  const [workouts, setWorkouts] = useState<Workout[]>([])
   const [messages, setMessages] = useState<ChatMessage[]>(() => seedMessages())
   const [following, setFollowing] = useState<string[]>([])
   const [followers, setFollowers] = useState<string[]>([])
@@ -114,7 +117,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro')
+      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
     const profile = profiles?.find((candidate) => candidate.id === user.id)
 
     const email = profile?.email ?? user.email ?? ''
@@ -134,6 +137,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       isPrivate: false,
       gallery: [],
       isVerifiedPro: row.is_pro === true,
+      avatar: row.avatar_path ? supabase.storage.from('profile-media').getPublicUrl(row.avatar_path).data.publicUrl : undefined,
     })
 
     const realUser: User = profile
@@ -287,7 +291,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const updateUser = useCallback(
-    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit'>>) => {
+    (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => {
       setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, ...updates } : user)))
     },
     [],
@@ -304,7 +308,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [currentUserId],
   )
 
-
   const refreshPersistedWorkouts = useCallback(async () => {
     const [workoutResult, attendanceResult] = await Promise.all([
       supabase
@@ -313,28 +316,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .order('workout_date', { ascending: true }),
       supabase.from('workout_attendees').select('workout_id, user_id'),
     ])
+
     if (workoutResult.error || attendanceResult.error) {
       return { ok: false, error: (workoutResult.error ?? attendanceResult.error)?.message }
     }
+
     const attendanceByWorkout = new Map<string, string[]>()
     for (const row of attendanceResult.data ?? []) {
       const attendees = attendanceByWorkout.get(row.workout_id) ?? []
       attendees.push(row.user_id)
       attendanceByWorkout.set(row.workout_id, attendees)
     }
+
     const persisted: Workout[] = (workoutResult.data ?? []).map((row) => ({
-      id: row.id, hostId: row.host_id, gym: row.gym, city: row.city, address: row.address,
-      lat: row.lat ?? undefined, lng: row.lng ?? undefined, date: row.workout_date,
-      time: row.workout_time.slice(0, 5), types: row.workout_types as WorkoutType[],
-      notes: row.notes ?? '', maxParticipants: row.max_participants,
+      id: row.id,
+      hostId: row.host_id,
+      gym: row.gym,
+      city: row.city,
+      address: row.address,
+      lat: row.lat ?? undefined,
+      lng: row.lng ?? undefined,
+      date: row.workout_date,
+      time: row.workout_time.slice(0, 5),
+      types: row.workout_types as WorkoutType[],
+      notes: row.notes ?? '',
+      maxParticipants: row.max_participants,
       visibility: row.visibility as Visibility,
       attendees: Array.from(new Set([row.host_id, ...(attendanceByWorkout.get(row.id) ?? [])])),
       recurring: row.recurring as Workout['recurring'],
     }))
-    setWorkouts((previous) => {
-      const prototype = previous.filter((workout) => !persistedWorkoutIdsRef.current.includes(workout.id))
-      return [...persisted, ...prototype]
-    })
+
+    setWorkouts(persisted)
     persistedWorkoutIdsRef.current = persisted.map((workout) => workout.id)
     return { ok: true }
   }, [])
@@ -406,10 +418,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const joinWorkout = useCallback(
     async (id: string) => {
-      const workout = workouts.find((candidate) => candidate.id === id)
-      if (!workout) return { ok: false, error: 'That workout is no longer available.' }
-      if (workout.attendees.includes(currentUserId)) return { ok: true }
-      if (workout.attendees.length >= workout.maxParticipants) {
+      const w = workouts.find((x) => x.id === id)
+      if (!w) return { ok: false, error: 'That workout is no longer available.' }
+      if (w.attendees.includes(currentUserId)) return { ok: true }
+      if (w.attendees.length >= w.maxParticipants) {
         const error = 'That workout is full.'
         pushToast({ title: 'Could not join', body: error })
         return { ok: false, error }
@@ -432,9 +444,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       await refreshWorkoutAttendance()
-      const host = getUser(workout.hostId)
+      const host = getUser(w.hostId)
       pushToast({
-        title: `You’re in for ${workout.types.join(' + ')} 💪`,
+        title: `Youâ€™re in for ${w.types.join(' + ')} ðŸ’ª`,
         body: `Chat with ${host.name.split(' ')[0]} is now open.`,
       })
       return { ok: true }
@@ -481,20 +493,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const createWorkout = useCallback(
     async (input: NewWorkoutInput) => {
-      const cappedMax = isPremium ? input.maxParticipants : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
-      const { data, error } = await supabase.from('workouts').insert({
-        host_id: currentUserId, gym: input.gym, city: input.city, address: input.address,
-        lat: input.lat ?? null, lng: input.lng ?? null, workout_date: input.date,
-        workout_time: input.time, workout_types: input.types, notes: input.notes,
-        max_participants: cappedMax, visibility: input.visibility, recurring: input.recurring,
-      }).select('id').single()
+      // Clamp participant count to the free-tier max unless premium.
+      const cappedMax = isPremium
+        ? input.maxParticipants
+        : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
+      const { data, error } = await supabase
+        .from('workouts')
+        .insert({
+          host_id: currentUserId,
+          gym: input.gym,
+          city: input.city,
+          address: input.address,
+          lat: input.lat ?? null,
+          lng: input.lng ?? null,
+          workout_date: input.date,
+          workout_time: input.time,
+          workout_types: input.types,
+          notes: input.notes,
+          max_participants: cappedMax,
+          visibility: input.visibility,
+          recurring: input.recurring,
+        })
+        .select('id')
+        .single()
       if (error || !data) {
         pushToast({ title: 'Workout was not posted', body: error?.message ?? 'Supabase did not confirm the workout.' })
         return null
       }
       const workout: Workout = { id: data.id, hostId: currentUserId, attendees: [currentUserId], ...input, maxParticipants: cappedMax }
       await refreshPersistedWorkouts()
-      pushToast({ title: 'Workout posted 🔥', body: 'Your followers were notified. Come Thru?' })
+      pushToast({
+        title: 'Workout posted ðŸ”¥',
+        body: 'Your followers were notified. Come Thru?',
+      })
       return workout
     },
     [pushToast, isPremium, currentUserId, refreshPersistedWorkouts],
@@ -514,7 +545,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addGalleryPhoto = useCallback(
     (src: string) => {
       setOwnGallery((prev) => [src, ...prev])
-      pushToast({ title: 'Photo added to your gallery 📸' })
+      pushToast({ title: 'Photo added to your gallery ðŸ“¸' })
     },
     [pushToast],
   )
@@ -522,18 +553,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const removeGalleryPhoto = useCallback((src: string) => {
     setOwnGallery((previous) => previous.filter((photo) => photo !== src))
     setRemovedGalleryPhotos((previous) => previous.includes(src) ? previous : [...previous, src])
-    pushToast({ title: 'Photo removed', body: 'Gallery photos are still prototype-only and are not stored in Supabase.' })
+    pushToast({
+      title: 'Photo removed',
+      body: 'Gallery photos are still prototype-only and are not stored in Supabase.',
+    })
   }, [pushToast])
 
   const cancelWorkout = useCallback(
     async (id: string) => {
-      const { data, error } = await supabase.from('workouts').delete().eq('id', id).eq('host_id', currentUserId).select('id')
+      const { data, error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', id)
+        .eq('host_id', currentUserId)
+        .select('id')
       if (error || !data || data.length === 0) {
         pushToast({ title: 'Workout was not canceled', body: error?.message ?? 'No hosted workout was removed.' })
         return false
       }
       await refreshPersistedWorkouts()
-      setMessages((prev) => prev.filter((message) => message.workoutId !== id))
+      setMessages((prev) => prev.filter((m) => m.workoutId !== id))
       pushToast({ title: 'Workout canceled', body: 'Attendees were notified.' })
       return true
     },
@@ -650,3 +689,4 @@ export function useStore(): StoreValue {
   if (!ctx) throw new Error('useStore must be used within StoreProvider')
   return ctx
 }
+
