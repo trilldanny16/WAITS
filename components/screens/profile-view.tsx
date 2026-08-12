@@ -17,6 +17,7 @@ import {
   Clock,
   ShieldCheck,
   TrendingUp,
+  Camera,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -745,7 +746,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <h2 className="mb-3 flex items-center justify-center gap-2 px-1 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <Images size={14} />
               Gym Gallery
-              <span aria-hidden="true">📷</span>
+              <Camera className="h-5 w-5" aria-hidden="true" />
             </h2>
 
             {galleryLocked ? (
