@@ -65,6 +65,8 @@ interface StoreValue {
   createWorkout: (input: NewWorkoutInput) => Promise<Workout | null>
   cancelWorkout: (id: string) => Promise<boolean>
   sendMessage: (workoutId: string, text: string) => void
+  editMessage: (messageId: string, text: string) => Promise<{ ok: boolean; error?: string }>
+  deleteMessage: (messageId: string) => Promise<{ ok: boolean; error?: string }>
   messagesFor: (workoutId: string) => ChatMessage[]
   toggleFollow: (id: string) => void
   isFollowing: (id: string) => boolean
@@ -691,6 +693,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ])
   }, [currentUserId])
 
+  const editMessage = useCallback(async (messageId: string, text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return { ok: false, error: 'Message cannot be empty.' }
+
+    const message = messages.find((candidate) => candidate.id === messageId)
+    if (!message) return { ok: false, error: 'That message is no longer available.' }
+    if (message.userId !== currentUserId) {
+      return { ok: false, error: 'You can edit only your own messages.' }
+    }
+
+    setMessages((previous) =>
+      previous.map((candidate) =>
+        candidate.id === messageId ? { ...candidate, text: trimmed } : candidate,
+      ),
+    )
+    return { ok: true }
+  }, [currentUserId, messages])
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    const message = messages.find((candidate) => candidate.id === messageId)
+    if (!message) return { ok: false, error: 'That message is no longer available.' }
+    if (message.userId !== currentUserId) {
+      return { ok: false, error: 'You can delete only your own messages.' }
+    }
+
+    setMessages((previous) => previous.filter((candidate) => candidate.id !== messageId))
+    return { ok: true }
+  }, [currentUserId, messages])
+
   const messagesFor = useCallback(
     (workoutId: string) =>
       messages
@@ -731,6 +762,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       createWorkout,
       cancelWorkout,
       sendMessage,
+      editMessage,
+      deleteMessage,
       messagesFor,
       toggleFollow,
       isFollowing,
@@ -762,6 +795,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       createWorkout,
       cancelWorkout,
       sendMessage,
+      editMessage,
+      deleteMessage,
       messagesFor,
       toggleFollow,
       isFollowing,
