@@ -426,7 +426,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                   className="absolute -bottom-1 -right-1 flex items-center gap-1 rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-secondary-foreground shadow ring-1 ring-border disabled:opacity-60"
                   aria-label="Edit profile picture"
                 >
-                  <Pencil size={10} /> {avatarUploading ? 'Savingâ€¦' : 'Edit'}
+                  <Pencil size={10} /> {avatarUploading ? 'Saving…' : 'Edit'}
                 </button>
               </>
             ) : null}
@@ -466,394 +466,5 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             label="Following"
             onClick={() => setSocialListKind('following')}
           />
-        </div>
-
-        {/* Follow / edit action */}
-        <div className="mt-4">
-          {isSelf ? (
-            <div className="space-y-3">
-              {isEditing ? (
-                <div className="rounded-3xl bg-card p-4 ring-1 ring-border">
-                  <label className="block text-xs font-semibold text-muted-foreground">
-                    Name
-                  </label>
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
-                  />
-                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-                    Home Gym
-                  </label>
-                  <input
-                    value={editHomeGym}
-                    onChange={(e) => setEditHomeGym(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
-                  />
-                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-                    City
-                  </label>
-                  <input
-                    value={editCity}
-                    onChange={(e) => setEditCity(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
-                  />
-                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-                    Bio
-                  </label>
-                  <textarea
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
-                    rows={3}
-                  />
-                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">Favorite Split</label>
-                  <input value={editFavoriteSplit} onChange={(event) => setEditFavoriteSplit(event.target.value)} placeholder="Push / Pull / Legs" className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none" />
-                  {editError ? (
-                    <p className="mt-3 text-sm font-medium text-red-500">{editError}</p>
-                  ) : null}
-                  <div className="mt-4 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handleSaveProfile}
-                      className="flex-1 rounded-2xl bg-secondary py-3 text-sm font-bold text-secondary-foreground"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="flex-1 rounded-2xl border border-border py-3 text-sm font-bold text-foreground"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="w-full rounded-2xl bg-secondary py-3 text-sm font-bold text-secondary-foreground"
-                >
-                  Edit Profile
-                </button>
-              
-              )}
-              <button
-  type="button"
-  onClick={handleSignOut}
-  className="mt-3 w-full rounded-2xl border border-red-500/30 py-3 text-sm font-bold text-red-500"
->
-  Sign Out
-</button>
-            </div>
-
-            
-          ) : (
-            <div>
-              <button
-                type="button"
-                onClick={followed
-                  ? handleDisconnect
-                  : friendRequestState === 'none'
-                    ? handleAddFriend
-                    : friendRequestState === 'pending_outgoing'
-                      ? handleCancelRequest
-                      : undefined}
-                disabled={
-                  disconnecting ||
-                  sendingRequest ||
-                  (!followed && (friendRequestState === 'pending_incoming' || friendRequestState === 'accepted'))
-                }
-                className={cn(
-                  'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
-                  followed
-                    ? 'border border-red-500/30 bg-background text-red-500'
-                    : 'bg-secondary text-secondary-foreground',
-                )}
-              >
-                {followed ? (
-                  <>
-                    <X size={16} strokeWidth={3} />
-                    {disconnecting ? 'Unfollowing...' : 'Unfollow'}
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={16} />
-                    {sendingRequest
-                      ? friendRequestState === 'pending_outgoing' ? 'Canceling...' : 'Sending...'
-                      : friendRequestState === 'pending_outgoing'
-                        ? 'Cancel Request'
-                      : friendRequestState === 'pending_incoming'
-                        ? 'Request Received'
-                        : friendRequestState === 'accepted'
-                          ? 'Connected'
-                          : 'Follow'}
-                  </>
-                )}
-              </button>
-              {connectionError ? (
-                <p role="alert" className="mt-2 text-center text-sm font-medium text-red-500">
-                  {connectionError}
-                </p>
-              ) : null}
-            </div>
-          )}
-        </div>
-
-        {/* Waits Pro upgrade / status (own profile) */}
-        {isSelf ? (
-          isPremium ? (
-            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground">
-              <Crown size={22} className="shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-extrabold">Waits Pro member</p>
-                <p className="text-xs text-primary-foreground/80">
-                  Crew chats, galleries, stats &amp; more are unlocked.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => openPaywall()}
-              className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground"
-            >
-              <Crown size={22} className="shrink-0" />
-              <div className="flex-1 text-center">
-                <p className="text-base font-extrabold tracking-tight">Upgrade to Waits Pro</p>
-                <p className="mt-1 text-xs text-primary-foreground/80">
-                  Crew chats, photo galleries, reliability stats, etc.
-                </p>
-              </div>
-              <Crown size={22} className="shrink-0" />
-            </button>
-          )
-        ) : null}
-
-        {/* Favorite split */}
-        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            <Dumbbell size={20} />
-          </span>
-          <div className="flex-1 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Favorite Split
-            </p>
-            <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
-          </div>
-          <span aria-hidden="true" className="size-10 shrink-0" />
-        </div>
-
-        {/* Reliability & stats (Waits Pro) */}
-        {!locked ? (
-          <section className="mt-6">
-            <h2 className="mb-3 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              <BarChart3 size={14} />
-              Reliability &amp; Stats
-            </h2>
-            {(isSelf ? user.isVerifiedPro === true : isPremium) ? (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="text-xs font-semibold text-muted-foreground">Reliability</p>
-                  <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.reliability == null ? 'Not available' : `${user.reliability}%`}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">{user.reliability == null ? 'Requires verified workout completion and no-show events.' : 'Based on verified attendance.'}</p>
-                </div>
-                <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-                    <Flame size={12} className="text-primary" />
-                    Streak
-                  </p>
-                  <p className="mt-1 text-2xl font-extrabold text-foreground">
-                    {user.streak == null ? 'Not available' : `${user.streak} wks`}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">Consecutive active weeks</p>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openPaywall('Reliability & stats')}
-                className="flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left ring-1 ring-border"
-              >
-                <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-                  <Lock size={18} />
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-card-foreground">See reliability &amp; streaks</p>
-                  <p className="text-xs text-muted-foreground">
-                    Attendance score and weekly insights with Waits Pro.
-                  </p>
-                </div>
-                <Crown size={18} className="shrink-0 text-primary" />
-              </button>
-            )}
-          </section>
-        ) : null}
-
-        {/* Photo gallery */}
-        {!locked ? (
-          <section className="mt-6">
-            <h2 className="mb-3 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              <Images size={14} />
-              Gym Gallery
-            </h2>
-
-            {galleryLocked ? (
-              <button
-                type="button"
-                onClick={() => openPaywall('Photo galleries')}
-                className="relative block w-full overflow-hidden rounded-3xl ring-1 ring-border"
-              >
-                <div className="grid grid-cols-3 gap-1">
-                  {(gallery.length > 0 ? gallery : PRESET_PHOTOS.slice(0, 3)).slice(0, 3).map((src, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={src || '/placeholder.svg'}
-                      alt=""
-                      className="aspect-square w-full scale-110 object-cover blur-md"
-                    />
-                  ))}
-                </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/55 text-center backdrop-blur-[2px]">
-                  <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <Lock size={22} />
-                  </span>
-                  <p className="px-6 text-sm font-bold text-foreground">
-                    See {user.name.split(' ')[0]}&apos;s photos with Waits Pro
-                  </p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-lime px-3 py-1 text-xs font-extrabold text-lime-foreground">
-                    <Crown size={12} />
-                    Unlock Gallery
-                  </span>
-                </div>
-              </button>
-            ) : gallery.length === 0 && !isSelf ? (
-              <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground ring-1 ring-border">
-                No photos yet.
-              </p>
-            ) : (
-              <div className="grid grid-cols-3 gap-1.5">
-                {isSelf ? (
-                  <button
-                    type="button"
-                    onClick={handleAddPhoto}
-                    className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                    aria-label="Add photo"
-                  >
-                    <Plus size={22} />
-                    <span className="text-[10px] font-bold uppercase tracking-wide">Add</span>
-                  </button>
-                ) : null}
-                {gallery.map((src, i) => (
-                  <div key={`${src}-${i}`} className="relative overflow-hidden rounded-2xl ring-1 ring-border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={src || '/placeholder.svg'}
-                      alt="Gym photo"
-                      className="aspect-square w-full object-cover"
-                    />
-                    {isSelf ? (
-                      <button type="button" onClick={() => removeGalleryPhoto(src)} className="absolute bottom-1.5 right-1.5 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground shadow" aria-label="Remove photo">
-                        Remove
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        ) : null}
-
-        {locked ? (
-          <div className="mt-6 flex flex-col items-center rounded-3xl bg-card px-6 py-10 text-center ring-1 ring-border">
-            <span className="flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-              <Lock size={24} />
-            </span>
-            <h2 className="mt-3 text-base font-bold text-foreground">This account is private</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Follow {user.name.split(' ')[0]} to see their weekly schedule and workouts.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Weekly schedule */}
-            <section className="mt-6">
-              <h2 className="mb-3 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Weekly Schedule
-              </h2>
-              <div className="space-y-1.5 rounded-3xl bg-card p-3 ring-1 ring-border">
-                {WEEK_LABELS.map((label, i) => {
-                  const items = weekMap[i]
-                  return (
-                    <div key={label} className="flex items-center gap-3">
-                      <span className="w-9 shrink-0 text-center text-xs font-bold text-muted-foreground">
-                        {WEEK_LABELS[i]}
-                      </span>
-                      <div className="flex min-h-9 flex-1 flex-wrap items-center gap-1.5">
-                        {items.length === 0 ? (
-                          <span className="text-xs text-muted-foreground/60">Rest</span>
-                        ) : (
-                          items.map((w) => (
-                            <button
-                              key={w.id}
-                              type="button"
-                              onClick={() => openWorkout(w.id)}
-                              className="inline-flex items-center gap-1.5 rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-lime-foreground"
-                            >
-                              <WorkoutTypeIcon type={w.types[0]} size={12} />
-                              {w.types.join(' + ')} Â· {formatTime(w.time)}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-
-            {/* Upcoming workouts */}
-            {scheduledWorkouts.length > 0 ? (
-              <section className="mt-6">
-                <h2 className="mb-3 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Upcoming Workouts
-                </h2>
-                <div className="space-y-3">
-                  {scheduledWorkouts.map((w) => (
-                    <WorkoutCard key={w.id} workout={w} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function Stat({ value, label, onClick }: { value: number; label: string; onClick?: () => void }) {
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="relative z-10 min-w-20 touch-manipulation rounded-xl px-2 py-2 text-center hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        <p className="text-xl font-extrabold text-foreground">{value}</p>
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      </button>
-    )
-  }
-  return (
-    <div className="text-center">
-      <p className="text-xl font-extrabold text-foreground">{value}</p>
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-    </div>
-  )
-}
-
+        </div>�]t��h�������ƭy������������𽑥��4(����������������耠4(��������������������ѽ�4(���������������������������ѽ��4(�������������������������젤����͕�%���ѥ�����Ք��4(�����������������������9�����ܵ�ձ��ɽչ�����ᰁ���͕�����������́ѕ�еʹ����е�����ѕ�е͕������䵙�ɕ�ɽչ��4(�����������������4(��������������������ЁAɽ����4(���������������������ѽ��4(��������������4(����������������4(������������������ѽ�4(�����������ѽ��4(��������������M���=���4(�������9������д́ܵ�ձ��ɽչ�����ᰁ��ɑ�ȁ��ɑ�ȵɕ������������́ѕ�еʹ����е�����ѕ�еɕ������4(�4(��M����=��4(�����ѽ��4(������������𽑥��4(4(������������4(������������耠4(�����������������4(������������������ѽ�4(�������������������������ѽ��4(�����������������������홽���ݕ�4(���������������������������͍������4(������������������聙ɥ���I��Օ��Mхє���􀝹����4(������������������������������ɥ���4(��������������������聙ɥ���I��Օ��Mхє�������������}��ѝ�����4(�����������������������������������I��Օ��4(������������������������չ��������4(������������������ͅ������4(��������������������͍�����ѥ�����4(������������������͕�����I��Օ�Ё��4(�������������������������ݕ�������ɥ���I��Օ��Mхє�������������}��������������ɥ���I��Օ��Mхє���􀝅����ѕ����4(�����������������4(���������������������9����퍸�4(������������������������ܵ�ձ���ѕ�̵���ѕȁ���ѥ�䵍��ѕȁ����ȁɽչ�����ᰁ���́ѕ�еʹ����е������Ʌ�ͥѥ��������́��ͅ�����������������4(�����������������������ݕ�4(�������������������������ɑ�ȁ��ɑ�ȵɕ�����������������ɽչ��ѕ�еɕ������4(��������������������耝���͕��������ѕ�е͕������䵙�ɕ�ɽչ���4(������������������4(���������������4(����������������홽���ݕ�����4(��������������������4(���������������������`�ͥ����������ɽ��]��Ѡ�������4(��������������������푥͍�����ѥ������U������ݥ�������耝U������ܝ�4(���������������������4(������������������耠4(��������������������4(���������������������U͕�A��́ͥ����������4(���������������������͕�����I��Օ��4(�������������������������ɥ���I��Օ��Mхє�������������}��ѝ����������������������耝M����������4(����������������������聙ɥ���I��Օ��Mхє�������������}��ѝ�����4(���������������������������������I��Օ�М4(����������������������聙ɥ���I��Օ��Mхє�������������}���������4(���������������������������I��Օ�ЁI����ٕ��4(������������������������聙ɥ���I��Օ��Mхє���􀝅����ѕ��4(����������������������������������ѕ��4(��������������������������耝����ܝ�4(���������������������4(������������������4(�������������������ѽ��4(��������������퍽����ѥ���ɽȀ���4(�������������������ɽ��􉅱��Ј������9������дȁѕ�е���ѕȁѕ�еʹ����е����մ�ѕ�еɕ�������4(������������������퍽����ѥ���ɽ��4(��������������������4(����������������聹ձ��4(������������𽑥��4(������������4(��������𽑥��4(4(��������켨�]���́Aɼ����Ʌ������х��̀��ݸ��ɽ���������4(�����������M�������4(������������Aɕ��մ����4(���������������؁�����9������д́���eѕ�̵���ѕȁ����́ɽչ�����ᰁ����ɥ�������Ёѕ�е�ɥ���䵙�ɕ�ɽչ���4(���������������ɽݸ�ͥ������􁍱���9�����͡ɥ��������4(�����������������؁�����9���􉙱���Ĉ�4(������������������������9�����ѕ�еʹ����е���Ʌ������]���́Aɼ�����������4(������������������������9�����ѕ�е�́ѕ�е�ɥ���䵙�ɕ�ɽչ������4(������������������ɕ܁����̰������ɥ�̰��х�̀����쁵�ɔ��ɔ�չ�������4(��������������������4(��������������𽑥��4(������������𽑥��4(������������耠4(����������������ѽ�4(�����������������������ѽ��4(���������������������젤��������A��݅�����4(�������������������9������д́�����ܵ�ձ���ѕ�̵���ѕȁ���ѥ�䵍��ѕȁ����́ɽչ�����ᰁ����ɥ�������Ёѕ�е�ɥ���䵙�ɕ�ɽչ��4(�������������4(���������������ɽݸ�ͥ������􁍱���9�����͡ɥ��������4(�����������������؁�����9���􉙱���āѕ�е���ѕȈ�4(������������������������9�����ѕ�е��͔����е���Ʌ������Ʌ������ѥ��Ј�U��Ʌ���Ѽ�]���́Aɼ����4(������������������������9������дāѕ�е�́ѕ�е�ɥ���䵙�ɕ�ɽչ������4(������������������ɕ܁����̰����Ѽ������ɥ�̰�ɕ�����������х�̰��ь�4(��������������������4(��������������𽑥��4(���������������ɽݸ�ͥ������􁍱���9�����͡ɥ��������4(�����������������ѽ��4(�����������4(����������聹ձ��4(4(��������켨��ٽɥє�����Ѐ���4(�����������؁�����9������дЁ���eѕ�̵���ѕȁ����́ɽչ�����ᰁ�����ɐ���Ёɥ���āɥ�����ɑ�Ȉ�4(���������������������9���􉙱���ͥ锴����ѕ�̵���ѕȁ���ѥ�䵍��ѕȁɽչ����ᰁ��������Ёѕ�е�����е��ɕ�ɽչ���4(�������������յ������ͥ����������4(�����������������4(�������������؁�����9���􉙱���āѕ�е���ѕȈ�(��������������������9�����ѕ�е�́���е���������ɍ�͔��Ʌ������ݥ���Ёѕ�е��ѕ����ɕ�ɽչ���4(���������������ٽɥє�M����4(����������������4(��������������������9�����ѕ�еʹ����е͕�������ѕ�е��ɐ���ɕ�ɽչ�����͕ȹ��ٽɥѕM���������(����������𽑥��(�����������������ɥ������������Ք�������9�����ͥ锴���͡ɥ��������(��������𽑥��4(4(��������켨�I���������䀘��х�̀�]���́Aɼ�����4(��������셱���������4(�����������͕�ѥ��������9������д؈�4(��������������ȁ�����9���􉵈�́���eѕ�̵���ѕȁ����ȁ���āѕ�е�́���е���������ɍ�͔��Ʌ������ݥ���Ёѕ�е��ѕ����ɕ�ɽչ���4(���������������	������́ͥ����������4(��������������I���������䀙�����Mх��4(�����������������4(������������졥�M�������͕ȹ��Y�ɥ����Aɼ�������Ք�聥�Aɕ��մ�����4(�����������������؁�����9������ɥ���ɥ�����̴ȁ����Ȉ�4(�������������������؁�����9�����ɽչ�����ᰁ�����ɐ���Ёɥ���āɥ�����ɑ�Ȉ�4(��������������������������9�����ѕ�е�́���е͕�������ѕ�е��ѕ����ɕ�ɽչ���I��������������4(��������������������������9������дāѕ�д�ᰁ���е���Ʌ�����ѕ�е��ɕ�ɽչ���4(����������������������͕ȹɕ��������������ձ�����9�Ё�م��������聀���͕ȹɕ�������������4(����������������������4(��������������������������9�����ѕ�еl����t�ѕ�е��ѕ����ɕ�ɽչ�����͕ȹɕ��������������ձ�����I��եɕٕ́ɥ�����ݽɭ��Ё������ѥ����������͡�܁�ٕ��̸��耝	�͕�����ٕɥ�������ѕ�������������4(����������������𽑥��4(�������������������؁�����9�����ɽչ�����ᰁ�����ɐ���Ёɥ���āɥ�����ɑ�Ȉ�4(��������������������������9���􉙱�eѕ�̵���ѕȁ����āѕ�е�́���е͕�������ѕ�е��ѕ����ɕ�ɽչ���4(��������������������������ͥ������􁍱���9�����ѕ�е�ɥ���䈀��4(��������������������M�ɕ��4(����������������������4(��������������������������9������дāѕ�д�ᰁ���е���Ʌ�����ѕ�е��ɕ�ɽչ���4(����������������������͕ȹ��ɕ�������ձ�����9�Ё�م��������聀���͕ȹ��ɕ����ݭ́�4(����������������������4(��������������������������9�����ѕ�еl����t�ѕ�е��ѕ����ɕ�ɽչ�����͕��ѥٔ���ѥٔ�ݕ�������4(����������������𽑥��4(��������������𽑥��4(��������������耠4(������������������ѽ�4(�������������������������ѽ��4(�����������������������젤��������A��݅����I���������䀘��х�̜��4(���������������������9���􉙱���ܵ�ձ���ѕ�̵���ѕȁ����́ɽչ�����ᰁ�����ɐ���Ёѕ�е���Ёɥ���āɥ�����ɑ�Ȉ4(���������������4(���������������������������9���􉙱���ͥ锴����ѕ�̵���ѕȁ���ѥ�䵍��ѕȁɽչ����ᰁ��������Ёѕ�е�����е��ɕ�ɽչ���4(�������������������1����ͥ����������4(�����������������������4(�������������������؁�����9���􉙱���Ĉ�4(��������������������������9�����ѕ�еʹ����е�����ѕ�е��ɐ���ɕ�ɽչ���M���ɕ��������䀙�������ɕ�������4(��������������������������9�����ѕ�е�́ѕ�е��ѕ����ɕ�ɽչ���4(���������������������ѕ�������͍�ɔ�����ݕ���䁥�ͥ���́ݥѠ�]���́Aɼ�4(����������������������4(����������������𽑥��4(�����������������ɽݸ�ͥ������􁍱���9�����͡ɥ�����ѕ�е�ɥ���䈀��4(�������������������ѽ��4(��������������4(������������͕�ѥ���4(����������聹ձ��4(4(��������켨�A��Ѽ�������䀨��4(��������셱���������4(�����������͕�ѥ��������9������д؈�4(��������������ȁ�����9���􉵈�́���eѕ�̵���ѕȁ����ȁ���āѕ�е�́���е���������ɍ�͔��Ʌ������ݥ���Ёѕ�е��ѕ����ɕ�ɽչ���4(���������������%����́ͥ����������4(��������������崁������4(�����������������4(4(������������흅�����1���������4(������������������ѽ�4(�������������������������ѽ��4(�����������������������젤��������A��݅����A��Ѽ������ɥ�̜��4(���������������������9�����ɕ��ѥٔ�������ܵ�ձ���ٕə��ܵ�������ɽչ�����ᰁɥ���āɥ�����ɑ�Ȉ4(���������������4(�������������������؁�����9������ɥ���ɥ�����̴́����Ĉ�4(������������������졝�����乱���Ѡ�����������������AIMQ}A!=Q=L�ͱ�������̤��ͱ�������̤�������Ɍ���������4(������������������������ͱ��е��ͅ�������е��������н���н��������������4(��������������������񥵜4(�����������������������������4(�����������������������Ɍ���Ɍ��ܽ����������ȹ�ٜ��4(����������������������������4(���������������������������9����������е��Յɔ�ܵ�ձ��͍�������������е��ٕȁ���ȵ���4(����������������������4(���������������������4(����������������𽑥��4(�������������������؁�����9���􉅉ͽ��є���͕д�����Y��്����ѕ�̵���ѕȁ���ѥ�䵍��ѕȁ����ȁ��������ɽչ���ԁѕ�е���ѕȁ�����ɽ�����ȵl���t��4(�����������������������������9���􉙱���ͥ锴�ȁ�ѕ�̵���ѕȁ���ѥ�䵍��ѕȁɽչ�����ձ������ɥ�����ѕ�е�ɥ���䵙�ɕ�ɽչ���4(���������������������1����ͥ����������4(�������������������������4(��������������������������9��������؁ѕ�еʹ����е�����ѕ�е��ɕ�ɽչ���4(��������������������M�����͕ȹ���������Р����l�u�������́���ѽ́ݥѠ�]���́Aɼ4(����������������������4(�����������������������������9���􉥹��������eѕ�̵���ѕȁ����āɽչ�����ձ�������������́���āѕ�е�́���е���Ʌ�����ѕ�е�������ɕ�ɽչ���4(���������������������ɽݸ�ͥ����������4(��������������������U������������4(�������������������������4(����������������𽑥��4(�������������������ѽ��4(��������������聝�����乱���Ѡ�������������M�������4(����������������������9�����ɽչ�����ᰁ�����ɐ���Ёѕ�еʹ�ѕ�е��ѕ����ɕ�ɽչ��ɥ���āɥ�����ɑ�Ȉ�4(����������������9�����ѽ́��и4(������������������4(��������������耠4(�����������������؁�����9������ɥ���ɥ�����̴́����ĸԈ�4(�������������������M�������4(����������������������ѽ�4(�����������������������������ѽ��4(����������������������������������A��ѽ�4(�������������������������9���􉙱�E����е��Յɔ����്����ѕ�̵���ѕȁ���ѥ�䵍��ѕȁ����āɽչ�����ᰁ��ɑ�ȴȁ��ɑ�ȵ��͡�����ɑ�ȵ��ɑ�ȁѕ�е��ѕ����ɕ�ɽչ���Ʌ�ͥѥ��������́��ٕ�鉽ɑ�ȵ�ɥ���䁡�ٕ��ѕ�е�ɥ�����4(���������������������ɥ���������������Ѽ�4(�������������������4(���������������������A��́ͥ����������4(�������������������������������9�����ѕ�еl����t����е���������ɍ�͔��Ʌ������ݥ�������������4(�����������������������ѽ��4(������������������聹ձ��4(����������������흅����乵�����Ɍ���������4(���������������������؁����퀑��ɍ�������􁍱���9�����ɕ��ѥٔ��ٕə��ܵ�������ɽչ�����ᰁɥ���āɥ�����ɑ�Ȉ�4(��������������������켨��ͱ��е��ͅ�������е��������н���н�������������Ѐ���4(��������������������񥵜4(�����������������������Ɍ���Ɍ��ܽ����������ȹ�ٜ��4(���������������������������崁���Ѽ�4(���������������������������9����������е��Յɔ�ܵ�ձ�������е��ٕȈ4(����������������������4(�����������������������M�������4(��������������������������ѽ�����������ѽ����������젤����ɕ��ٕ������A��Ѽ��Ɍ�􁍱���9���􉅉ͽ��є����ѽ��ĸԁɥ��дĸԁɽչ�����ձ����������Սѥٔ����ȁ���āѕ�еl����t����е�����ѕ�е�����Սѥٔ���ɕ�ɽչ��͡���܈��ɥ���������I���ٔ����Ѽ��4(������������������������I���ٔ4(���������������������������ѽ��4(����������������������聹ձ��4(������������������𽑥��4(�������������������4(��������������𽑥��4(��������������4(������������͕�ѥ���4(����������聹ձ��4(4(�����������������4(�������������؁�����9������д؁���Y��്����ѕ�̵���ѕȁɽչ�����ᰁ�����ɐ����؁������ѕ�е���ѕȁɥ���āɥ�����ɑ�Ȉ�4(�����������������������9���􉙱���ͥ锴�Ё�ѕ�̵���ѕȁ���ѥ�䵍��ѕȁɽչ�����ձ�����͕��������ѕ�е��ѕ����ɕ�ɽչ���4(���������������1����ͥ����������4(�������������������4(��������������ȁ�����9������д́ѕ�е��͔����е�����ѕ�е��ɕ�ɽչ���Q��́����չЁ�́�ɥمє�����4(��������������������9������дāѕ�еʹ�ѕ�е��ѕ����ɕ�ɽչ���4(������������������܁��͕ȹ���������Р����l�u��Ѽ�͕��ѡ��ȁݕ�����͍���ձ������ݽɭ���̸4(����������������4(����������𽑥��4(����������耠4(������������4(������������켨�]������͍���ձ�����4(�������������͕�ѥ��������9������д؈�4(����������������ȁ�����9���􉵈�́���āѕ�е�́���е���������ɍ�͔��Ʌ������ݥ���Ёѕ�е��ѕ����ɕ�ɽչ���4(����������������]������M����ձ�4(�������������������4(�����������������؁�����9�������������ĸԁɽչ�����ᰁ�����ɐ���́ɥ���āɥ�����ɑ�Ȉ�4(�����������������]-}1	1L��������������������4(����������������������Ё�ѕ�̀��ݕ��5��m�t4(������������������ɕ��ɸ��4(�����������������������؁��������􁍱���9���􉙱�eѕ�̵���ѕȁ����̈�4(���������������������������������9�����ܴ��͡ɥ�����ѕ�е���ѕȁѕ�е�́���е�����ѕ�е��ѕ����ɕ�ɽչ���4(�������������������������]-}1	1Mm�u�4(�����������������������������4(�������������������������؁�����9���􉙱�u�����䁙����ā������Ʌ���ѕ�̵���ѕȁ����ĸԈ�4(��������������������������ѕ�̹����Ѡ����������4(�������������������������������������9�����ѕ�е�́ѕ�е��ѕ����ɕ�ɽչ������I����������4(��������������������������耠4(���������������������������ѕ�̹�����ܤ�����4(��������������������������������ѽ�4(�����������������������������������ܹ���4(���������������������������������������ѽ��4(�������������������������������������젤��������]�ɭ��Сܹ����4(�����������������������������������9���􉥹��������eѕ�̵���ѕȁ����ĸԁɽչ�����ձ�������������ȸԁ���āѕ�е�́���е�����ѕ�е�������ɕ�ɽչ��4(�����������������������������4(�������������������������������]�ɭ���Q���%����������ܹ�����l�u��ͥ����������4(�������������������������������ܹ����̹�������������
+܁홽ɵ��Q����ܹѥ����4(���������������������������������ѽ��4(����������������������������4(��������������������������4(����������������������𽑥��4(��������������������𽑥��4(�������������������4(�������������������4(��������������𽑥��4(��������������͕�ѥ���4(4(������������켨�U��������ݽɭ���̀���4(�������������͍���ձ��]�ɭ���̹����Ѡ��������4(���������������͕�ѥ��������9������д؈�4(������������������ȁ�����9���􉵈�́���āѕ�е�́���е���������ɍ�͔��Ʌ������ݥ���Ёѕ�е��ѕ����ɕ�ɽչ���4(������������������U��������]�ɭ����4(���������������������4(�������������������؁�����9�������������̈�4(�������������������͍���ձ��]�ɭ���̹�����ܤ�����4(���������������������]�ɭ����ɐ������ܹ����ݽɭ����������4(���������������������4(����������������𽑥��4(����������������͕�ѥ���4(��������������聹ձ��4(�������������4(����������4(������𽑥��4(����𽑥��4(���4)�4(4)�չ�ѥ���MхС��م�Ք���������������������م�Ք聹յ���쁱��������ɥ��쁽������耠�����ٽ�������4(���������������4(����ɕ��ɸ��4(����������ѽ�4(�����������������ѽ��4(���������������������4(�������������9�����ɕ��ѥٔ����������ܴ���ѽՍ�������ձ�ѥ���ɽչ����ᰁ���ȁ���ȁѕ�е���ѕȁ��ٕ�鉜�͕������䁙���̵٥ͥ����ɥ���ȁ����̵٥ͥ����ɥ����ɥ�����4(�������4(����������������9�����ѕ�еᰁ���е���Ʌ�����ѕ�е��ɕ�ɽչ����م�Օ�����4(����������������9�����ѕ�е�́���е����մ�ѕ�е��ѕ����ɕ�ɽչ������������4(�����������ѽ��4(�����4(���4(��ɕ��ɸ��4(�������؁�����9�����ѕ�е���ѕȈ�4(��������������9�����ѕ�еᰁ���е���Ʌ�����ѕ�е��ɕ�ɽչ����م�Օ�����4(��������������9�����ѕ�е�́���е����մ�ѕ�е��ѕ����ɕ�ɽչ������������4(����𽑥��4(���4)�4(
