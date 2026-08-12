@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 2.2 seconds
-Output:
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { authenticatedUserFromRequest, createSupabaseAdmin } from '@/lib/supabase-admin'
