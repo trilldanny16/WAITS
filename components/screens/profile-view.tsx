@@ -82,6 +82,8 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [openingPortal, setOpeningPortal] = useState(false)
+  const [portalError, setPortalError] = useState<string | null>(null)
   const [editName, setEditName] = useState(user.name)
   const [editHomeGym, setEditHomeGym] = useState(user.homeGym)
   const [editCity, setEditCity] = useState(user.city)
@@ -141,6 +143,30 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     pushToast({ title: 'Profile picture updated' })
     setAvatarUploading(false)
   }
+  const openBillingPortal = async () => {
+    if (openingPortal) return
+    setOpeningPortal(true)
+    setPortalError(null)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      setPortalError('Sign in again to manage your membership.')
+      setOpeningPortal(false)
+      return
+    }
+
+    const response = await fetch('/api/stripe/customer-portal', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    const result = await response.json()
+    if (!response.ok || !result.url) {
+      setPortalError(result.error ?? 'Billing settings are temporarily unavailable.')
+      setOpeningPortal(false)
+      return
+    }
+    window.location.assign(result.url)
+  }
+
   const [socialListKind, setSocialListKind] = useState<'followers' | 'following' | null>(null)
   const [viewedConnectionCount, setViewedConnectionCount] = useState(0)
   const [disconnecting, setDisconnecting] = useState(false)
@@ -402,6 +428,11 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <ChevronLeft size={20} /> Back
           </button>
         ) : null}
+        {showProBadge ? (
+          <span className="ml-auto flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Verified WAITS Pro member">
+            <Crown size={24} />
+          </span>
+        ) : null}
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
@@ -433,12 +464,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           {avatarError ? <p className="mt-2 text-xs font-medium text-red-500">{avatarError}</p> : null}
           <h1 className="mt-3 flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
             {user.name}
-            {showProBadge ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-primary-foreground">
-                <Crown size={11} />
-                Pro
-              </span>
-            ) : null}
           </h1>
           <p className="text-sm text-muted-foreground">@{user.username}</p>
           <p className="mt-1 flex items-center gap-1 text-sm font-medium text-foreground">
@@ -603,15 +628,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         {/* Waits Pro upgrade / status (own profile) */}
         {isSelf ? (
           isPremium ? (
-            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground">
+            <button type="button" onClick={openBillingPortal} disabled={openingPortal} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-primary p-4 text-left text-primary-foreground disabled:opacity-70">
               <Crown size={22} className="shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-extrabold">Waits Pro member</p>
+                <p className="text-sm font-extrabold">Pro Settings &amp; Billing</p>
                 <p className="text-xs text-primary-foreground/80">
-                  Crew chats, galleries, stats &amp; more are unlocked.
+                  {openingPortal ? 'Opening billing settings…' : 'Manage membership, payment method, or cancellation.'}
                 </p>
               </div>
-            </div>
+            </button>
           ) : (
             <button
               type="button"
@@ -629,6 +654,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             </button>
           )
         ) : null}
+        {portalError ? <p role="alert" className="mt-2 text-center text-xs font-medium text-red-500">{portalError}</p> : null}
 
         {/* Favorite split */}
         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
