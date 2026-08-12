@@ -5,12 +5,11 @@ import { Flame, CalendarDays } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { WorkoutCard } from '../workout-card'
-import { DemoWorkoutCard } from '../demo-workout-card'
 import { Avatar } from '../avatar'
 import { Wordmark } from '../wordmark'
 import { relativeBucket, timeToMinutes } from '@/lib/date-utils'
 import type { Workout } from '@/lib/types'
-import { demoDiscoveryWorkouts } from '@/lib/seed'
+import { displayWorkouts } from '@/lib/seed'
 
 function greeting(): string {
   const choices = [
@@ -26,10 +25,12 @@ function Section({
   title,
   accent,
   workouts,
+  displayOnly = false,
 }: {
   title: string
   accent?: boolean
   workouts: Workout[]
+  displayOnly?: boolean
 }) {
   if (workouts.length === 0) return null
   return (
@@ -40,7 +41,7 @@ function Section({
       </h2>
       <div className="space-y-3">
         {workouts.map((w) => (
-          <WorkoutCard key={w.id} workout={w} />
+          <WorkoutCard key={w.id} workout={w} displayOnly={displayOnly} />
         ))}
       </div>
     </section>
@@ -52,8 +53,14 @@ export function HomeFeed() {
   const { openUser } = useNav()
   const me = getUser(currentUserId)
 
+  const usingDisplayContent = workouts.length === 0
+  const visibleWorkouts = useMemo(
+    () => usingDisplayContent ? displayWorkouts() : workouts,
+    [usingDisplayContent, workouts],
+  )
+
   const { today, week } = useMemo(() => {
-    const sorted = [...workouts].sort(
+    const sorted = [...visibleWorkouts].sort(
       (a, b) =>
         a.date.localeCompare(b.date) || timeToMinutes(a.time) - timeToMinutes(b.time),
     )
@@ -61,18 +68,18 @@ export function HomeFeed() {
       today: sorted.filter((w) => ['today', 'tonight'].includes(relativeBucket(w.date, w.time))),
       week: sorted.filter((w) => relativeBucket(w.date, w.time) === 'week'),
     }
-  }, [workouts])
+  }, [visibleWorkouts])
 
   const empty = today.length + week.length === 0
 
   // friends training this week, for the top rail
   const railUsers = useMemo(() => {
     const ids = new Set<string>()
-    for (const w of workouts) {
+    for (const w of visibleWorkouts) {
       if (w.hostId !== currentUserId) ids.add(w.hostId)
     }
     return [...ids].map(getUser)
-  }, [workouts, getUser, currentUserId])
+  }, [visibleWorkouts, getUser, currentUserId])
 
   return (
     <div className="flex h-full flex-col">
@@ -117,8 +124,8 @@ export function HomeFeed() {
           <EmptyFeed />
         ) : (
           <>
-            <Section title="Today" workouts={today} />
-            <Section title="This Week" workouts={week} />
+            <Section title="Today" workouts={today} displayOnly={usingDisplayContent} />
+            <Section title="This Week" workouts={week} displayOnly={usingDisplayContent} />
           </>
         )}
       </div>
@@ -127,19 +134,15 @@ export function HomeFeed() {
 }
 
 function EmptyFeed() {
-  const demos = demoDiscoveryWorkouts().slice(0, 3)
   return (
-    <div className="pb-6 pt-5">
-      <div className="mb-4 text-center">
-        <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
-          <CalendarDays size={24} />
-        </span>
-        <h2 className="mt-3 text-lg font-bold text-foreground">No live workouts yet</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Here are a few examples of what you can discover.</p>
-      </div>
-      <div className="space-y-3">
-        {demos.map((workout) => <DemoWorkoutCard key={workout.id} workout={workout} />)}
-      </div>
+    <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+      <span className="flex size-16 items-center justify-center rounded-3xl bg-secondary text-muted-foreground">
+        <CalendarDays size={30} />
+      </span>
+      <h2 className="mt-4 text-lg font-bold text-foreground">No workouts yet</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Follow friends or post your own workout to get the feed going.
+      </p>
     </div>
   )
 }
