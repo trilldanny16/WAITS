@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronLeft, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
 import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase-client'
+import type { ChatMessage } from '@/lib/types'
 
 export function Chat({ id }: { id: string }) {
   const { workouts, getUser, messagesFor, sendMessage, editMessage, deleteMessage, currentUserId, pushToast } = useStore()
@@ -19,11 +21,52 @@ export function Chat({ id }: { id: string }) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [persistedMessages, setPersistedMessages] = useState<ChatMessage[]>([])
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const workout = workouts.find((w) => w.id === id)
-  const messages = messagesFor(id)
+  const isPersistedChat = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+  const sessionMessages = messagesFor(id)
+  const messages = isPersistedChat ? persistedMessages : sessionMessages
+
+  const loadPersistedMessages = useCallback(async () => {
+    if (!isPersistedChat) return
+    const { data, error } = await supabase
+      .from('crew_messages')
+      .select('id, workout_id, user_id, text, created_at')
+      .eq('workout_id', id)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Failed to load Crew Chat messages:', error)
+      setActionError(error.message)
+      return
+    }
+
+    setPersistedMessages((data ?? []).map((message) => ({
+      id: message.id,
+      workoutId: message.workout_id,
+      userId: message.user_id,
+      text: message.text,
+      createdAt: new Date(message.created_at).getTime(),
+    })))
+    setActionError(null)
+  }, [id, isPersistedChat])
+
+  useEffect(() => {
+    if (!isPersistedChat) return
+    void loadPersistedMessages()
+    const channel = supabase
+      .channel(`crew-messages:${id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'crew_messages', filter: `workout_id=eq.${id}` },
+        () => void loadPersistedMessages(),
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [id, isPersistedChat, loadPersistedMessages])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -46,17 +89,47 @@ export function Chat({ id }: { id: string }) {
 
   const host = getUser(workout.hostId)
 
-  const submit = () => {
-    if (!text.trim()) return
-    sendMessage(id, text)
+  const submit = async () => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    if (!isPersistedChat) {
+      sendMessage(id, trimmed)
+      setText('')
+      return
+    }
+
+    setActionError(null)
+    const { error } = await supabase
+      .from('crew_messages')
+      .insert({ workout_id: id, user_id: currentUserId, text: trimmed })
+      .select('id')
+      .single()
+    if (error) {
+      setActionError(error.message)
+      pushToast({ title: 'Message was not sent', body: error.message })
+      return
+    }
     setText('')
+    await loadPersistedMessages()
   }
 
   const saveEdit = async (messageId: string) => {
     if (!editText.trim() || savingId) return
     setSavingId(messageId)
     setActionError(null)
-    const result = await editMessage(messageId, editText)
+    const result = isPersistedChat
+      ? await (async () => {
+          const { data, error } = await supabase
+            .from('crew_messages')
+            .update({ text: editText.trim() })
+            .eq('id', messageId)
+            .eq('user_id', currentUserId)
+            .select('id')
+          if (error || !data?.length) return { ok: false, error: error?.message ?? 'Supabase did not confirm the edit.' }
+          await loadPersistedMessages()
+          return { ok: true }
+        })()
+      : await editMessage(messageId, editText)
     if (!result.ok) {
       const error = result.error ?? 'The message could not be updated.'
       setActionError(error)
@@ -73,7 +146,19 @@ export function Chat({ id }: { id: string }) {
     if (deletingId) return
     setDeletingId(messageId)
     setActionError(null)
-    const result = await deleteMessage(messageId)
+    const result = isPersistedChat
+      ? await (async () => {
+          const { data, error } = await supabase
+            .from('crew_messages')
+            .delete()
+            .eq('id', messageId)
+            .eq('user_id', currentUserId)
+            .select('id')
+          if (error || !data?.length) return { ok: false, error: error?.message ?? 'Supabase did not confirm the deletion.' }
+          await loadPersistedMessages()
+          return { ok: true }
+        })()
+      : await deleteMessage(messageId)
     if (!result.ok) {
       const error = result.error ?? 'The message could not be deleted.'
       setActionError(error)
@@ -282,7 +367,7 @@ export function Chat({ id }: { id: string }) {
               e.nativeEvent.keyCode !== 229
             ) {
               e.preventDefault()
-              submit()
+              void submit()
             }
           }}
           placeholder="Message the crew…"
@@ -290,7 +375,7 @@ export function Chat({ id }: { id: string }) {
         />
         <button
           type="button"
-          onClick={submit}
+          onClick={() => void submit()}
           disabled={!text.trim()}
           aria-label="Send"
           className="flex size-11 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground transition-transform active:scale-90 disabled:opacity-40"
