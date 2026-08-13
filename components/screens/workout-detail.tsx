@@ -314,7 +314,7 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
       <div className="shrink-0 border-t border-border bg-card/95 px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur">
         <div className="flex gap-3">
           {canChat ? (
-            isPremium ? (
+            isHost || isPremium ? (
               <button
                 type="button"
                 onClick={() => openChat(workout.id)}
