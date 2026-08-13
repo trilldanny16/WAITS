@@ -150,6 +150,23 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     pushToast({ title: 'Profile picture updated' })
     setAvatarUploading(false)
   }
+  useEffect(() => {
+    const resetPortalLoading = () => setOpeningPortal(false)
+    const resetWhenVisible = () => {
+      if (document.visibilityState === 'visible') resetPortalLoading()
+    }
+
+    window.addEventListener('focus', resetPortalLoading)
+    window.addEventListener('pageshow', resetPortalLoading)
+    document.addEventListener('visibilitychange', resetWhenVisible)
+
+    return () => {
+      window.removeEventListener('focus', resetPortalLoading)
+      window.removeEventListener('pageshow', resetPortalLoading)
+      document.removeEventListener('visibilitychange', resetWhenVisible)
+    }
+  }, [])
+
   const openBillingPortal = async () => {
     if (openingPortal) return
     setOpeningPortal(true)
