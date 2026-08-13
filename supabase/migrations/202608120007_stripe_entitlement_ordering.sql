@@ -1,6 +1,23 @@
 alter table public.profiles
   add column if not exists stripe_entitlement_observed_at_ms bigint not null default 0;
 
+create or replace function public.protect_profile_entitlement_fields()
+returns trigger
+language plpgsql
+set search_path = public
+as $
+begin
+  if auth.uid() is not null then
+    new.is_pro := old.is_pro;
+    new.stripe_customer_id := old.stripe_customer_id;
+    new.stripe_subscription_id := old.stripe_subscription_id;
+    new.subscription_status := old.subscription_status;
+    new.stripe_entitlement_observed_at_ms := old.stripe_entitlement_observed_at_ms;
+  end if;
+  return new;
+end;
+$;
+
 create or replace function public.apply_stripe_entitlement(
   target_user_id uuid,
   target_customer_id text,
