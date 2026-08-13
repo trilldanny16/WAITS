@@ -23,7 +23,8 @@ export function ChatsList() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
-  const openCrew = (id: string) => (isPremium ? openChat(id) : openPaywall('Crew chats'))
+  const openCrew = (workoutId: string, isHost: boolean) =>
+    (isHost || isPremium ? openChat(workoutId) : openPaywall('Crew chats'))
 
   const loadFriendRequests = useCallback(async () => {
     setRequestError(null)
@@ -235,7 +236,7 @@ const declineFriendRequest = async (requestId: string) => {
           Crew Chats
         </p>
 
-        {!isPremium && myWorkouts.length > 0 ? (
+        {!isPremium && myWorkouts.some((workout) => workout.hostId !== currentUserId) ? (
           <button
             type="button"
             onClick={() => openPaywall('Crew chats')}
@@ -263,6 +264,7 @@ const declineFriendRequest = async (requestId: string) => {
           <ul className="space-y-2">
             {myWorkouts.map((w) => {
               const host = getUser(w.hostId)
+              const canAccessCrew = w.hostId === currentUserId || isPremium
               const last = messages
                 .filter((m) => m.workoutId === w.id)
                 .sort((a, b) => b.createdAt - a.createdAt)[0]
@@ -270,7 +272,7 @@ const declineFriendRequest = async (requestId: string) => {
                 <li key={w.id}>
                   <button
                     type="button"
-                    onClick={() => openCrew(w.id)}
+                    onClick={() => openCrew(w.id, w.hostId === currentUserId)}
                     className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border"
                   >
                     <span className="relative">
@@ -283,7 +285,7 @@ const declineFriendRequest = async (requestId: string) => {
                       <p className="truncate text-sm font-semibold text-card-foreground">
                         {w.types.join(' + ')} · {w.hostId === currentUserId ? 'You' : host.name.split(' ')[0]}
                       </p>
-                      {isPremium ? (
+                      {canAccessCrew ? (
                         <p className="truncate text-xs text-muted-foreground">
                           {last ? (
                             <>
@@ -303,11 +305,11 @@ const declineFriendRequest = async (requestId: string) => {
                         </p>
                       )}
                     </div>
-                    {isPremium && last ? (
+                    {canAccessCrew && last ? (
                       <span className="shrink-0 text-[11px] text-muted-foreground">
                         {relativeMessageTime(last.createdAt)}
                       </span>
-                    ) : !isPremium ? (
+                    ) : !canAccessCrew ? (
                       <Crown size={16} className="shrink-0 text-primary" />
                     ) : null}
                   </button>
