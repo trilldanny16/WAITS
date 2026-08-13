@@ -5,7 +5,7 @@ create or replace function public.protect_profile_entitlement_fields()
 returns trigger
 language plpgsql
 set search_path = public
-as $
+as $$
 begin
   if auth.uid() is not null then
     new.is_pro := old.is_pro;
@@ -16,7 +16,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 create or replace function public.apply_stripe_entitlement(
   target_user_id uuid,
