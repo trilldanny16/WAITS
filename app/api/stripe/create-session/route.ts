@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { PRO_PLAN } from '@/lib/products'
-import { authenticatedUserFromRequest } from '@/lib/supabase-admin'
+import { authenticatedUserFromRequest, createSupabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +17,13 @@ export async function POST(request: Request) {
     if (planId !== PRO_PLAN.id) {
       return NextResponse.json({ error: 'Unsupported plan' }, { status: 400 })
     }
+
+    const { data: profile, error: profileError } = await createSupabaseAdmin()
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single()
+    if (profileError) throw profileError
 
     const checkoutParams = {
       ui_mode: 'embedded_page' as const,
@@ -40,12 +47,12 @@ export async function POST(request: Request) {
         },
       ],
       client_reference_id: user.id,
-      customer_email: user.email,
+      ...(profile.stripe_customer_id
+        ? { customer: profile.stripe_customer_id }
+        : { customer_email: user.email }),
       metadata: { user_id: user.id },
       subscription_data: { metadata: { user_id: user.id } },
     }
-
-    console.log('Stripe checkout params:', JSON.stringify(checkoutParams, null, 2))
 
     const session = await stripe.checkout.sessions.create(checkoutParams)
 
