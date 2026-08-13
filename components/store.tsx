@@ -484,9 +484,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const createWorkout = useCallback(
     async (input: NewWorkoutInput) => {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+      const authenticatedHostId = session?.user.id
+      if (sessionError || !authenticatedHostId) {
+        pushToast({
+          title: 'Workout was not posted',
+          body: sessionError?.message ?? 'Your authenticated session could not be verified.',
+        })
+        return null
+      }
+
       const cappedMax = isPremium ? input.maxParticipants : Math.min(input.maxParticipants, FREE_MAX_PARTICIPANTS)
       const { data, error } = await supabase.from('workouts').insert({
-        host_id: currentUserId, gym: input.gym, city: input.city, address: input.address,
+        host_id: authenticatedHostId, gym: input.gym, city: input.city, address: input.address,
         lat: input.lat ?? null, lng: input.lng ?? null, workout_date: input.date,
         workout_time: input.time, workout_types: input.types, notes: input.notes,
         max_participants: cappedMax, visibility: input.visibility, recurring: input.recurring,
@@ -495,12 +508,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         pushToast({ title: 'Workout was not posted', body: error?.message ?? 'Supabase did not confirm the workout.' })
         return null
       }
-      const workout: Workout = { id: data.id, hostId: currentUserId, attendees: [currentUserId], ...input, maxParticipants: cappedMax }
+      const workout: Workout = {
+        id: data.id,
+        hostId: authenticatedHostId,
+        attendees: [authenticatedHostId],
+        ...input,
+        maxParticipants: cappedMax,
+      }
       await refreshPersistedWorkouts()
       pushToast({ title: 'Workout posted 🔥', body: 'Your followers were notified. Come Thru?' })
       return workout
     },
-    [pushToast, isPremium, currentUserId, refreshPersistedWorkouts],
+    [pushToast, isPremium, refreshPersistedWorkouts],
   )
 
   const refreshGallery = useCallback(async () => {
