@@ -12,6 +12,22 @@ function subscriptionIdFrom(value: unknown): string | null {
   return null
 }
 
+function invoiceSubscriptionIdFrom(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || !('parent' in value)) return null
+
+  const parent = value.parent
+  if (!parent || typeof parent !== 'object' || !('subscription_details' in parent)) {
+    return null
+  }
+
+  const details = parent.subscription_details
+  if (!details || typeof details !== 'object' || !('subscription' in details)) {
+    return null
+  }
+
+  return subscriptionIdFrom(details.subscription)
+}
+
 export async function POST(request: Request) {
   const signature = request.headers.get('stripe-signature')
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -33,6 +49,11 @@ export async function POST(request: Request) {
 
     if (event.type === 'checkout.session.completed') {
       subscriptionId = subscriptionIdFrom(event.data.object.subscription)
+    } else if (
+      event.type === 'invoice.payment_failed'
+      || event.type === 'invoice.payment_succeeded'
+    ) {
+      subscriptionId = invoiceSubscriptionIdFrom(event.data.object)
     } else if (
       event.type === 'customer.subscription.created'
       || event.type === 'customer.subscription.updated'
