@@ -15,7 +15,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
   const [changingAttendance, setChangingAttendance] = useState(false)
   const changingAttendanceRef = useRef(false)
 
-  const changeAttendance = async (operation: () => Promise<boolean>) => {
+  const changeAttendance = async (operation: () => Promise<boolean | { ok: boolean; error?: string }>) => {
     if (changingAttendanceRef.current) return
     changingAttendanceRef.current = true
     setChangingAttendance(true)
