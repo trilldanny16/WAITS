@@ -18,8 +18,6 @@ import {
   ShieldCheck,
   TrendingUp,
   Camera,
-  Settings,
-  ChevronRight,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -745,18 +743,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <button
             type="button"
             onClick={openSettings}
-            className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left ring-1 ring-border"
+            className="mt-3 w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow"
           >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Settings size={20} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-extrabold text-card-foreground">Settings &amp; Billing</span>
-              <span className="block text-xs text-muted-foreground">
-                Membership, privacy, terms, support, and account
-              </span>
-            </span>
-            <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+            Settings
           </button>
         ) : null}
 
