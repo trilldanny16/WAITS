@@ -98,16 +98,22 @@ const realMatchedUsers = useMemo(() => {
   })
 }, [q, realUsers, currentUserId])
 
+  const realUserNames = useMemo(
+    () => new Set(realUsers.map((user) => user.display_name?.trim().toLowerCase()).filter(Boolean)),
+    [realUsers],
+  )
+
   const matchedUsers = useMemo(() => {
     return users.filter(
       (u) =>
         u.id !== currentUserId &&
+        !realUserNames.has(u.name.trim().toLowerCase()) &&
         (!q ||
           u.name.toLowerCase().includes(q) ||
           u.username.toLowerCase().includes(q) ||
           u.favoriteSplit.toLowerCase().includes(q)),
     )
-  }, [q, users, currentUserId])
+  }, [q, users, currentUserId, realUserNames])
 
   const matchedWorkouts = useMemo(() => {
     return workouts.filter((w) => {
