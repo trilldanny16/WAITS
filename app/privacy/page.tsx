@@ -1,4 +1,5 @@
 import React from 'react'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'Privacy Policy',
@@ -6,10 +7,10 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-3xl font-bold mb-4">Privacy Policy — WAITS</h1>
+    <main className="mx-auto min-h-screen max-w-3xl bg-background px-6 py-10 text-foreground">\n      <Link href="/" className="text-sm font-bold text-primary">← Back to WAITS</Link>
+      <h1 className="mt-6 text-3xl font-extrabold">Privacy Policy — WAITS</h1>
 
-      <p className="mb-4">Last updated: August 4, 2026</p>
+      <p className="mb-4">Last updated: August 17, 2026</p>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Introduction</h2>
