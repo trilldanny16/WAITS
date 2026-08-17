@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   EmbeddedCheckout,
   EmbeddedCheckoutProvider,
@@ -16,6 +16,8 @@ const stripePromise = stripePublishableKey
 
 export function PremiumCheckout({ onSuccess }: { onSuccess: () => void }) {
   const sessionIdRef = useRef<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [confirmationError, setConfirmationError] = useState<string | null>(null)
   const publishableKeyMissing = !stripePublishableKey
 
   const fetchClientSecret = useCallback(async () => {
@@ -40,21 +42,34 @@ export function PremiumCheckout({ onSuccess }: { onSuccess: () => void }) {
 
   const handleComplete = useCallback(async () => {
     const sessionId = sessionIdRef.current
-    if (!sessionId) return
+    if (!sessionId || confirming) return
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const response = await fetch('/api/stripe/confirm-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ sessionId }),
-    })
+    setConfirming(true)
+    setConfirmationError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Sign in again so we can confirm your membership.')
 
-    const data = await response.json()
-    const paid = response.ok && data.paid === true
+      const response = await fetch('/api/stripe/confirm-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ sessionId }),
+      })
+      const data = await response.json()
 
-    if (paid) onSuccess()
-  }, [onSuccess])
+      if (!response.ok || data.paid !== true) {
+        throw new Error(data.error || 'Your payment could not be confirmed yet.')
+      }
+
+      onSuccess()
+    } catch (error) {
+      setConfirmationError(
+        error instanceof Error ? error.message : 'Your payment could not be confirmed yet.',
+      )
+    } finally {
+      setConfirming(false)
+    }
+  }, [confirming, onSuccess])
 
   const providerOptions = useMemo(
     () => ({ fetchClientSecret, onComplete: handleComplete }),
@@ -69,6 +84,23 @@ export function PremiumCheckout({ onSuccess }: { onSuccess: () => void }) {
           options={providerOptions}
         >
           <EmbeddedCheckout />
+          {confirming ? (
+            <p role="status" className="mt-3 text-center text-sm font-semibold text-muted-foreground">
+              Confirming your Pro membership…
+            </p>
+          ) : null}
+          {confirmationError ? (
+            <div role="alert" className="mt-3 rounded-2xl bg-destructive/10 p-4 text-center">
+              <p className="text-sm font-semibold text-destructive">{confirmationError}</p>
+              <button
+                type="button"
+                onClick={() => void handleComplete()}
+                className="mt-3 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground"
+              >
+                Check membership again
+              </button>
+            </div>
+          ) : null}
         </EmbeddedCheckoutProvider>
       ) : (
         <div className="rounded-2xl bg-card p-6 text-center text-sm text-red-600">
