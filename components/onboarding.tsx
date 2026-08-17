@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
+  Apple,
   Mail,
   Check,
   Clock,
@@ -152,8 +153,8 @@ if (data.session?.user) {
       return
     }
 
-    if (password.length < 8) {
-      setAuthError('Your password must be at least 8 characters.')
+    if (password.length < 6) {
+      setAuthError('Your password must be at least 6 characters.')
       return
     }
 
@@ -170,7 +171,7 @@ if (data.session?.user) {
         })
 
         if (error) {
-          setAuthError('We could not create that account. Check your details and try again.')
+          setAuthError(error.message)
           return
         }
 
@@ -189,7 +190,7 @@ if (data.session?.user) {
         })
 
         if (error) {
-          setAuthError('The email or password is incorrect.')
+          setAuthError(error.message)
           return
         }
 
@@ -231,14 +232,33 @@ if (data.session?.user) {
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
-        queryParams: {
-          prompt: 'select_account',
-        },
       },
     })
 
     if (error) {
       setAuthError(error.message)
+      setAuthLoading(false)
+    }
+  }
+
+  const handleAppleSignIn = async () => {
+    setAuthError(null)
+    setAuthMessage(null)
+    setAuthLoading(true)
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    })
+
+    if (error) {
+      setAuthError(
+        error.message.toLowerCase().includes('provider')
+          ? 'Apple sign-in is not configured yet.'
+          : error.message,
+      )
       setAuthLoading(false)
     }
   }
@@ -443,6 +463,20 @@ const { error } = await supabase
           <div className="space-y-3">
             <button
               type="button"
+              onClick={handleAppleSignIn}
+              disabled={authLoading}
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
+            >
+              {authLoading ? (
+                <Loader2 size={19} className="animate-spin" />
+              ) : (
+                <Apple size={20} className="-mt-0.5" fill="currentColor" />
+              )}
+              Continue with Apple
+            </button>
+
+            <button
+              type="button"
               onClick={handleGoogleSignIn}
               disabled={authLoading}
               className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
@@ -510,7 +544,6 @@ const { error } = await supabase
                   <input
                     type="email"
                     autoComplete="email"
-                    maxLength={254}
                     placeholder="Email address"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
@@ -525,8 +558,6 @@ const { error } = await supabase
                         : 'current-password'
                     }
                     placeholder="Password"
-                    minLength={8}
-                    maxLength={128}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     onKeyDown={(event) => {
@@ -585,3 +616,4 @@ const { error } = await supabase
     </div>
   )
 }
+
