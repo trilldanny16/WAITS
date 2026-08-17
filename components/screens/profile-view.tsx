@@ -590,7 +590,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
         </div>
 
         {/* Stats */}
-        <div className="mt-4 flex items-center justify-center gap-8">
+        <div className="mt-4 grid w-full grid-cols-3 gap-3">
           <Stat value={hostedWorkouts.length} label="Workouts" />
           <Stat
             value={isSelf ? followers.length : viewedConnectionCount}
@@ -985,7 +985,7 @@ function Stat({ value, label, onClick }: { value: number; label: string; onClick
       <button
         type="button"
         onClick={onClick}
-        className="relative z-10 min-w-20 touch-manipulation rounded-xl px-2 py-2 text-center hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
+        className="relative z-10 w-full touch-manipulation rounded-xl px-2 py-2 text-center hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
       >
         <p className="text-xl font-extrabold text-foreground">{value}</p>
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
