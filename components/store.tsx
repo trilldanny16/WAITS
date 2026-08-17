@@ -469,6 +469,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ok: false, error }
       }
 
+      if (!SUPABASE_USER_ID_PATTERN.test(id)) {
+        setWorkouts((previous) => previous.map((candidate) =>
+          candidate.id === id
+            ? { ...candidate, attendees: Array.from(new Set([...candidate.attendees, currentUserId])) }
+            : candidate,
+        ))
+        const host = getUser(workout.hostId)
+        pushToast({
+          title: `You’re in for ${workout.types.join(' + ')} 💪`,
+          body: `Preview workout joined with ${host.name.split(' ')[0]}.`,
+        })
+        return { ok: true }
+      }
+
       const { data, error } = await supabase
         .from('workout_attendees')
         .insert({ workout_id: id, user_id: currentUserId })
@@ -498,6 +512,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const leaveWorkout = useCallback(
     async (id: string) => {
+      if (!SUPABASE_USER_ID_PATTERN.test(id)) {
+        setWorkouts((previous) => previous.map((workout) =>
+          workout.id === id
+            ? { ...workout, attendees: workout.attendees.filter((attendeeId) => attendeeId !== currentUserId) }
+            : workout,
+        ))
+        pushToast({ title: 'You left the Preview workout' })
+        return { ok: true }
+      }
+
       const { data, error } = await supabase
         .from('workout_attendees')
         .delete()
