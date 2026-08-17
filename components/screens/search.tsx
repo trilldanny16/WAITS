@@ -136,7 +136,7 @@ const realMatchedUsers = useMemo(() => {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={mode === 'friends' ? 'Search friends' : 'Search workouts'}
+            placeholder={mode === 'friends' ? 'Search for People' : 'Search for Workouts'}
             className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
           {query ? (
@@ -160,7 +160,7 @@ const realMatchedUsers = useMemo(() => {
                 mode === option ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
               )}
             >
-              {option}
+              {option === 'friends' ? 'Search for People' : 'Search for Workouts'}
             </button>
           ))}
         </div>
@@ -175,7 +175,7 @@ const realMatchedUsers = useMemo(() => {
         {mode === 'friends' ? (
           <section className="mb-5">
             <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              {q ? 'Friends' : 'Suggested friends'}
+              {q ? 'People' : 'Suggested people'}
             </h2>
             <div className="space-y-2">
               {realMatchedUsers.map((u) => (
@@ -241,7 +241,7 @@ const realMatchedUsers = useMemo(() => {
                 </button>
               ))}
               {realMatchedUsers.length === 0 && matchedUsers.length === 0 ? (
-                <p className="pt-6 text-center text-sm text-muted-foreground">No friends match your search.</p>
+                <p className="pt-6 text-center text-sm text-muted-foreground">No people match your search.</p>
               ) : null}
             </div>
           </section>
