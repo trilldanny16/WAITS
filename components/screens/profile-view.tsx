@@ -604,6 +604,22 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           />
         </div>
 
+        {/* Favorite split */}
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <Dumbbell size={20} />
+          </span>
+          <div className="flex-1 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Favorite Split
+            </p>
+            <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
+          </div>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            {isPremium ? <Clock size={20} /> : <Clock size={20} className="shrink-0" />}
+          </span>
+        </div>
+
         {/* Follow / edit action */}
         <div className="mt-4">
           {isSelf ? (
@@ -748,22 +764,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             Settings
           </button>
         ) : null}
-
-        {/* Favorite split */}
-        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            <Dumbbell size={20} />
-          </span>
-          <div className="flex-1 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Favorite Split
-            </p>
-            <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
-          </div>
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            {isPremium ? <Clock size={20} /> : <Clock size={20} className="shrink-0" />}
-          </span>
-        </div>
 
         {/* Reliability & stats (Waits Pro) */}
         {!locked ? (
