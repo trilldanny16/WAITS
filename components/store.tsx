@@ -114,18 +114,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, email, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
+      .select('id, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
     const profile = profiles?.find((candidate) => candidate.id === user.id)
 
-    const email = profile?.email ?? user.email ?? ''
+    const email = user.email ?? ''
+    const authenticatedUsername =
+      email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || `user_${user.id.slice(0, 6)}`
     const displayName = profile?.display_name?.trim() || 'WAITS User'
 
     const toUser = (row: NonNullable<typeof profiles>[number]): User => ({
       id: row.id,
       name: row.display_name?.trim() || 'WAITS User',
       username:
-        (row.email ?? '').split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') ||
-        `user_${row.id.slice(0, 6)}`,
+        row.id === user.id
+          ? authenticatedUsername
+          : (row.display_name ?? '').toLowerCase().replace(/[^a-z0-9_]/g, '') ||
+            `user_${row.id.slice(0, 6)}`,
       bio: row.bio ?? '',
       homeGym: row.home_gym ?? 'Add your home gym',
       city: row.city ?? '',
