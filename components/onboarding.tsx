@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Apple,
   Mail,
   Check,
   Clock,
@@ -439,15 +438,6 @@ const { error } = await supabase
       <div className="shrink-0 px-7 pb-[calc(env(safe-area-inset-bottom)+28px)]">
         {step === 0 ? (
           <div className="space-y-3">
-            <button
-              type="button"
-              disabled
-              className="flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-2xl bg-white/70 py-3.5 text-base font-semibold text-black/60"
-            >
-              <Apple size={20} className="-mt-0.5" fill="currentColor" />
-              Apple Sign-In Coming Soon
-            </button>
-
             <button
               type="button"
               onClick={handleGoogleSignIn}
