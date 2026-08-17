@@ -68,13 +68,14 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
 
   const runWorkoutAction = async (
     action: 'join' | 'leave' | 'cancel',
-    operation: () => Promise<boolean>,
+    operation: () => Promise<boolean | { ok: boolean; error?: string }>,
   ) => {
     if (pendingActionRef.current) return
     pendingActionRef.current = true
     setPendingAction(action)
     try {
-      const succeeded = await operation()
+      const result = await operation()
+      const succeeded = typeof result === 'boolean' ? result : result.ok
       if (action === 'cancel' && succeeded) back()
     } finally {
       pendingActionRef.current = false
