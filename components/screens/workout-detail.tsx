@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ChevronLeft,
   MapPin,
@@ -63,6 +63,24 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
   const [attendanceOutcomes, setAttendanceOutcomes] = useState<Record<string, 'attended' | 'no_show'>>({})
   const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
   const [verificationError, setVerificationError] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<'join' | 'leave' | 'cancel' | null>(null)
+  const pendingActionRef = useRef(false)
+
+  const runWorkoutAction = async (
+    action: 'join' | 'leave' | 'cancel',
+    operation: () => Promise<boolean>,
+  ) => {
+    if (pendingActionRef.current) return
+    pendingActionRef.current = true
+    setPendingAction(action)
+    try {
+      const succeeded = await operation()
+      if (action === 'cancel' && succeeded) back()
+    } finally {
+      pendingActionRef.current = false
+      setPendingAction(null)
+    }
+  }
 
   const host = getUser(workout.hostId)
   const isHost = workout.hostId === currentUserId
@@ -297,15 +315,12 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
         {isHost ? (
           <button
             type="button"
-            onClick={() => {
-              void cancelWorkout(workout.id).then((canceled) => {
-                if (canceled) back()
-              })
-            }}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-destructive/10 py-3 text-sm font-bold text-destructive"
+            onClick={() => void runWorkoutAction('cancel', () => cancelWorkout(workout.id))}
+            disabled={pendingAction !== null}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-destructive/10 py-3 text-sm font-bold text-destructive disabled:opacity-50"
           >
             <Trash2 size={16} />
-            Cancel Workout
+            {pendingAction === 'cancel' ? 'Canceling…' : 'Cancel Workout'}
           </button>
         ) : null}
       </div>
@@ -338,10 +353,11 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
           {isHost ? null : joined ? (
             <button
               type="button"
-              onClick={() => void leaveWorkout(workout.id)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border py-4 text-sm font-bold text-foreground"
+              onClick={() => void runWorkoutAction('leave', () => leaveWorkout(workout.id))}
+              disabled={pendingAction !== null}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border py-4 text-sm font-bold text-foreground disabled:opacity-50"
             >
-              Leave
+              {pendingAction === 'leave' ? 'Leaving…' : 'Leave'}
             </button>
           ) : full ? (
             <span className="flex flex-1 items-center justify-center rounded-2xl bg-destructive/10 py-4 text-sm font-extrabold uppercase tracking-wide text-destructive">
@@ -350,10 +366,11 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
           ) : (
             <button
               type="button"
-              onClick={() => void joinWorkout(workout.id)}
-              className="flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-sm font-extrabold uppercase tracking-wide text-lime-foreground transition-transform active:scale-[0.98]"
+              onClick={() => void runWorkoutAction('join', () => joinWorkout(workout.id))}
+              disabled={pendingAction !== null}
+              className="flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-sm font-extrabold uppercase tracking-wide text-lime-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
             >
-              Come Thru
+              {pendingAction === 'join' ? 'Joining…' : 'Come Thru'}
             </button>
           )}
         </div>
