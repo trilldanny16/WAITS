@@ -238,6 +238,7 @@ export function Chat({ id }: { id: string }) {
                     <div className="rounded-2xl rounded-br-md bg-primary p-2 text-left text-primary-foreground">
                       <input
                         value={editText}
+                        maxLength={1000}
                         onChange={(event) => setEditText(event.target.value)}
                         autoFocus
                         className="w-full rounded-xl bg-background/15 px-3 py-2 text-sm text-primary-foreground outline-none"
@@ -366,6 +367,7 @@ export function Chat({ id }: { id: string }) {
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
         <input
           value={text}
+              maxLength={1000}
           onChange={(e) => setText(e.target.value)}
           onCompositionStart={() => (composingRef.current = true)}
           onCompositionEnd={() => (composingRef.current = false)}
