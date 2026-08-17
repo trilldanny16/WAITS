@@ -76,16 +76,8 @@ export function HomeFeed() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <header className="shrink-0 px-5 pb-2 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <Wordmark iconSize={18} className="text-lg text-primary" />
-        <div className="mt-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              {greeting()}
-            </p>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-              {me.name.split(' ')[0]}
-            </h1>
-          </div>
+        <div className="flex items-center justify-between">
+          <Wordmark iconSize={18} className="text-lg text-primary" />
           {isPremium ? (
             <button
               type="button"
@@ -97,6 +89,14 @@ export function HomeFeed() {
               Pro
             </button>
           ) : null}
+        </div>
+        <div className="mt-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {greeting()}
+          </p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+            {me.name.split(' ')[0]}
+          </h1>
         </div>
 
         {/* Friends rail */}
