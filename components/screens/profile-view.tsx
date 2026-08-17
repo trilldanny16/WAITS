@@ -669,7 +669,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="w-full rounded-2xl bg-secondary py-3 text-sm font-bold text-secondary-foreground"
+                  className="w-full rounded-2xl bg-lime py-3 text-sm font-extrabold text-lime-foreground shadow transition-colors hover:brightness-95"
                 >
                   Edit Profile
                 </button>
