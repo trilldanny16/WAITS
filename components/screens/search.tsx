@@ -160,7 +160,7 @@ const realMatchedUsers = useMemo(() => {
                 mode === option ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
               )}
             >
-              {option === 'friends' ? 'Search for People' : 'Search for Workouts'}
+              {option === 'friends' ? 'Friends' : 'Workouts'}
             </button>
           ))}
         </div>
