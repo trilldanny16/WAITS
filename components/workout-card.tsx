@@ -126,7 +126,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
               onClick={() => void changeAttendance(() => joinWorkout(workout.id))}
               className="block w-full rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-lime-foreground shadow-sm transition-transform active:scale-95 mt-2"
             >
-              {changingAttendance ? 'Joining…' : 'Come Thru'}
+              {changingAttendance ? 'Joining…' : 'JOIN'}
             </button>
           )}
         </div>
