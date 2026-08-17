@@ -152,8 +152,8 @@ if (data.session?.user) {
       return
     }
 
-    if (password.length < 6) {
-      setAuthError('Your password must be at least 6 characters.')
+    if (password.length < 8) {
+      setAuthError('Your password must be at least 8 characters.')
       return
     }
 
@@ -170,7 +170,7 @@ if (data.session?.user) {
         })
 
         if (error) {
-          setAuthError(error.message)
+          setAuthError('We could not create that account. Check your details and try again.')
           return
         }
 
@@ -189,7 +189,7 @@ if (data.session?.user) {
         })
 
         if (error) {
-          setAuthError(error.message)
+          setAuthError('The email or password is incorrect.')
           return
         }
 
@@ -510,6 +510,7 @@ const { error } = await supabase
                   <input
                     type="email"
                     autoComplete="email"
+                    maxLength={254}
                     placeholder="Email address"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
@@ -524,6 +525,8 @@ const { error } = await supabase
                         : 'current-password'
                     }
                     placeholder="Password"
+                    minLength={8}
+                    maxLength={128}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     onKeyDown={(event) => {
