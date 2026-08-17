@@ -32,8 +32,23 @@ export function CommunityChat() {
   const [editText, setEditText] = useState('')
   const [mutatingId, setMutatingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showPreviewFixtures, setShowPreviewFixtures] = useState(false)
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setShowPreviewFixtures(window.location.hostname.includes('git-codex-profile-schedule-pro-audit'))
+  }, [])
+
+  const previewMessages = useMemo<CommunityMessageRow[]>(() => {
+    const now = Date.now()
+    return [
+      { id: 'preview-community-1', user_id: 'u_mike', text: 'Anybody hitting Crunch around 7? I’m training legs and could use a spotter.', created_at: new Date(now - 42 * 60_000).toISOString() },
+      { id: 'preview-community-2', user_id: 'u_sarah', text: '5K tempo run tomorrow morning at LA Fitness. All paces welcome 🏃‍♀️', created_at: new Date(now - 28 * 60_000).toISOString() },
+      { id: 'preview-community-3', user_id: 'u_andre', text: 'Pickup basketball at The Yard tonight. We need two more!', created_at: new Date(now - 17 * 60_000).toISOString() },
+      { id: 'preview-community-4', user_id: 'u_lena', text: 'Just finished the partner WOD. That last round was brutal 🔥', created_at: new Date(now - 6 * 60_000).toISOString() },
+    ]
+  }, [])
 
   const loadMessages = useCallback(async () => {
     const cutoff = new Date(Date.now() - COMMUNITY_MESSAGE_LIFETIME_MS).toISOString()
@@ -96,8 +111,11 @@ export function CommunityChat() {
   }, [messages.length])
 
   const visibleMessages = useMemo(
-    () => messages.filter((message) => isUnexpired(message)),
-    [messages],
+    () =>
+      [...(showPreviewFixtures ? previewMessages : []), ...messages]
+        .filter((message) => isUnexpired(message))
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    [messages, previewMessages, showPreviewFixtures],
   )
 
   const submit = async () => {
@@ -209,6 +227,7 @@ export function CommunityChat() {
         {error ? <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{error}</p> : null}
         {loading ? <p className="py-6 text-center text-sm text-muted-foreground">Loading messages…</p> : null}
         {!loading && visibleMessages.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No messages from the last 24 hours.</p> : null}
+        {showPreviewFixtures ? <p className="text-center text-[10px] font-bold uppercase tracking-widest text-primary">Preview sample conversation</p> : null}
         {visibleMessages.map((message) => {
           const user = getUser(message.user_id)
           const mine = message.user_id === currentUserId
