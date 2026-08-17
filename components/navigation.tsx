@@ -11,6 +11,7 @@ export type Overlay =
   | { type: 'create' }
   | { type: 'community' }
   | { type: 'paywall'; feature?: string }
+  | { type: 'settings' }
 
 interface NavValue {
   tab: Tab
@@ -22,6 +23,7 @@ interface NavValue {
   openCreate: () => void
   openCommunity: () => void
   openPaywall: (feature?: string) => void
+  openSettings: () => void
   back: () => void
   closeAll: () => void
 }
@@ -55,6 +57,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const openPaywall = useCallback((feature?: string) => {
     setOverlays((prev) => [...prev, { type: 'paywall', feature }])
   }, [])
+  const openSettings = useCallback(() => {
+    setOverlays((prev) => [...prev, { type: 'settings' }])
+  }, [])
   const back = useCallback(() => {
     setOverlays((prev) => prev.slice(0, -1))
   }, [])
@@ -72,6 +77,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         openCreate,
         openCommunity,
         openPaywall,
+        openSettings,
         back,
         closeAll,
       }}
