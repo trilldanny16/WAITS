@@ -669,7 +669,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="w-full rounded-2xl bg-lime py-3 text-sm font-extrabold text-lime-foreground shadow transition-colors hover:brightness-95"
+                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-lime text-sm font-bold text-lime-foreground shadow transition-colors hover:brightness-95"
                 >
                   Edit Profile
                 </button>
@@ -679,7 +679,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   type="button"
   onClick={() => void handleSignOut()}
   disabled={signingOut}
-  className="mt-3 w-full rounded-2xl bg-red-500 py-3 text-sm font-bold text-white shadow transition-colors hover:bg-red-600 disabled:opacity-50"
+  className="flex h-12 w-full items-center justify-center rounded-2xl bg-red-500 text-sm font-bold text-white shadow transition-colors hover:bg-red-600 disabled:opacity-50"
 >
   {signingOut ? 'Signing Out…' : 'Sign Out'}
 </button>
@@ -743,7 +743,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <button
             type="button"
             onClick={openSettings}
-            className="mt-3 w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow"
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow"
           >
             Settings
           </button>
