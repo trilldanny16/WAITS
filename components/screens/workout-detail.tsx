@@ -356,7 +356,7 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
               type="button"
               onClick={() => void runWorkoutAction('leave', () => leaveWorkout(workout.id))}
               disabled={pendingAction !== null}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border py-4 text-sm font-bold text-foreground disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
             >
               {pendingAction === 'leave' ? 'Leaving…' : 'Leave'}
             </button>
