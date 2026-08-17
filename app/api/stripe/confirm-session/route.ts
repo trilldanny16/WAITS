@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { authenticatedUserFromRequest } from '@/lib/supabase-admin'
 import { syncStripeSubscription } from '@/lib/stripe-entitlement'
+import { assertSameOriginMutation, readSmallJson, requestValidationResponse } from '@/lib/request-security'
+
 
 export async function POST(request: Request) {
   try {
+    assertSameOriginMutation(request)
     const user = await authenticatedUserFromRequest(request)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await request.json()
+    const body = await readSmallJson(request)
     const sessionId = body.sessionId as string | undefined
     if (!sessionId) {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 })
@@ -37,6 +40,9 @@ export async function POST(request: Request) {
       status: entitlement.status,
     })
   } catch (error) {
+    const validationResponse = requestValidationResponse(error)
+    if (validationResponse) return validationResponse
+
     console.error('Stripe confirm-session error:', error)
     return NextResponse.json(
       { error: 'Could not confirm Stripe checkout session' },
