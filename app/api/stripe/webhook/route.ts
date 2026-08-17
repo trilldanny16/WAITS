@@ -28,7 +28,14 @@ function invoiceSubscriptionIdFrom(value: unknown): string | null {
   return subscriptionIdFrom(details.subscription)
 }
 
+const MAX_WEBHOOK_BYTES = 1_000_000
+
 export async function POST(request: Request) {
+  const declaredLength = Number(request.headers.get('content-length') ?? '0')
+  if (!Number.isFinite(declaredLength) || declaredLength < 0 || declaredLength > MAX_WEBHOOK_BYTES) {
+    return new Response('Payload too large', { status: 413 })
+  }
+
   const signature = request.headers.get('stripe-signature')
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
   if (!signature || !webhookSecret) {
@@ -36,6 +43,10 @@ export async function POST(request: Request) {
   }
 
   const rawBody = Buffer.from(await request.arrayBuffer())
+  if (rawBody.byteLength > MAX_WEBHOOK_BYTES) {
+    return new Response('Payload too large', { status: 413 })
+  }
+
   let event
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
