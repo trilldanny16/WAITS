@@ -90,6 +90,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [portalError, setPortalError] = useState<string | null>(null)
   const [editName, setEditName] = useState(user.name)
   const [editHomeGym, setEditHomeGym] = useState(user.homeGym)
@@ -465,15 +466,16 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     setGalleryUploading(false)
   }
 
-    const handleSignOut = async () => {
-      const { error } = await supabase.auth.signOut()
+  const handleSignOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
 
-     if (error) {
+    if (error) {
       console.error('Failed to sign out:', error)
-      return
-   }
-
-   window.location.reload()
+      setSigningOut(false)
+      pushToast({ title: 'Sign out failed', body: error.message })
+    }
   }
 
   const hostedWorkouts = useMemo(
@@ -665,10 +667,11 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               )}
               <button
   type="button"
-  onClick={handleSignOut}
-  className="mt-3 w-full rounded-2xl border border-red-500/30 py-3 text-sm font-bold text-red-500"
+  onClick={() => void handleSignOut()}
+  disabled={signingOut}
+  className="mt-3 w-full rounded-2xl border border-red-500/30 py-3 text-sm font-bold text-red-500 disabled:opacity-50"
 >
-  Sign Out
+  {signingOut ? 'Signing Out…' : 'Sign Out'}
 </button>
             </div>
 
