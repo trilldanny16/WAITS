@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Flame, CalendarDays } from 'lucide-react'
+import { Crown, Flame, CalendarDays } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { WorkoutCard } from '../workout-card'
@@ -46,7 +46,7 @@ function Section({
 }
 
 export function HomeFeed() {
-  const { workouts, getUser, currentUserId } = useStore()
+  const { workouts, getUser, currentUserId, isPremium } = useStore()
   const { openUser } = useNav()
   const me = getUser(currentUserId)
 
@@ -86,9 +86,17 @@ export function HomeFeed() {
               {me.name.split(' ')[0]}
             </h1>
           </div>
-          <button type="button" onClick={() => openUser(currentUserId)}>
-            <Avatar user={me} size={42} />
-          </button>
+          {isPremium ? (
+            <button
+              type="button"
+              onClick={() => openUser(currentUserId)}
+              aria-label="Open Pro profile"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-primary-foreground shadow-sm"
+            >
+              <Crown size={15} fill="currentColor" />
+              Pro
+            </button>
+          ) : null}
         </div>
 
         {/* Friends rail */}
