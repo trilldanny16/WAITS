@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { MapPin, Clock, Users } from 'lucide-react'
 import type { Workout } from '@/lib/types'
 import { useStore } from './store'
@@ -13,6 +13,19 @@ import { cn } from '@/lib/utils'
 export function WorkoutCard({ workout }: { workout: Workout }) {
   const { getUser, isFull, hasJoined, joinWorkout, leaveWorkout, currentUserId } = useStore()
   const [changingAttendance, setChangingAttendance] = useState(false)
+  const changingAttendanceRef = useRef(false)
+
+  const changeAttendance = async (operation: () => Promise<boolean>) => {
+    if (changingAttendanceRef.current) return
+    changingAttendanceRef.current = true
+    setChangingAttendance(true)
+    try {
+      await operation()
+    } finally {
+      changingAttendanceRef.current = false
+      setChangingAttendance(false)
+    }
+  }
   const { openWorkout, openUser } = useNav()
 
   const host = getUser(workout.hostId)
@@ -97,11 +110,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
             <button
               type="button"
               disabled={changingAttendance}
-              onClick={async () => {
-                setChangingAttendance(true)
-                await leaveWorkout(workout.id)
-                setChangingAttendance(false)
-              }}
+              onClick={() => void changeAttendance(() => leaveWorkout(workout.id))}
               className="block w-full rounded-full bg-accent px-4 py-2.5 text-center text-xs font-bold uppercase text-accent-foreground transition-transform active:scale-95 disabled:opacity-50 mt-2"
             >
               {changingAttendance ? 'Leaving…' : 'Leave'}
@@ -114,11 +123,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
             <button
               type="button"
               disabled={changingAttendance}
-              onClick={async () => {
-                setChangingAttendance(true)
-                await joinWorkout(workout.id)
-                setChangingAttendance(false)
-              }}
+              onClick={() => void changeAttendance(() => joinWorkout(workout.id))}
               className="block w-full rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-lime-foreground shadow-sm transition-transform active:scale-95 mt-2"
             >
               {changingAttendance ? 'Joining…' : 'Come Thru'}
