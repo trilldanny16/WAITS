@@ -111,7 +111,7 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
               type="button"
               disabled={changingAttendance}
               onClick={() => void changeAttendance(() => leaveWorkout(workout.id))}
-              className="block w-full rounded-full bg-accent px-4 py-2.5 text-center text-xs font-bold uppercase text-accent-foreground transition-transform active:scale-95 disabled:opacity-50 mt-2"
+              className="mt-2 block w-full rounded-full bg-primary px-4 py-2.5 text-center text-xs font-bold uppercase text-primary-foreground transition-transform active:scale-95 disabled:opacity-50"
             >
               {changingAttendance ? 'Leaving…' : 'Leave'}
             </button>
