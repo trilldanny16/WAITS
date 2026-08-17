@@ -129,12 +129,8 @@ export const WORKOUT_CATEGORIES: WorkoutCategory[] = [
     types: ['Cardio', 'Running', 'Cycling', 'Rowing', 'Swimming', 'HIIT'],
   },
   {
-    label: 'Studio & Classes',
-    types: ['Yoga', 'Pilates', 'Spin', 'Boxing', 'Kickboxing', 'Barre', 'Mobility'],
-  },
-  {
-    label: 'Sports & Recreation',
-    types: ['Basketball', 'Pickleball', 'Tennis', 'Soccer', 'CrossFit', 'Climbing', 'Other'],
+    label: 'Studio, Classes & More',
+    types: ['Yoga', 'Pilates', 'Spin', 'Boxing', 'Mobility', 'Basketball', 'CrossFit', 'Other'],
   },
 ]
 
