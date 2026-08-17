@@ -2,12 +2,15 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { PRO_PLAN } from '@/lib/products'
 import { authenticatedUserFromRequest, createSupabaseAdmin } from '@/lib/supabase-admin'
+import { assertSameOriginMutation, readSmallJson, requestValidationResponse } from '@/lib/request-security'
+
 
 export async function POST(request: Request) {
   try {
+    assertSameOriginMutation(request)
     const user = await authenticatedUserFromRequest(request)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const body = await request.json()
+    const body = await readSmallJson(request)
     const planId = body.planId as string | undefined
 
     if (!planId) {
@@ -61,6 +64,9 @@ export async function POST(request: Request) {
       sessionId: session.id,
     })
   } catch (error) {
+    const validationResponse = requestValidationResponse(error)
+    if (validationResponse) return validationResponse
+
     console.error('Stripe create-session error:', error)
     return NextResponse.json(
       {
