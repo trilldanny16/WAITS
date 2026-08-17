@@ -22,6 +22,8 @@ export function Chat({ id }: { id: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [persistedMessages, setPersistedMessages] = useState<ChatMessage[]>([])
+  const [sending, setSending] = useState(false)
+  const sendingRef = useRef(false)
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -91,10 +93,14 @@ export function Chat({ id }: { id: string }) {
 
   const submit = async () => {
     const trimmed = text.trim()
-    if (!trimmed) return
+    if (!trimmed || sendingRef.current) return
+    sendingRef.current = true
+    setSending(true)
     if (!isPersistedChat) {
       sendMessage(id, trimmed)
       setText('')
+      sendingRef.current = false
+      setSending(false)
       return
     }
 
@@ -107,10 +113,14 @@ export function Chat({ id }: { id: string }) {
     if (error) {
       setActionError(error.message)
       pushToast({ title: 'Message was not sent', body: error.message })
+      sendingRef.current = false
+      setSending(false)
       return
     }
     setText('')
     await loadPersistedMessages()
+    sendingRef.current = false
+    setSending(false)
   }
 
   const saveEdit = async (messageId: string) => {
@@ -376,7 +386,7 @@ export function Chat({ id }: { id: string }) {
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={!text.trim()}
+          disabled={!text.trim() || sending}
           aria-label="Send"
           className="flex size-11 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground transition-transform active:scale-90 disabled:opacity-40"
         >
