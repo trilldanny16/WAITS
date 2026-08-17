@@ -48,7 +48,7 @@ export function ChatsList() {
 
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
-      .select('id, display_name, email')
+      .select('id, display_name')
       .in('id', senderIds)
 
     if (profileError) {
@@ -63,7 +63,7 @@ export function ChatsList() {
           id: request.id,
           sender_id: request.sender_id,
           sender_name: profile?.display_name ?? null,
-          sender_email: profile?.email ?? null,
+          sender_email: null,
         }
       }),
     )
