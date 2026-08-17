@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { authenticatedUserFromRequest, createSupabaseAdmin } from '@/lib/supabase-admin'
+import { assertSameOriginMutation, requestValidationResponse } from '@/lib/request-security'
+
 
 export async function POST(request: Request) {
   try {
+    assertSameOriginMutation(request)
     const user = await authenticatedUserFromRequest(request)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -26,6 +29,9 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ url: portal.url })
   } catch (error) {
+    const validationResponse = requestValidationResponse(error)
+    if (validationResponse) return validationResponse
+
     console.error('Stripe Customer Portal error:', error)
     return NextResponse.json({ error: 'Billing settings are temporarily unavailable.' }, { status: 500 })
   }
