@@ -371,7 +371,7 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
               disabled={pendingAction !== null}
               className="flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-sm font-extrabold uppercase tracking-wide text-lime-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
             >
-              {pendingAction === 'join' ? 'Joining…' : 'Come Thru'}
+              {pendingAction === 'join' ? 'Joining…' : 'JOIN'}
             </button>
           )}
         </div>
