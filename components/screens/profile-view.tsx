@@ -679,7 +679,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   type="button"
   onClick={() => void handleSignOut()}
   disabled={signingOut}
-  className="mt-3 w-full rounded-2xl border border-red-500/30 py-3 text-sm font-bold text-red-500 disabled:opacity-50"
+  className="mt-3 w-full rounded-2xl bg-red-500 py-3 text-sm font-bold text-white shadow transition-colors hover:bg-red-600 disabled:opacity-50"
 >
   {signingOut ? 'Signing Out…' : 'Sign Out'}
 </button>
