@@ -20,7 +20,7 @@ export function Toaster() {
           <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground">
             <Bell size={16} />
           </span>
-          <span className="min-w-0 flex-1">
+          <span className="min-w-0 flex-1 text-center">
             <span className="block text-sm font-semibold leading-tight">{t.title}</span>
             {t.body ? (
               <span className="mt-0.5 block text-xs leading-snug opacity-80">{t.body}</span>
