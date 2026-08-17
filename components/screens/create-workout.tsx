@@ -211,11 +211,10 @@ export function CreateWorkout() {
       <div className="no-scrollbar flex-1 space-y-6 overflow-y-auto p-5">
         {/* Gym */}
         <div>
-          <FieldLabel>Gym</FieldLabel>
           <div className="space-y-4">
             <div className="relative">
               <label className="block text-sm font-medium text-muted-foreground">
-                Gym name
+                Gym Name
               </label>
               <input
                 type="text"
