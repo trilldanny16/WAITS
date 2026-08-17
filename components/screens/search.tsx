@@ -6,7 +6,6 @@ import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { WorkoutCard } from '../workout-card'
 import { Avatar } from '../avatar'
-import { WORKOUT_TYPES, type WorkoutType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import {
@@ -15,7 +14,7 @@ import {
   sendFriendRequest as persistFriendRequest,
   type FriendRequestState,
 } from '@/lib/friend-requests'
-type Filter = 'all' | WorkoutType
+type SearchMode = 'friends' | 'workouts'
 
 export function Search() {
   const { workouts, users, getUser, currentUserId, pushToast } = useStore()
@@ -24,11 +23,10 @@ export function Search() {
   const [requestStates, setRequestStates] = useState<Record<string, FriendRequestState>>({})
   const [sendingTo, setSendingTo] = useState<string | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
+  const [mode, setMode] = useState<SearchMode>('friends')
   const [realUsers, setRealUsers] = useState<
   {
     id: string
-    email: string | null
     display_name: string | null
   }[]
 >([])
@@ -36,7 +34,7 @@ useEffect(() => {
   const loadUsers = async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, display_name')
+      .select('id, display_name')
 
     if (error) {
       console.error('Failed to load users:', error)
@@ -94,56 +92,45 @@ const cancelOutgoingRequest = async (receiverId: string) => {
 const q = query.trim().toLowerCase()
 
 const realMatchedUsers = useMemo(() => {
-  if (!q) return []
-
   return realUsers.filter((user) => {
     const name = user.display_name?.toLowerCase() ?? ''
-    const email = user.email?.toLowerCase() ?? ''
-
-    return (
-      user.id !== currentUserId &&
-      (name.includes(q) || email.includes(q))
-    )
+    return user.id !== currentUserId && (!q || name.includes(q))
   })
 }, [q, realUsers, currentUserId])
 
   const matchedUsers = useMemo(() => {
-    if (!q) return []
     return users.filter(
       (u) =>
         u.id !== currentUserId &&
-        (u.name.toLowerCase().includes(q) ||
+        (!q ||
+          u.name.toLowerCase().includes(q) ||
           u.username.toLowerCase().includes(q) ||
-          u.homeGym.toLowerCase().includes(q) ||
-          u.city.toLowerCase().includes(q)),
+          u.favoriteSplit.toLowerCase().includes(q)),
     )
   }, [q, users, currentUserId])
 
   const matchedWorkouts = useMemo(() => {
     return workouts.filter((w) => {
-      if (filter !== 'all' && !w.types.includes(filter)) return false
       if (!q) return true
       const host = getUser(w.hostId)
       return (
-        w.gym.toLowerCase().includes(q) ||
-        w.city.toLowerCase().includes(q) ||
-        w.types.some((t) => t.toLowerCase().includes(q)) ||
+        w.types.some((type) => type.toLowerCase().includes(q)) ||
         host.name.toLowerCase().includes(q) ||
         host.username.toLowerCase().includes(q)
       )
     })
-  }, [workouts, filter, q, getUser])
+  }, [workouts, q, getUser])
 
   return (
     <div className="flex h-full flex-col">
       <header className="shrink-0 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <h1 className="mb-3 text-2xl font-extrabold tracking-tight text-foreground">Discover</h1>
+        <h1 className="mb-3 text-2xl font-extrabold tracking-tight text-foreground">Social Search</h1>
         <div className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3 ring-1 ring-border">
           <SearchIcon size={18} className="text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Gym, friend, workout, or city"
+            placeholder={mode === 'friends' ? 'Search friends' : 'Search workouts'}
             className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
           {query ? (
@@ -153,21 +140,21 @@ const realMatchedUsers = useMemo(() => {
           ) : null}
         </div>
 
-        {/* Type filters */}
-        <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5">
-          {(['all', ...WORKOUT_TYPES] as Filter[]).map((f) => (
+        <div className="mt-3 grid grid-cols-2 rounded-2xl bg-card p-1 ring-1 ring-border">
+          {(['friends', 'workouts'] as SearchMode[]).map((option) => (
             <button
-              key={f}
+              key={option}
               type="button"
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                setMode(option)
+                setQuery('')
+              }}
               className={cn(
-                'shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors',
-                filter === f
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card text-card-foreground ring-1 ring-border',
+                'rounded-xl px-4 py-2.5 text-sm font-bold capitalize transition-colors',
+                mode === option ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
               )}
             >
-              {f === 'all' ? 'All' : f}
+              {option}
             </button>
           ))}
         </div>
@@ -179,10 +166,10 @@ const realMatchedUsers = useMemo(() => {
             {requestError}
           </p>
         ) : null}
-        {realMatchedUsers.length > 0 ? (
+        {mode === 'friends' ? (
           <section className="mb-5">
             <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              People
+              {q ? 'Friends' : 'Suggested friends'}
             </h2>
             <div className="space-y-2">
               {realMatchedUsers.map((u) => (
@@ -196,7 +183,7 @@ const realMatchedUsers = useMemo(() => {
     className="flex min-w-0 flex-1 items-center gap-3 text-left"
   >
     <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-      {(u.display_name || u.email || '?').charAt(0).toUpperCase()}
+      {(u.display_name || '?').charAt(0).toUpperCase()}
     </div>
 
     <div className="min-w-0">
@@ -204,9 +191,7 @@ const realMatchedUsers = useMemo(() => {
         {u.display_name || 'WAITS User'}
       </p>
 
-      <p className="truncate text-xs text-muted-foreground">
-        {u.email}
-      </p>
+      <p className="truncate text-xs text-muted-foreground">WAITS member</p>
     </div>
   </button>
 
@@ -234,25 +219,42 @@ const realMatchedUsers = useMemo(() => {
   </button>
 </div>
               ))}
+              {matchedUsers.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => openUser(u.id)}
+                  className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border"
+                >
+                  <Avatar user={u} size={42} ring />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-card-foreground">{u.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">@{u.username}</span>
+                  </span>
+                  <span className="rounded-xl bg-lime px-3 py-2 text-xs font-bold text-black">View</span>
+                </button>
+              ))}
+              {realMatchedUsers.length === 0 && matchedUsers.length === 0 ? (
+                <p className="pt-6 text-center text-sm text-muted-foreground">No friends match your search.</p>
+              ) : null}
             </div>
           </section>
-        ) : null}
-
-        <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          {matchedWorkouts.length} Workout{matchedWorkouts.length === 1 ? '' : 's'}
-        </h2>
-        {matchedWorkouts.length === 0 ? (
-          <p className="pt-6 text-center text-sm text-muted-foreground">
-            No workouts match your search.
-          </p>
         ) : (
-          <div className="space-y-3">
-            {matchedWorkouts.map((w) => (
-              <WorkoutCard key={w.id} workout={w} />
-            ))}
-          </div>
+          <section>
+            <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              {q ? `${matchedWorkouts.length} matching workout${matchedWorkouts.length === 1 ? '' : 's'}` : 'Suggested workouts'}
+            </h2>
+            {matchedWorkouts.length === 0 ? (
+              <p className="pt-6 text-center text-sm text-muted-foreground">No workouts match your search.</p>
+            ) : (
+              <div className="space-y-3">
+                {matchedWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} />)}
+              </div>
+            )}
+          </section>
         )}
       </div>
     </div>
   )
 }
+
