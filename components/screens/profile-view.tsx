@@ -993,7 +993,7 @@ function Stat({ value, label, onClick }: { value: number; label: string; onClick
     )
   }
   return (
-    <div className="text-center">
+    <div className="w-full rounded-xl px-2 py-2 text-center">
       <p className="text-xl font-extrabold text-foreground">{value}</p>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </div>
