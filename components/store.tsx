@@ -289,6 +289,57 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, 3600)
   }, [])
 
+  useEffect(() => {
+    if (!currentUserId) return
+
+    let active = true
+    const showAndRead = async (notification: { id: string; message: string }) => {
+      if (!active) return
+      pushToast({ title: 'Workout invite', body: notification.message })
+      await supabase
+        .from('workout_notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', notification.id)
+        .eq('recipient_id', currentUserId)
+    }
+
+    void supabase
+      .from('workout_notifications')
+      .select('id, message')
+      .is('read_at', null)
+      .order('created_at', { ascending: true })
+      .limit(5)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to load workout notifications:', error)
+          return
+        }
+        for (const notification of data ?? []) void showAndRead(notification)
+      })
+
+    const channel = supabase
+      .channel(`workout-notifications:${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'workout_notifications',
+          filter: `recipient_id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          const notification = payload.new as { id: string; message: string }
+          void showAndRead(notification)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      active = false
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUserId, pushToast])
+
   const updateUser = useCallback(
     (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => {
       setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, ...updates } : user)))
