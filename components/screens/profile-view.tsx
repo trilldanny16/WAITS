@@ -18,6 +18,8 @@ import {
   ShieldCheck,
   TrendingUp,
   Camera,
+  Settings,
+  ChevronRight,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -78,7 +80,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     pushToast,
   } = useStore()
 
-  const { back, openWorkout, openPaywall } = useNav()
+  const { back, openWorkout, openPaywall, openSettings } = useNav()
   const user = getUser(userId)
   const isSelf = userId === currentUserId
   const isPersistedProfile = isPersistedUserId(userId)
@@ -738,37 +740,25 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           )}
         </div>
 
-        {/* Waits Pro upgrade / status (own profile) */}
+        {/* Settings and billing (own profile) */}
         {isSelf ? (
-          isPremium ? (
-            <button type="button" onClick={openBillingPortal} disabled={openingPortal} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-primary p-4 text-center text-primary-foreground disabled:opacity-70">
-              <span aria-hidden="true" className="text-xl">👑</span>
-              <div className="flex-1 text-center">
-                <p className="text-sm font-extrabold">Pro Settings &amp; Billing</p>
-                <p className="text-xs text-primary-foreground/80">
-                  {openingPortal ? 'Opening billing settings…' : 'Manage membership, payment method, or cancellation.'}
-                </p>
-              </div>
-              <span aria-hidden="true" className="text-xl">👑</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => openPaywall()}
-              className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground"
-            >
-              <Crown size={22} className="shrink-0" />
-              <div className="flex-1 text-center">
-                <p className="text-base font-extrabold tracking-tight">Upgrade to Waits Pro</p>
-                <p className="mt-1 text-xs text-primary-foreground/80">
-                  Crew chats, photo galleries, reliability stats, etc.
-                </p>
-              </div>
-              <Crown size={22} className="shrink-0" />
-            </button>
-          )
+          <button
+            type="button"
+            onClick={openSettings}
+            className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left ring-1 ring-border"
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              <Settings size={20} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-extrabold text-card-foreground">Settings &amp; Billing</span>
+              <span className="block text-xs text-muted-foreground">
+                Membership, privacy, terms, support, and account
+              </span>
+            </span>
+            <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+          </button>
         ) : null}
-        {portalError ? <p role="alert" className="mt-2 text-center text-xs font-medium text-red-500">{portalError}</p> : null}
 
         {/* Favorite split */}
         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
