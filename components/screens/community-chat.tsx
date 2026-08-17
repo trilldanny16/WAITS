@@ -244,7 +244,7 @@ export function CommunityChat() {
                 <p className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground"><MapPin size={10} />{user.homeGym}</p>
                 {editingId === message.id ? (
                   <div className="mt-2 space-y-2">
-                    <input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={2000} autoFocus className="w-full rounded-xl bg-background px-3 py-2 text-sm text-foreground outline-none ring-1 ring-border focus:ring-2 focus:ring-primary" />
+                    <input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={1000} autoFocus className="w-full rounded-xl bg-background px-3 py-2 text-sm text-foreground outline-none ring-1 ring-border focus:ring-2 focus:ring-primary" />
                     <div className="flex gap-2">
                       <button type="button" onClick={() => void saveEdit(message.id)} disabled={!editText.trim() || mutatingId === message.id} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-40">Save</button>
                       <button type="button" onClick={() => { setEditingId(null); setEditText('') }} disabled={mutatingId === message.id} className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground disabled:opacity-40">Cancel</button>
@@ -268,7 +268,7 @@ export function CommunityChat() {
       </div>
 
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
-        <input value={text} onChange={(event) => setText(event.target.value)} onCompositionStart={() => (composingRef.current = true)} onCompositionEnd={() => (composingRef.current = false)} onKeyDown={(event) => {
+        <input value={text} maxLength={1000} onChange={(event) => setText(event.target.value)} onCompositionStart={() => (composingRef.current = true)} onCompositionEnd={() => (composingRef.current = false)} onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey && !composingRef.current && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void submit() }
         }} placeholder="Post to the community…" className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary" />
         <button type="button" onClick={() => void submit()} disabled={!text.trim() || sending} aria-label="Post" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-90 disabled:opacity-40"><Send size={18} /></button>
