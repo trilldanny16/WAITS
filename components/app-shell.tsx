@@ -68,26 +68,37 @@ function Inner() {
 }
 export function AppShell() {
   const [stage, setStage] = useState<
-    'loading' | 'onboarding' | 'profile' | 'app'
+    'loading' | 'onboarding' | 'profile' | 'app' | 'error'
   >('loading')
 
   const loadUserStage = useCallback(async () => {
     setStage('loading')
 
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
-    if (!session?.user) {
+    if (userError) {
+      setStage('error')
+      return
+    }
+
+    if (!user) {
       setStage('onboarding')
       return
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('onboarding_completed, display_name')
-      .eq('id', session.user.id)
-      .single()
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profileError) {
+      setStage('error')
+      return
+    }
 
     if (!profile?.onboarding_completed) {
       setStage('onboarding')
@@ -104,12 +115,43 @@ export function AppShell() {
 
   useEffect(() => {
     void loadUserStage()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setStage('onboarding')
+        return
+      }
+
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        window.setTimeout(() => void loadUserStage(), 0)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [loadUserStage])
 
   return (
     <div className="flex min-h-[100dvh] w-full justify-center bg-neutral-200 dark:bg-black md:py-6">
       <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-2xl md:h-[900px] md:max-h-[calc(100dvh-3rem)] md:rounded-[3rem] md:ring-1 md:ring-black/10">
-        {stage === 'loading' ? null : stage === 'onboarding' ? (
+        {stage === 'loading' ? (
+          <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+            Checking your session…
+          </div>
+        ) : stage === 'error' ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
+            <p className="text-base font-bold text-foreground">We couldn&apos;t verify your session.</p>
+            <p className="text-sm text-muted-foreground">Check your connection and try again.</p>
+            <button
+              type="button"
+              onClick={() => void loadUserStage()}
+              className="rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : stage === 'onboarding' ? (
           <Onboarding onDone={loadUserStage} />
         ) : stage === 'profile' ? (
           <ProfileSetup onContinue={loadUserStage} />
