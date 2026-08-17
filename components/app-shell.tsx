@@ -75,17 +75,27 @@ export function AppShell() {
     setStage('loading')
 
     const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
 
-    if (userError) {
+    if (sessionError) {
       setStage('error')
       return
     }
 
-    if (!user) {
+    if (!session) {
       setStage('onboarding')
+      return
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      setStage('error')
       return
     }
 
