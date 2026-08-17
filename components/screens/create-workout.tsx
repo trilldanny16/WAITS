@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Minus, Plus, Globe, Lock, Check, Crown } from 'lucide-react'
 import {
   useStore,
@@ -143,9 +143,11 @@ export function CreateWorkout() {
   }, [date, time, isToday, minTimeToday])
   const [visibility, setVisibility] = useState<Visibility>('friends')
   const [recurring, setRecurring] = useState<'none' | 'daily' | 'weekly'>('none')
+  const [creating, setCreating] = useState(false)
+  const creatingRef = useRef(false)
 
   const handleCreate = async () => {
-    if (types.length === 0) return
+    if (creatingRef.current || types.length === 0) return
     if (!gymName.trim() || !gymAddress.trim()) {
       pushToast({
         title: 'Complete gym details',
@@ -164,6 +166,8 @@ export function CreateWorkout() {
       openPaywall('Unlimited workouts')
       return
     }
+    creatingRef.current = true
+    setCreating(true)
     const addressTrim = gymAddress.trim()
     const parts = addressTrim.split(',').map((p) => p.trim())
     const parsedCity = parts.length >= 2 ? parts[1] : ''
@@ -179,7 +183,11 @@ export function CreateWorkout() {
       visibility,
       recurring,
     })
-    if (!w) return
+    if (!w) {
+      creatingRef.current = false
+      setCreating(false)
+      return
+    }
     back()
     openWorkout(w.id)
   }
@@ -505,11 +513,11 @@ export function CreateWorkout() {
         <button
           type="button"
           onClick={() => void handleCreate()}
-          disabled={types.length === 0}
+          disabled={types.length === 0 || creating}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-extrabold text-lime-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
           <Check size={20} strokeWidth={3} />
-          Post Workout
+          {creating ? 'Posting…' : 'Post Workout'}
         </button>
       </div>
     </div>
