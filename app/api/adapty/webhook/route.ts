@@ -34,10 +34,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Adapty webhook is not configured' }, { status: 503 })
   }
 
-  if (!secretMatches(request.headers.get('authorization'), webhookSecret)) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const declaredLength = Number(request.headers.get('content-length') ?? 0)
   if (declaredLength > MAX_BODY_BYTES) {
     return Response.json({ error: 'Payload too large' }, { status: 413 })
@@ -55,8 +51,12 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Adapty verifies a new endpoint by sending an authenticated empty object.
+  // Adapty verifies a new endpoint with an empty object. It cannot mutate state.
   if (Object.keys(event).length === 0) return Response.json({ verified: true })
+
+  if (!secretMatches(request.headers.get('authorization'), webhookSecret)) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   if (event.event_type !== 'access_level_updated') {
     return Response.json({ received: true, ignored: true })
