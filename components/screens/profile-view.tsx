@@ -816,7 +816,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 <div className="flex-1 text-center">
                   <p className="text-sm font-bold text-card-foreground">See reliability &amp; streaks</p>
                   <p className="text-xs text-muted-foreground">
-                    Attendance score and weekly insights with Waits Pro.
+                    Attendance score &amp; weekly insights with Waits Pro.
                   </p>
                 </div>
                 <Crown size={18} className="shrink-0 text-primary" />
