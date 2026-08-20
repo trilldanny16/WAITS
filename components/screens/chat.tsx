@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronLeft, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
+import { Check, ChevronLeft, Dumbbell, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
@@ -22,8 +22,6 @@ export function Chat({ id }: { id: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [persistedMessages, setPersistedMessages] = useState<ChatMessage[]>([])
-  const [sending, setSending] = useState(false)
-  const sendingRef = useRef(false)
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -93,14 +91,10 @@ export function Chat({ id }: { id: string }) {
 
   const submit = async () => {
     const trimmed = text.trim()
-    if (!trimmed || sendingRef.current) return
-    sendingRef.current = true
-    setSending(true)
+    if (!trimmed) return
     if (!isPersistedChat) {
       sendMessage(id, trimmed)
       setText('')
-      sendingRef.current = false
-      setSending(false)
       return
     }
 
@@ -113,14 +107,10 @@ export function Chat({ id }: { id: string }) {
     if (error) {
       setActionError(error.message)
       pushToast({ title: 'Message was not sent', body: error.message })
-      sendingRef.current = false
-      setSending(false)
       return
     }
     setText('')
     await loadPersistedMessages()
-    sendingRef.current = false
-    setSending(false)
   }
 
   const saveEdit = async (messageId: string) => {
@@ -184,28 +174,49 @@ export function Chat({ id }: { id: string }) {
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-border px-3 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
-        <button
-          type="button"
-          onClick={back}
-          className="flex size-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
-          aria-label="Back"
-        >
-          <ChevronLeft size={22} />
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-foreground">
-            {workout.types.join(' + ')} · {host.name.split(' ')[0]}&apos;s crew
-          </p>
-          <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-            <Users size={11} />
-            {workout.attendees.length} in chat · {formatTime(workout.time)}
-          </p>
+      <header className="shrink-0 border-b border-border bg-card px-4 pb-4 pt-[calc(env(safe-area-inset-top)+14px)]">
+        <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center">
+          <button
+            type="button"
+            onClick={back}
+            className="flex size-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
+            aria-label="Back"
+          >
+            <ChevronLeft size={22} />
+          </button>
+          <div className="min-w-0 px-3 text-center">
+            <p className="truncate text-base font-bold text-foreground">
+              {host.name.split(' ')[0]}&apos;s crew
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {workout.attendees.length} {workout.attendees.length === 1 ? 'member' : 'members'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="flex size-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
+            aria-label="Chat options"
+          >
+            <MoreHorizontal size={20} />
+          </button>
         </div>
-        <div className="flex -space-x-2">
-          {workout.attendees.slice(0, 3).map((a) => (
-            <Avatar key={a} user={getUser(a)} size={30} className="ring-2 ring-background" />
-          ))}
+
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-secondary p-3.5 text-left ring-1 ring-border">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Dumbbell size={20} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-foreground">{workout.types.join(' + ')}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {workout.gym} · {formatDateLabel(workout.date)}
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-sm font-bold text-primary">{formatTime(workout.time)}</p>
+            <p className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
+              <Users size={12} /> {workout.attendees.length}/{workout.maxParticipants}
+            </p>
+          </div>
         </div>
       </header>
 
@@ -238,7 +249,6 @@ export function Chat({ id }: { id: string }) {
                     <div className="rounded-2xl rounded-br-md bg-primary p-2 text-left text-primary-foreground">
                       <input
                         value={editText}
-                        maxLength={1000}
                         onChange={(event) => setEditText(event.target.value)}
                         autoFocus
                         className="w-full rounded-xl bg-background/15 px-3 py-2 text-sm text-primary-foreground outline-none"
@@ -367,7 +377,6 @@ export function Chat({ id }: { id: string }) {
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
         <input
           value={text}
-              maxLength={1000}
           onChange={(e) => setText(e.target.value)}
           onCompositionStart={() => (composingRef.current = true)}
           onCompositionEnd={() => (composingRef.current = false)}
@@ -388,7 +397,7 @@ export function Chat({ id }: { id: string }) {
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={!text.trim() || sending}
+          disabled={!text.trim()}
           aria-label="Send"
           className="flex size-11 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground transition-transform active:scale-90 disabled:opacity-40"
         >
@@ -398,3 +407,4 @@ export function Chat({ id }: { id: string }) {
     </div>
   )
 }
+
