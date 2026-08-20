@@ -192,13 +192,7 @@ export function Chat({ id }: { id: string }) {
               {workout.attendees.length} {workout.attendees.length === 1 ? 'member' : 'members'}
             </p>
           </div>
-          <button
-            type="button"
-            className="flex size-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
-            aria-label="Chat options"
-          >
-            <MoreHorizontal size={20} />
-          </button>
+          <span className="size-10" aria-hidden="true" />
         </div>
 
         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-secondary p-3.5 text-left ring-1 ring-border">
