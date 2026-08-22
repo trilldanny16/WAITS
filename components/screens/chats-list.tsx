@@ -12,7 +12,7 @@ import { SectionWordmark } from '../section-wordmark'
 
 export function ChatsList() {
   const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
-  const { openChat, openCommunity, openPaywall } = useNav()
+  const { openChat, openCommunity, openDm, openPaywall } = useNav()
 
   type FriendRequest = {
   id: string
@@ -24,6 +24,8 @@ export function ChatsList() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
+  const [directConnections, setDirectConnections] = useState<Array<{ otherId: string; conversationId: string | null }>>([])
+  const [startingDm, setStartingDm] = useState<string | null>(null)
   const openCrew = (workoutId: string, isHost: boolean) =>
     (isHost || isPremium ? openChat(workoutId) : openPaywall('Crew chats'))
 
@@ -143,6 +145,83 @@ const declineFriendRequest = async (requestId: string) => {
   setRespondingTo(null)
 }
 
+  const loadDirectConnections = useCallback(async () => {
+    const { data: accepted, error: connectionError } = await supabase
+      .from('friend_requests')
+      .select('sender_id, receiver_id')
+      .eq('status', 'accepted')
+      .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
+
+    if (connectionError) {
+      setRequestError(connectionError.message)
+      return
+    }
+
+    const { data: conversations, error: conversationError } = await supabase
+      .from('direct_conversations')
+      .select('id, participant_a, participant_b')
+
+    if (conversationError) {
+      setRequestError(conversationError.message)
+      return
+    }
+
+    const connectionIds = (accepted ?? []).map((row) =>
+      row.sender_id === currentUserId ? row.receiver_id : row.sender_id,
+    )
+    setDirectConnections(connectionIds.map((otherId) => {
+      const conversation = conversations?.find((row) =>
+        (row.participant_a === currentUserId && row.participant_b === otherId)
+        || (row.participant_b === currentUserId && row.participant_a === otherId),
+      )
+      return { otherId, conversationId: conversation?.id ?? null }
+    }))
+  }, [currentUserId])
+
+  useEffect(() => {
+    void loadDirectConnections()
+  }, [loadDirectConnections])
+
+  const startDirectMessage = async (otherId: string, conversationId: string | null) => {
+    if (conversationId) {
+      openDm(conversationId)
+      return
+    }
+    if (!isPremium) {
+      openPaywall('Start personal DMs')
+      return
+    }
+
+    setStartingDm(otherId)
+    const [participantA, participantB] = [currentUserId, otherId].sort()
+    const { data, error } = await supabase
+      .from('direct_conversations')
+      .insert({
+        participant_a: participantA,
+        participant_b: participantB,
+        created_by: currentUserId,
+      })
+      .select('id')
+      .single()
+
+    if (error || !data) {
+      const { data: existing } = await supabase
+        .from('direct_conversations')
+        .select('id')
+        .or(`and(participant_a.eq.${participantA},participant_b.eq.${participantB})`)
+        .maybeSingle()
+      if (existing?.id) openDm(existing.id)
+      else {
+        setRequestError(error?.message ?? 'The conversation could not be started.')
+        pushToast({ title: 'DM unavailable', body: error?.message })
+      }
+    } else {
+      openDm(data.id)
+    }
+    setStartingDm(null)
+    void loadDirectConnections()
+  }
+
   const myWorkouts = useMemo(
     () =>
       workouts
@@ -214,6 +293,42 @@ const declineFriendRequest = async (requestId: string) => {
     </div>
   </section>
 ) : null}
+        <section className="mb-4">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personal DMs</p>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary"><Crown size={11} /> Pro starts</span>
+          </div>
+          {directConnections.length === 0 ? (
+            <div className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground ring-1 ring-border">
+              Connect with someone to start a private conversation.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {directConnections.map(({ otherId, conversationId }) => {
+                const person = getUser(otherId)
+                return (
+                  <button
+                    key={otherId}
+                    type="button"
+                    onClick={() => void startDirectMessage(otherId, conversationId)}
+                    disabled={startingDm === otherId}
+                    className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border disabled:opacity-50"
+                  >
+                    <Avatar user={person} size={44} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-card-foreground">{person.name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {conversationId ? 'Open private conversation' : isPremium ? 'Start a private conversation' : 'Waits Pro can start this DM'}
+                      </span>
+                    </span>
+                    {!conversationId && !isPremium ? <Lock size={17} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground" />}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
         {/* Public community channel — pinned entry point */}
         <button
           type="button"
