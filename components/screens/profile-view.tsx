@@ -78,7 +78,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     pushToast,
   } = useStore()
 
-  const { back, openWorkout, openPaywall, openSettings } = useNav()
+  const { back, openWorkout, openPaywall } = useNav()
   const user = getUser(userId)
   const isSelf = userId === currentUserId
   const isPersistedProfile = isPersistedUserId(userId)
@@ -90,19 +90,13 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
-  const [signingOut, setSigningOut] = useState(false)
   const [portalError, setPortalError] = useState<string | null>(null)
-  const [showPreviewFixtures, setShowPreviewFixtures] = useState(false)
   const [editName, setEditName] = useState(user.name)
   const [editHomeGym, setEditHomeGym] = useState(user.homeGym)
   const [editCity, setEditCity] = useState(user.city)
   const [editBio, setEditBio] = useState(user.bio)
   const [editFavoriteSplit, setEditFavoriteSplit] = useState(user.favoriteSplit)
   const [editError, setEditError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setShowPreviewFixtures(window.location.hostname.includes('git-codex-profile-schedule-pro-audit'))
-  }, [])
 
   const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -461,11 +455,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const gallery = galleryFor(userId)
   // Gallery access is enforced by both the Pro UI gate and Supabase RLS.
   const galleryLocked = !isPremium
-  const previewReliability = user.reliability ?? (isSelf ? 92 : 89)
-  const previewStreak = user.streak ?? (isSelf ? 4 : 6)
-  const displayedReliability = verifiedReliability ?? (showPreviewFixtures ? previewReliability : null)
-  const displayedStreak = verifiedStreak ?? (showPreviewFixtures ? previewStreak : null)
-  const showingPreviewStats = showPreviewFixtures && (verifiedReliability == null || verifiedStreak == null)
   const handleAddPhoto = () => galleryInputRef.current?.click()
   const handleGalleryChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -476,16 +465,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     setGalleryUploading(false)
   }
 
-  const handleSignOut = async () => {
-    if (signingOut) return
-    setSigningOut(true)
-    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    const handleSignOut = async () => {
+      const { error } = await supabase.auth.signOut()
 
-    if (error) {
+     if (error) {
       console.error('Failed to sign out:', error)
-      setSigningOut(false)
-      pushToast({ title: 'Sign out failed', body: error.message })
-    }
+      return
+   }
+
+   window.location.reload()
   }
 
   const hostedWorkouts = useMemo(
@@ -583,14 +571,14 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             {user.homeGym}
           </p>
           {user.bio ? (
-            <p className="mt-2 max-w-[18rem] text-pretty text-sm text-muted-foreground">
+            <p className="mt-2 max-w-[18rem] text-pretty text-sm font-bold text-foreground">
               {user.bio}
             </p>
           ) : null}
         </div>
 
         {/* Stats */}
-        <div className="mt-4 grid w-full grid-cols-3 gap-3">
+        <div className="mt-4 flex items-center justify-center gap-8">
           <Stat value={hostedWorkouts.length} label="Workouts" />
           <Stat
             value={isSelf ? followers.length : viewedConnectionCount}
@@ -602,22 +590,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             label="Following"
             onClick={() => setSocialListKind('following')}
           />
-        </div>
-
-        {/* Favorite split */}
-        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            <Dumbbell size={20} />
-          </span>
-          <div className="flex-1 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Favorite Split
-            </p>
-            <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
-          </div>
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            {isPremium ? <Clock size={20} /> : <Clock size={20} className="shrink-0" />}
-          </span>
         </div>
 
         {/* Follow / edit action */}
@@ -685,7 +657,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-lime text-sm font-bold text-lime-foreground shadow transition-colors hover:brightness-95"
+                  className="w-full rounded-2xl bg-secondary py-3 text-sm font-bold text-secondary-foreground"
                 >
                   Edit Profile
                 </button>
@@ -693,11 +665,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               )}
               <button
   type="button"
-  onClick={() => void handleSignOut()}
-  disabled={signingOut}
-  className="flex h-12 w-full items-center justify-center rounded-2xl bg-red-500 text-sm font-bold text-white shadow transition-colors hover:bg-red-600 disabled:opacity-50"
+  onClick={handleSignOut}
+  className="mt-3 w-full rounded-2xl border border-red-500/30 py-3 text-sm font-bold text-red-500"
 >
-  {signingOut ? 'Signing Out…' : 'Sign Out'}
+  Sign Out
 </button>
             </div>
 
@@ -754,16 +725,53 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           )}
         </div>
 
-        {/* Settings and billing (own profile) */}
+        {/* Waits Pro upgrade / status (own profile) */}
         {isSelf ? (
-          <button
-            type="button"
-            onClick={openSettings}
-            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow"
-          >
-            Settings
-          </button>
+          isPremium ? (
+            <button type="button" onClick={openBillingPortal} disabled={openingPortal} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-primary p-4 text-center text-primary-foreground disabled:opacity-70">
+              <span aria-hidden="true" className="text-xl">👑</span>
+              <div className="flex-1 text-center">
+                <p className="text-sm font-extrabold">Pro Settings &amp; Billing</p>
+                <p className="text-xs text-primary-foreground/80">
+                  {openingPortal ? 'Opening billing settings…' : 'Manage membership, payment method, or cancellation.'}
+                </p>
+              </div>
+              <span aria-hidden="true" className="text-xl">👑</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openPaywall()}
+              className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground"
+            >
+              <Crown size={22} className="shrink-0" />
+              <div className="flex-1 text-center">
+                <p className="text-base font-extrabold tracking-tight">Upgrade to Waits Pro</p>
+                <p className="mt-1 text-xs text-primary-foreground/80">
+                  Crew chats, photo galleries, reliability stats, etc.
+                </p>
+              </div>
+              <Crown size={22} className="shrink-0" />
+            </button>
+          )
         ) : null}
+        {portalError ? <p role="alert" className="mt-2 text-center text-xs font-medium text-red-500">{portalError}</p> : null}
+
+        {/* Favorite split */}
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <Dumbbell size={20} />
+          </span>
+          <div className="flex-1 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Favorite Split
+            </p>
+            <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
+          </div>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            {isPremium ? <Clock size={20} /> : <Clock size={20} className="shrink-0" />}
+          </span>
+        </div>
 
         {/* Reliability & stats (Waits Pro) */}
         {!locked ? (
@@ -774,37 +782,31 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               <TrendingUp size={14} className="justify-self-start" />
             </h2>
             {(isSelf ? user.isVerifiedPro === true : isPremium) ? (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-2xl bg-card p-4 text-center ring-1 ring-border">
-                    <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
-                      <ShieldCheck size={12} className="text-primary" />
-                      Reliability
-                    </p>
-                    <p className="mt-1 text-2xl font-extrabold text-foreground">
-                      {displayedReliability == null ? 'Not available' : `${displayedReliability}%`}
-                    </p>
-                    <p className="mx-auto mt-1 max-w-[10rem] text-pretty text-[11px] leading-relaxed text-muted-foreground">
-                      Verified Attendance
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-card p-4 text-center ring-1 ring-border">
-                    <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
-                      <Flame size={12} className="text-primary" />
-                      Streak
-                    </p>
-                    <p className="mt-1 text-2xl font-extrabold text-foreground">
-                      {displayedStreak == null ? 'Not available' : `${displayedStreak} ${displayedStreak === 1 ? 'WEEK' : 'WEEKS'}`}
-                    </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Consecutive Active Weeks</p>
-                  </div>
-                </div>
-                {showingPreviewStats ? (
-                  <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-widest text-primary">
-                    Preview sample statistics
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-card p-4 text-center ring-1 ring-border">
+                  <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
+                    <ShieldCheck size={12} className="text-primary" />
+                    Reliability
                   </p>
-                ) : null}
-              </>            ) : (
+                  <p className="mt-1 text-2xl font-extrabold text-foreground">
+                    {verifiedReliability == null ? 'Not available' : `${verifiedReliability}%`}
+                  </p>
+                  <p className="mx-auto mt-1 max-w-[10rem] text-pretty text-[11px] leading-relaxed text-muted-foreground">
+                    Verified Attendance
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-card p-4 text-center ring-1 ring-border">
+                  <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
+                    <Flame size={12} className="text-primary" />
+                    Streak
+                  </p>
+                  <p className="mt-1 text-2xl font-extrabold text-foreground">
+                    {verifiedStreak == null ? 'Not available' : `${verifiedStreak} ${verifiedStreak === 1 ? 'WEEK' : 'WEEKS'}`}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Consecutive Active Weeks</p>
+                </div>
+              </div>
+            ) : (
               <button
                 type="button"
                 onClick={() => openPaywall('Reliability & stats')}
@@ -985,7 +987,7 @@ function Stat({ value, label, onClick }: { value: number; label: string; onClick
       <button
         type="button"
         onClick={onClick}
-        className="relative z-10 w-full touch-manipulation rounded-xl px-2 py-2 text-center hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
+        className="relative z-10 min-w-20 touch-manipulation rounded-xl px-2 py-2 text-center hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
       >
         <p className="text-xl font-extrabold text-foreground">{value}</p>
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
@@ -993,9 +995,10 @@ function Stat({ value, label, onClick }: { value: number; label: string; onClick
     )
   }
   return (
-    <div className="w-full rounded-xl px-2 py-2 text-center">
+    <div className="text-center">
       <p className="text-xl font-extrabold text-foreground">{value}</p>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </div>
   )
 }
+
