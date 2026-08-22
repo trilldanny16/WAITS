@@ -598,7 +598,10 @@ const { error } = await supabase
               </p>
             ) : null}
 
-            <p className="pt-1 text-center text-xs text-primary-foreground/55">
+            <p className="pt-1 text-center text-xs text-primary-foreground/70">
+              WAITS coordinates workouts at gyms where you already have membership or guest access. WAITS does not sell gym memberships.
+            </p>
+            <p className="text-center text-xs text-primary-foreground/55">
               By continuing you agree to our Terms &amp; Privacy Policy.
             </p>
           </div>
