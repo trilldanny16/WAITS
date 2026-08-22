@@ -61,3 +61,11 @@ export function ChatMedia({ path, alt = 'Shared chat image' }: { path: string; a
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt={alt} className="mt-2 max-h-72 w-full rounded-2xl object-cover ring-1 ring-border" />
 }
+
+export async function gifUrlToFile(url: string) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('Could not download that GIF.')
+  const blob = await response.blob()
+  if (blob.type !== 'image/gif') throw new Error('That result is not a valid GIF.')
+  return new File([blob], `giphy-${crypto.randomUUID()}.gif`, { type: 'image/gif' })
+}
