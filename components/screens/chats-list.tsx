@@ -12,7 +12,7 @@ import { SectionWordmark } from '../section-wordmark'
 
 export function ChatsList() {
   const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
-  const { openChat, openCommunity, openDm, openPaywall } = useNav()
+  const { openChat, openCommunity, openDm, openPaywall, openUser } = useNav()
 
   type FriendRequest = {
   id: string
@@ -232,8 +232,13 @@ const declineFriendRequest = async (requestId: string) => {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="shrink-0 px-5 pb-2 pt-[calc(env(safe-area-inset-top)+16px)]">
+      <header className="flex shrink-0 items-center justify-between px-3 pb-2 pt-[calc(env(safe-area-inset-top)+14px)]">
         <SectionWordmark>Chats</SectionWordmark>
+        {isPremium ? (
+          <button type="button" onClick={() => openUser(currentUserId)} className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Open Pro profile">
+            <Crown size={24} />
+          </button>
+        ) : null}
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-3">
@@ -296,7 +301,7 @@ const declineFriendRequest = async (requestId: string) => {
         <section className="mb-4">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personal DMs</p>
-            <span className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm" aria-label="WAITS Pro feature"><Crown size={17} /></span>
+
           </div>
           {directConnections.length === 0 ? (
             <div className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground ring-1 ring-border">
