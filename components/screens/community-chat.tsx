@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, Clock3, Globe, Send, MapPin } from 'lucide-react'
+import { ChevronLeft, Clock3, Globe, Send } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
@@ -32,23 +32,8 @@ export function CommunityChat() {
   const [editText, setEditText] = useState('')
   const [mutatingId, setMutatingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [showPreviewFixtures, setShowPreviewFixtures] = useState(false)
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setShowPreviewFixtures(window.location.hostname.includes('git-codex-profile-schedule-pro-audit'))
-  }, [])
-
-  const previewMessages = useMemo<CommunityMessageRow[]>(() => {
-    const now = Date.now()
-    return [
-      { id: 'preview-community-1', user_id: 'u_mike', text: 'Anybody hitting Crunch around 7? I’m training legs and could use a spotter.', created_at: new Date(now - 42 * 60_000).toISOString() },
-      { id: 'preview-community-2', user_id: 'u_sarah', text: '5K tempo run tomorrow morning at LA Fitness. All paces welcome 🏃‍♀️', created_at: new Date(now - 28 * 60_000).toISOString() },
-      { id: 'preview-community-3', user_id: 'u_andre', text: 'Pickup basketball at The Yard tonight. We need two more!', created_at: new Date(now - 17 * 60_000).toISOString() },
-      { id: 'preview-community-4', user_id: 'u_lena', text: 'Just finished the partner WOD. That last round was brutal 🔥', created_at: new Date(now - 6 * 60_000).toISOString() },
-    ]
-  }, [])
 
   const loadMessages = useCallback(async () => {
     const cutoff = new Date(Date.now() - COMMUNITY_MESSAGE_LIFETIME_MS).toISOString()
@@ -111,11 +96,8 @@ export function CommunityChat() {
   }, [messages.length])
 
   const visibleMessages = useMemo(
-    () =>
-      [...(showPreviewFixtures ? previewMessages : []), ...messages]
-        .filter((message) => isUnexpired(message))
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-    [messages, previewMessages, showPreviewFixtures],
+    () => messages.filter((message) => isUnexpired(message)),
+    [messages],
   )
 
   const submit = async () => {
@@ -227,7 +209,6 @@ export function CommunityChat() {
         {error ? <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{error}</p> : null}
         {loading ? <p className="py-6 text-center text-sm text-muted-foreground">Loading messages…</p> : null}
         {!loading && visibleMessages.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No messages from the last 24 hours.</p> : null}
-        {showPreviewFixtures ? <p className="text-center text-[10px] font-bold uppercase tracking-widest text-primary">Preview sample conversation</p> : null}
         {visibleMessages.map((message) => {
           const user = getUser(message.user_id)
           const mine = message.user_id === currentUserId
@@ -241,10 +222,9 @@ export function CommunityChat() {
                   <span className="truncate text-sm font-bold text-card-foreground">{mine ? 'You' : user.name}</span>
                   <span className="shrink-0 text-[11px] text-muted-foreground">{relativeMessageTime(new Date(message.created_at).getTime())}</span>
                 </div>
-                <p className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground"><MapPin size={10} />{user.homeGym}</p>
                 {editingId === message.id ? (
                   <div className="mt-2 space-y-2">
-                    <input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={1000} autoFocus className="w-full rounded-xl bg-background px-3 py-2 text-sm text-foreground outline-none ring-1 ring-border focus:ring-2 focus:ring-primary" />
+                    <input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={2000} autoFocus className="w-full rounded-xl bg-background px-3 py-2 text-sm text-foreground outline-none ring-1 ring-border focus:ring-2 focus:ring-primary" />
                     <div className="flex gap-2">
                       <button type="button" onClick={() => void saveEdit(message.id)} disabled={!editText.trim() || mutatingId === message.id} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-40">Save</button>
                       <button type="button" onClick={() => { setEditingId(null); setEditText('') }} disabled={mutatingId === message.id} className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground disabled:opacity-40">Cancel</button>
@@ -268,7 +248,7 @@ export function CommunityChat() {
       </div>
 
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
-        <input value={text} maxLength={1000} onChange={(event) => setText(event.target.value)} onCompositionStart={() => (composingRef.current = true)} onCompositionEnd={() => (composingRef.current = false)} onKeyDown={(event) => {
+        <input value={text} onChange={(event) => setText(event.target.value)} onCompositionStart={() => (composingRef.current = true)} onCompositionEnd={() => (composingRef.current = false)} onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey && !composingRef.current && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void submit() }
         }} placeholder="Post to the community…" className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary" />
         <button type="button" onClick={() => void submit()} disabled={!text.trim() || sending} aria-label="Post" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-90 disabled:opacity-40"><Send size={18} /></button>
@@ -276,3 +256,4 @@ export function CommunityChat() {
     </div>
   )
 }
+
