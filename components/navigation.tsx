@@ -7,6 +7,7 @@ export type Tab = 'home' | 'search' | 'create' | 'chats' | 'profile'
 export type Overlay =
   | { type: 'workout'; id: string }
   | { type: 'chat'; id: string }
+  | { type: 'dm'; id: string }
   | { type: 'user'; id: string }
   | { type: 'create' }
   | { type: 'community' }
@@ -19,6 +20,7 @@ interface NavValue {
   setTab: (tab: Tab) => void
   openWorkout: (id: string) => void
   openChat: (id: string) => void
+  openDm: (id: string) => void
   openUser: (id: string) => void
   openCreate: () => void
   openCommunity: () => void
@@ -44,6 +46,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, [])
   const openChat = useCallback((id: string) => {
     setOverlays((prev) => [...prev, { type: 'chat', id }])
+  }, [])
+  const openDm = useCallback((id: string) => {
+    setOverlays((prev) => [...prev, { type: 'dm', id }])
   }, [])
   const openUser = useCallback((id: string) => {
     setOverlays((prev) => [...prev, { type: 'user', id }])
@@ -73,6 +78,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         setTab,
         openWorkout,
         openChat,
+    openDm,
         openUser,
         openCreate,
         openCommunity,
