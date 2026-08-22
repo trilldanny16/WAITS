@@ -75,18 +75,12 @@ export function HomeFeed() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <header className="shrink-0 px-5 pb-2 pt-[calc(env(safe-area-inset-top)+16px)]">
+      <header className="shrink-0 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+14px)]">
         <div className="flex items-center justify-between">
           <Wordmark iconSize={18} className="text-lg text-primary" />
           {isPremium ? (
-            <button
-              type="button"
-              onClick={() => openUser(currentUserId)}
-              aria-label="Open Pro profile"
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-primary-foreground shadow-sm"
-            >
-              <Crown size={15} fill="currentColor" />
-              Pro
+            <button type="button" onClick={() => openUser(currentUserId)} className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Open Pro profile">
+              <Crown size={24} />
             </button>
           ) : null}
         </div>
