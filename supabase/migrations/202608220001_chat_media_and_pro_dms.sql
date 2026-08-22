@@ -139,3 +139,7 @@ grant select,insert on public.direct_conversations to authenticated;
 grant select,insert,delete on public.direct_messages to authenticated;
 grant select,insert,update,delete on public.community_messages to authenticated;
 grant select,insert,update,delete on public.crew_messages to authenticated;
+
+-- Cover ownership lookups and sender joins flagged by the database advisor.
+create index if not exists direct_conversations_created_by_idx on public.direct_conversations(created_by);
+create index if not exists direct_messages_sender_idx on public.direct_messages(sender_id);
