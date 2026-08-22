@@ -195,7 +195,7 @@ export function CreateWorkout() {
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
         <button
           type="button"
           onClick={back}
@@ -205,7 +205,11 @@ export function CreateWorkout() {
           <X size={20} />
         </button>
         <h1 className="text-base font-bold text-foreground">New Workout</h1>
-        <div className="w-9" />
+        {isPremium ? (
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Verified WAITS Pro member">
+            <Crown size={24} />
+          </span>
+        ) : <div className="w-11" />}
       </header>
 
       <div className="no-scrollbar flex-1 space-y-6 overflow-y-auto p-5">
