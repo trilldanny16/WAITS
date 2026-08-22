@@ -1,12 +1,13 @@
-import { BrandMark } from './brand-mark'
+import { Clock, Dumbbell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * WAITS wordmark: two weights inside a handless clock for the weights/wait wordplay.
+ * Original WAITS wordmark with a second matching dumbbell.
  */
 export function Wordmark({
   className,
-  iconSize = 24,
+  iconSize = 22,
+  strokeWidth = 2.4,
 }: {
   className?: string
   iconSize?: number
@@ -14,8 +15,12 @@ export function Wordmark({
 }) {
   return (
     <span className={cn('inline-flex items-center gap-2 font-black uppercase tracking-tight', className)}>
-      <BrandMark size={iconSize} />
+      <Clock size={iconSize} strokeWidth={strokeWidth} className="shrink-0" aria-hidden="true" />
       <span className="tracking-[0.06em]">WAITS</span>
+      <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+        <Dumbbell size={iconSize} strokeWidth={strokeWidth} className="shrink-0" />
+        <Dumbbell size={iconSize} strokeWidth={strokeWidth} className="shrink-0" />
+      </span>
       <span className="sr-only">Waits — never lift alone</span>
     </span>
   )
