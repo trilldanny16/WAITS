@@ -216,6 +216,9 @@ export function CreateWorkout() {
               <label className="block text-sm font-medium text-muted-foreground">
                 Gym Name
               </label>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Choose a gym where attendees already have membership or guest access. WAITS does not provide gym entry.
+              </p>
               <input
                 type="text"
                 value={gymName}
