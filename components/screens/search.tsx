@@ -140,7 +140,7 @@ const realMatchedUsers = useMemo(() => {
   return (
     <div className="flex h-full flex-col">
       <header className="shrink-0 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <h1 className="mb-3 text-2xl font-extrabold tracking-tight text-foreground">Social Search</h1>
+        <h1 className="mb-3 text-2xl font-black uppercase tracking-[0.06em] text-primary">Social</h1>
         <div className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3 ring-1 ring-border">
           <SearchIcon size={18} className="text-muted-foreground" />
           <input
