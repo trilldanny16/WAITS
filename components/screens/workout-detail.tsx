@@ -23,6 +23,7 @@ import { formatTime, formatDateLabel } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import type { Workout } from '@/lib/types'
 import { supabase } from '@/lib/supabase-client'
+import { SafetyActions } from '../safety-actions'
 
 function getDirectionsUrl(lat: number, lng: number) {
   const destination = `${lat},${lng}`
@@ -293,6 +294,11 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
             </div>
           ) : null}
         </div>
+
+        {!isHost ? (
+          <SafetyActions targetType="workout" targetId={workout.id} targetName={host.name}
+            blockUserId={workout.hostId} onBlocked={back} />
+        ) : null}
 
         {isHost ? (
           <button
