@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { Check, ChevronLeft, Dumbbell, ImagePlus, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
+import { Check, ChevronLeft, Dumbbell, Film, ImagePlus, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
@@ -9,7 +9,8 @@ import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-uti
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import type { ChatMessage } from '@/lib/types'
-import { ChatMedia, removeChatMedia, uploadChatMedia } from '../chat-media'
+import { ChatMedia, gifUrlToFile, removeChatMedia, uploadChatMedia } from '../chat-media'
+import { GifPicker, type GifResult } from '../gif-picker'
 
 export function Chat({ id }: { id: string }) {
   const { workouts, getUser, messagesFor, sendMessage, editMessage, deleteMessage, currentUserId, pushToast } = useStore()
@@ -23,10 +24,24 @@ export function Chat({ id }: { id: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [showGifPicker, setShowGifPicker] = useState(false)
   const [persistedMessages, setPersistedMessages] = useState<ChatMessage[]>([])
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
+
+  const sendSelectedGif = async (gif: GifResult) => {
+    try {
+      const file = await gifUrlToFile(gif.originalUrl)
+      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
+      await sendMedia(target)
+      setShowGifPicker(false)
+    } catch (gifError) {
+      const message = (gifError as Error).message
+      setActionError(message)
+      pushToast({ title: 'GIF not sent', body: message })
+    }
+  }
 
   const workout = workouts.find((w) => w.id === id)
   const isPersistedChat = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
@@ -216,7 +231,7 @@ export function Chat({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="relative flex h-full flex-col bg-background">
       {/* Header */}
       <header className="shrink-0 border-b border-border bg-card px-4 pb-4 pt-[calc(env(safe-area-inset-top)+14px)]">
         <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center">
@@ -414,8 +429,9 @@ export function Chat({ id }: { id: string }) {
 
       {/* Composer */}
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
-        <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={sendMedia} className="hidden" />
-        <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={uploading || !isPersistedChat} aria-label="Add photo or GIF" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><ImagePlus size={19} /></button>
+        <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={sendMedia} className="hidden" />
+        <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={uploading || !isPersistedChat} aria-label="Add photo" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><ImagePlus size={19} /></button>
+        <button type="button" onClick={() => setShowGifPicker(true)} disabled={uploading || !isPersistedChat} aria-label="Search GIFs" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><Film size={19} /></button>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -445,6 +461,7 @@ export function Chat({ id }: { id: string }) {
           <Send size={18} />
         </button>
       </div>
+      {showGifPicker ? <GifPicker onClose={() => setShowGifPicker(false)} onSelect={sendSelectedGif} /> : null}
     </div>
   )
 }
