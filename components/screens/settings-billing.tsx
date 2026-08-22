@@ -10,6 +10,7 @@ import {
   LockKeyhole,
   ShieldCheck,
   Crown,
+  Trash2,
 } from 'lucide-react'
 import { useNav } from '../navigation'
 import { useStore } from '../store'
@@ -19,6 +20,9 @@ export function SettingsBilling() {
   const { back, openPaywall } = useNav()
   const { isPremium, pushToast } = useStore()
   const [openingPortal, setOpeningPortal] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleteText, setDeleteText] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const openBilling = async () => {
     if (!isPremium) {
@@ -53,6 +57,30 @@ export function SettingsBilling() {
     } catch {
       pushToast({ title: 'Billing unavailable', body: 'Billing settings are temporarily unavailable.' })
       setOpeningPortal(false)
+    }
+  }
+
+  const deleteAccount = async () => {
+    if (deleteText !== 'DELETE' || deleting) return
+    setDeleting(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      pushToast({ title: 'Sign in again to delete your account.' })
+      setDeleting(false)
+      return
+    }
+    try {
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error ?? 'Account deletion failed.')
+      await supabase.auth.signOut()
+      window.location.assign('/')
+    } catch (error) {
+      pushToast({ title: 'Account not deleted', body: error instanceof Error ? error.message : 'Please try again.' })
+      setDeleting(false)
     }
   }
 
@@ -131,6 +159,44 @@ export function SettingsBilling() {
           <div className="overflow-hidden rounded-3xl bg-card ring-1 ring-border">
             <SettingsLink href="mailto:support@waits.app" icon={HelpCircle} title="Contact Support" body="Questions, billing help, or account requests" />
             <SettingsRow icon={LockKeyhole} title="Account Security" body="Authentication is protected by Supabase" />
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-3xl border border-red-500/30 bg-card p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+              <Trash2 size={19} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-card-foreground">Delete Account</h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Permanently deletes your profile, workouts, chats, photos, and sign-in. Manage or cancel any App Store or Stripe subscription before deleting.
+              </p>
+              {!showDelete ? (
+                <button type="button" onClick={() => setShowDelete(true)}
+                  className="mt-3 rounded-xl bg-red-500 px-4 py-2 text-xs font-bold text-white">
+                  Delete Account
+                </button>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  <label className="block text-xs font-bold text-card-foreground">
+                    Type DELETE to confirm
+                    <input value={deleteText} onChange={(event) => setDeleteText(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                      autoComplete="off" />
+                  </label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setShowDelete(false); setDeleteText('') }}
+                      className="flex-1 rounded-xl bg-secondary py-2 text-xs font-bold">Cancel</button>
+                    <button type="button" onClick={() => void deleteAccount()}
+                      disabled={deleteText !== 'DELETE' || deleting}
+                      className="flex-1 rounded-xl bg-red-500 py-2 text-xs font-bold text-white disabled:opacity-40">
+                      {deleting ? 'Deleting…' : 'Delete Forever'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
