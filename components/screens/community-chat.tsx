@@ -1,15 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { ChevronLeft, Clock3, Film, Globe, ImagePlus, Send } from 'lucide-react'
+import { ChevronLeft, Clock3, Globe, ImagePlus, Send } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
 import { relativeMessageTime } from '@/lib/date-utils'
 import { supabase } from '@/lib/supabase-client'
 import { cn } from '@/lib/utils'
-import { ChatMedia, gifUrlToFile, removeChatMedia, uploadChatMedia } from '../chat-media'
-import { GifPicker, type GifResult } from '../gif-picker'
+import { ChatMedia, removeChatMedia, uploadChatMedia } from '../chat-media'
 
 const COMMUNITY_MESSAGE_LIFETIME_MS = 24 * 60 * 60 * 1000
 
@@ -33,7 +32,6 @@ export function CommunityChat() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [showGifPicker, setShowGifPicker] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [mutatingId, setMutatingId] = useState<string | null>(null)
@@ -175,18 +173,6 @@ export function CommunityChat() {
     setUploading(false)
   }
 
-  const sendSelectedGif = async (gif: GifResult) => {
-    try {
-      const file = await gifUrlToFile(gif.originalUrl)
-      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
-      await sendMedia(target)
-      setShowGifPicker(false)
-    } catch (gifError) {
-      const message = (gifError as Error).message
-      setError(message)
-      pushToast({ title: 'GIF not sent', body: message })
-    }
-  }
 
   const saveEdit = async (messageId: string) => {
     const trimmedText = editText.trim()
@@ -246,7 +232,7 @@ export function CommunityChat() {
   }
 
   return (
-    <div className="relative flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-background">
       <header className="shrink-0 bg-primary px-3 pb-4 pt-[calc(env(safe-area-inset-top)+14px)] text-primary-foreground">
         <div className="flex items-center gap-3">
           <button type="button" onClick={back} className="flex size-9 items-center justify-center rounded-full bg-white/15" aria-label="Back">
@@ -309,13 +295,11 @@ export function CommunityChat() {
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
         <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={sendMedia} className="hidden" />
         <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={uploading} aria-label="Add photo" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><ImagePlus size={19} /></button>
-        <button type="button" onClick={() => setShowGifPicker(true)} disabled={uploading} aria-label="Search GIFs" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><Film size={19} /></button>
         <input value={text} onChange={(event) => setText(event.target.value)} onCompositionStart={() => (composingRef.current = true)} onCompositionEnd={() => (composingRef.current = false)} onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey && !composingRef.current && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void submit() }
         }} placeholder="Post to the community…" className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary" />
         <button type="button" onClick={() => void submit()} disabled={!text.trim() || sending} aria-label="Post" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-90 disabled:opacity-40"><Send size={18} /></button>
       </div>
-      {showGifPicker ? <GifPicker onClose={() => setShowGifPicker(false)} onSelect={sendSelectedGif} /> : null}
     </div>
   )
 }
