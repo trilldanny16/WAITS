@@ -16,6 +16,9 @@ export default function TermsPage() {
         <LegalSection title="Using WAITS">
           WAITS helps people coordinate workouts and communicate with other members. You must provide accurate account information, keep your account secure, and use the service only for lawful purposes.
         </LegalSection>
+        <LegalSection title="Gym Membership and Access">
+          WAITS is a workout-coordination service for people who already have membership, guest access, or other lawful permission to enter the gym they select. WAITS does not sell gym memberships, provide facility access, or guarantee that a gym will admit any member. You are responsible for confirming your own access and following each facility&apos;s rules.
+        </LegalSection>
         <LegalSection title="Safety">
           Exercise and meeting other people involve risk. WAITS does not supervise workouts, verify every member, or provide medical advice. Use good judgment, meet in appropriate public locations, and consult a qualified professional before beginning an exercise program.
         </LegalSection>
