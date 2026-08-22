@@ -691,13 +691,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               
               )}
               <button
-  type="button"
-  onClick={() => void handleSignOut()}
-  disabled={signingOut}
-  className="flex h-12 w-full items-center justify-center rounded-2xl bg-red-500 text-sm font-bold text-white shadow transition-colors hover:bg-red-600 disabled:opacity-50"
->
-  {signingOut ? 'Signing Out…' : 'Sign Out'}
-</button>
+                type="button"
+                onClick={openSettings}
+                className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow"
+              >
+                Settings
+              </button>
             </div>
 
             
@@ -753,14 +752,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           )}
         </div>
 
-        {/* Settings and billing (own profile) */}
+        {/* Sign out (own profile) */}
         {isSelf ? (
           <button
             type="button"
-            onClick={openSettings}
-            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow"
+            onClick={() => void handleSignOut()}
+            disabled={signingOut}
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-red-500 text-sm font-bold text-white shadow transition-colors hover:bg-red-600 disabled:opacity-50"
           >
-            Settings
+            {signingOut ? 'Signing Out…' : 'Sign Out'}
           </button>
         ) : null}
 
