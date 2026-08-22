@@ -1,10 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { ChevronLeft, Film, ImagePlus, Send, ShieldCheck } from 'lucide-react'
+import { ChevronLeft, ImagePlus, Send, ShieldCheck } from 'lucide-react'
 import { Avatar } from '../avatar'
-import { ChatMedia, gifUrlToFile, removeChatMedia, uploadChatMedia } from '../chat-media'
-import { GifPicker, type GifResult } from '../gif-picker'
+import { ChatMedia, removeChatMedia, uploadChatMedia } from '../chat-media'
 import { useNav } from '../navigation'
 import { useStore } from '../store'
 import { supabase } from '@/lib/supabase-client'
@@ -28,7 +27,6 @@ export function DirectMessage({ id }: { id: string }) {
   const [messages, setMessages] = useState<DirectMessageRow[]>([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const [showGifPicker, setShowGifPicker] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -127,63 +125,4 @@ export function DirectMessage({ id }: { id: string }) {
 
   const other = otherId ? getUser(otherId) : null
 
-  const sendSelectedGif = async (gif: GifResult) => {
-    try {
-      const file = await gifUrlToFile(gif.originalUrl)
-      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
-      await sendMedia(target)
-      setShowGifPicker(false)
-    } catch (gifError) {
-      setError((gifError as Error).message)
-    }
-  }
 
-
-  return (
-    <div className="relative flex h-full flex-col bg-background">
-      <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)]">
-        <button type="button" onClick={back} className="flex size-9 items-center justify-center rounded-full bg-secondary" aria-label="Back">
-          <ChevronLeft size={21} />
-        </button>
-        {other ? <Avatar user={other} size={40} /> : null}
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-extrabold text-card-foreground">{other?.name ?? 'Direct Message'}</h1>
-          <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><ShieldCheck size={11} /> Connected members only</p>
-        </div>
-      </header>
-
-      <div ref={scrollRef} className="no-scrollbar flex-1 space-y-3 overflow-y-auto p-4">
-        {messages.length === 0 ? (
-          <div className="mx-auto mt-10 max-w-[16rem] text-center">
-            <p className="text-sm font-bold text-foreground">Start the conversation</p>
-            <p className="mt-1 text-xs text-muted-foreground">Only you and your connection can see these messages.</p>
-          </div>
-        ) : messages.map((message) => {
-          const mine = message.sender_id === currentUserId
-          return (
-            <div key={message.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
-              <div className={cn('max-w-[78%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md bg-card text-card-foreground ring-1 ring-border')}>
-                {message.text ? <p>{message.text}</p> : null}
-                {message.media_path ? <ChatMedia path={message.media_path} alt="Direct message upload" /> : null}
-                <p className={cn('mt-1 text-[10px]', mine ? 'text-primary-foreground/70' : 'text-muted-foreground')}>{relativeMessageTime(new Date(message.created_at).getTime())}</p>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {error ? <p className="bg-destructive/10 px-4 py-2 text-center text-xs font-semibold text-destructive">{error}</p> : null}
-
-      <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
-        <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={sendMedia} className="hidden" />
-        <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={sending} aria-label="Add photo" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40">
-          <ImagePlus size={19} />
-        </button>
-        <button type="button" onClick={() => setShowGifPicker(true)} disabled={sending} aria-label="Search GIFs" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><Film size={19} /></button>
-        <input value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void sendText() } }} placeholder="Message your connection…" className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary" />
-        <button type="button" onClick={() => void sendText()} disabled={!text.trim() || sending} aria-label="Send" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground disabled:opacity-40"><Send size={18} /></button>
-      </div>
-      {showGifPicker ? <GifPicker onClose={() => setShowGifPicker(false)} onSelect={sendSelectedGif} /> : null}
-    </div>
-  )
-}
