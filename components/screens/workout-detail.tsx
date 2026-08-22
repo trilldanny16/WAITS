@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   ChevronLeft,
   MapPin,
@@ -63,25 +63,6 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
   const [attendanceOutcomes, setAttendanceOutcomes] = useState<Record<string, 'attended' | 'no_show'>>({})
   const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
   const [verificationError, setVerificationError] = useState<string | null>(null)
-  const [pendingAction, setPendingAction] = useState<'join' | 'leave' | 'cancel' | null>(null)
-  const pendingActionRef = useRef(false)
-
-  const runWorkoutAction = async (
-    action: 'join' | 'leave' | 'cancel',
-    operation: () => Promise<boolean | { ok: boolean; error?: string }>,
-  ) => {
-    if (pendingActionRef.current) return
-    pendingActionRef.current = true
-    setPendingAction(action)
-    try {
-      const result = await operation()
-      const succeeded = typeof result === 'boolean' ? result : result.ok
-      if (action === 'cancel' && succeeded) back()
-    } finally {
-      pendingActionRef.current = false
-      setPendingAction(null)
-    }
-  }
 
   const host = getUser(workout.hostId)
   const isHost = workout.hostId === currentUserId
@@ -316,12 +297,15 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
         {isHost ? (
           <button
             type="button"
-            onClick={() => void runWorkoutAction('cancel', () => cancelWorkout(workout.id))}
-            disabled={pendingAction !== null}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-destructive/10 py-3 text-sm font-bold text-destructive disabled:opacity-50"
+            onClick={() => {
+              void cancelWorkout(workout.id).then((canceled) => {
+                if (canceled) back()
+              })
+            }}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-destructive/10 py-3 text-sm font-bold text-destructive"
           >
             <Trash2 size={16} />
-            {pendingAction === 'cancel' ? 'Canceling…' : 'Cancel Workout'}
+            Cancel Workout
           </button>
         ) : null}
       </div>
@@ -354,11 +338,10 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
           {isHost ? null : joined ? (
             <button
               type="button"
-              onClick={() => void runWorkoutAction('leave', () => leaveWorkout(workout.id))}
-              disabled={pendingAction !== null}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+              onClick={() => void leaveWorkout(workout.id)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border py-4 text-sm font-bold text-foreground"
             >
-              {pendingAction === 'leave' ? 'Leaving…' : 'Leave'}
+              Leave
             </button>
           ) : full ? (
             <span className="flex flex-1 items-center justify-center rounded-2xl bg-destructive/10 py-4 text-sm font-extrabold uppercase tracking-wide text-destructive">
@@ -367,11 +350,10 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
           ) : (
             <button
               type="button"
-              onClick={() => void runWorkoutAction('join', () => joinWorkout(workout.id))}
-              disabled={pendingAction !== null}
-              className="flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-sm font-extrabold uppercase tracking-wide text-lime-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+              onClick={() => void joinWorkout(workout.id)}
+              className="flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-sm font-extrabold uppercase tracking-wide text-lime-foreground transition-transform active:scale-[0.98]"
             >
-              {pendingAction === 'join' ? 'Joining…' : 'JOIN'}
+              Wait Up!
             </button>
           )}
         </div>
@@ -401,3 +383,4 @@ function Row({
     </div>
   )
 }
+
