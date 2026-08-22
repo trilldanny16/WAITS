@@ -121,6 +121,9 @@ const realMatchedUsers = useMemo(() => {
       const host = getUser(w.hostId)
       return (
         w.types.some((type) => type.toLowerCase().includes(q)) ||
+        w.gym.toLowerCase().includes(q) ||
+        w.city.toLowerCase().includes(q) ||
+        w.address.toLowerCase().includes(q) ||
         host.name.toLowerCase().includes(q) ||
         host.username.toLowerCase().includes(q)
       )
@@ -136,7 +139,7 @@ const realMatchedUsers = useMemo(() => {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={mode === 'friends' ? 'Search for People' : 'Search for Workouts'}
+            placeholder={mode === 'friends' ? 'Search for People' : 'Search workouts or gyms'}
             className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
           {query ? (
@@ -254,7 +257,9 @@ const realMatchedUsers = useMemo(() => {
               <p className="pt-6 text-center text-sm text-muted-foreground">No workouts match your search.</p>
             ) : (
               <div className="space-y-3">
-                {matchedWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} />)}
+                {matchedWorkouts.map((w) => (
+                  <WorkoutCard key={w.id} workout={w} showLocationDetails />
+                ))}
               </div>
             )}
           </section>
