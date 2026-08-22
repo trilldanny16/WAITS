@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
 
-const ALLOWED_CHAT_MEDIA = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+const ALLOWED_CHAT_MEDIA = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_CHAT_MEDIA_BYTES = 8 * 1024 * 1024
 
 export type ChatMediaKind = 'image' | 'gif'
 
 export async function uploadChatMedia(file: File, userId: string) {
   if (!ALLOWED_CHAT_MEDIA.has(file.type)) {
-    return { ok: false as const, error: 'Choose a JPG, PNG, WebP, or GIF image.' }
+    return { ok: false as const, error: 'Choose a JPG, PNG, or WebP image.' }
   }
   if (file.size > MAX_CHAT_MEDIA_BYTES) {
     return { ok: false as const, error: 'Chat images must be 8 MB or smaller.' }
@@ -20,7 +20,6 @@ export async function uploadChatMedia(file: File, userId: string) {
     'image/jpeg': 'jpg',
     'image/png': 'png',
     'image/webp': 'webp',
-    'image/gif': 'gif',
   }
   const extension = extensionByType[file.type]
   const path = `${userId}/${crypto.randomUUID()}.${extension}`
@@ -33,7 +32,7 @@ export async function uploadChatMedia(file: File, userId: string) {
   return {
     ok: true as const,
     path,
-    kind: (file.type === 'image/gif' ? 'gif' : 'image') as ChatMediaKind,
+    kind: 'image' as ChatMediaKind,
   }
 }
 
@@ -62,10 +61,3 @@ export function ChatMedia({ path, alt = 'Shared chat image' }: { path: string; a
   return <img src={url} alt={alt} className="mt-2 max-h-72 w-full rounded-2xl object-cover ring-1 ring-border" />
 }
 
-export async function gifUrlToFile(url: string) {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error('Could not download that GIF.')
-  const blob = await response.blob()
-  if (blob.type !== 'image/gif') throw new Error('That result is not a valid GIF.')
-  return new File([blob], `giphy-${crypto.randomUUID()}.gif`, { type: 'image/gif' })
-}
