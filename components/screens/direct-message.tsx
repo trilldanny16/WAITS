@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { ChevronLeft, ImagePlus, Send, ShieldCheck } from 'lucide-react'
+import { ChevronLeft, Film, ImagePlus, Send, ShieldCheck } from 'lucide-react'
 import { Avatar } from '../avatar'
-import { ChatMedia, removeChatMedia, uploadChatMedia } from '../chat-media'
+import { ChatMedia, gifUrlToFile, removeChatMedia, uploadChatMedia } from '../chat-media'
+import { GifPicker, type GifResult } from '../gif-picker'
 import { useNav } from '../navigation'
 import { useStore } from '../store'
 import { supabase } from '@/lib/supabase-client'
@@ -27,6 +28,7 @@ export function DirectMessage({ id }: { id: string }) {
   const [messages, setMessages] = useState<DirectMessageRow[]>([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [showGifPicker, setShowGifPicker] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -70,6 +72,17 @@ export function DirectMessage({ id }: { id: string }) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [messages.length])
+
+  const sendSelectedGif = async (gif: GifResult) => {
+    try {
+      const file = await gifUrlToFile(gif.originalUrl)
+      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
+      await sendMedia(target)
+      setShowGifPicker(false)
+    } catch (gifError) {
+      setError((gifError as Error).message)
+    }
+  }
 
   const sendText = async () => {
     const trimmed = text.trim()
@@ -125,7 +138,7 @@ export function DirectMessage({ id }: { id: string }) {
   const other = otherId ? getUser(otherId) : null
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="relative flex h-full flex-col bg-background">
       <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button type="button" onClick={back} className="flex size-9 items-center justify-center rounded-full bg-secondary" aria-label="Back">
           <ChevronLeft size={21} />
@@ -160,13 +173,15 @@ export function DirectMessage({ id }: { id: string }) {
       {error ? <p className="bg-destructive/10 px-4 py-2 text-center text-xs font-semibold text-destructive">{error}</p> : null}
 
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
-        <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={sendMedia} className="hidden" />
-        <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={sending} aria-label="Add photo or GIF" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40">
+        <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={sendMedia} className="hidden" />
+        <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={sending} aria-label="Add photo" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40">
           <ImagePlus size={19} />
         </button>
+        <button type="button" onClick={() => setShowGifPicker(true)} disabled={sending} aria-label="Search GIFs" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><Film size={19} /></button>
         <input value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void sendText() } }} placeholder="Message your connection…" className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary" />
         <button type="button" onClick={() => void sendText()} disabled={!text.trim() || sending} aria-label="Send" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground disabled:opacity-40"><Send size={18} /></button>
       </div>
+      {showGifPicker ? <GifPicker onClose={() => setShowGifPicker(false)} onSelect={sendSelectedGif} /> : null}
     </div>
   )
 }
