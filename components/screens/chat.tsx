@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronLeft, Dumbbell, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { Check, ChevronLeft, Dumbbell, ImagePlus, MoreHorizontal, Pencil, Send, Trash2, Users, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
@@ -9,6 +9,7 @@ import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-uti
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import type { ChatMessage } from '@/lib/types'
+import { ChatMedia, removeChatMedia, uploadChatMedia } from '../chat-media'
 
 export function Chat({ id }: { id: string }) {
   const { workouts, getUser, messagesFor, sendMessage, editMessage, deleteMessage, currentUserId, pushToast } = useStore()
@@ -21,9 +22,11 @@ export function Chat({ id }: { id: string }) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [persistedMessages, setPersistedMessages] = useState<ChatMessage[]>([])
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
 
   const workout = workouts.find((w) => w.id === id)
   const isPersistedChat = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
@@ -34,7 +37,7 @@ export function Chat({ id }: { id: string }) {
     if (!isPersistedChat) return
     const { data, error } = await supabase
       .from('crew_messages')
-      .select('id, workout_id, user_id, text, created_at')
+      .select('id, workout_id, user_id, text, media_path, media_kind, created_at')
       .eq('workout_id', id)
       .order('created_at', { ascending: true })
 
@@ -48,7 +51,9 @@ export function Chat({ id }: { id: string }) {
       id: message.id,
       workoutId: message.workout_id,
       userId: message.user_id,
-      text: message.text,
+      text: message.text ?? '',
+      mediaPath: message.media_path ?? undefined,
+      mediaKind: message.media_kind ?? undefined,
       createdAt: new Date(message.created_at).getTime(),
     })))
     setActionError(null)
@@ -111,6 +116,45 @@ export function Chat({ id }: { id: string }) {
     }
     setText('')
     await loadPersistedMessages()
+  }
+
+  const sendMedia = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || uploading || !isPersistedChat) return
+
+    setUploading(true)
+    setActionError(null)
+    const upload = await uploadChatMedia(file, currentUserId)
+    if (!upload.ok) {
+      setActionError(upload.error)
+      pushToast({ title: 'Image not sent', body: upload.error })
+      setUploading(false)
+      return
+    }
+
+    const { error } = await supabase
+      .from('crew_messages')
+      .insert({
+        workout_id: id,
+        user_id: currentUserId,
+        text: null,
+        media_path: upload.path,
+        media_kind: upload.kind,
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      await removeChatMedia(upload.path)
+      setActionError(error.message)
+      pushToast({ title: 'Image not sent', body: error.message })
+      setUploading(false)
+      return
+    }
+
+    await loadPersistedMessages()
+    setUploading(false)
   }
 
   const saveEdit = async (messageId: string) => {
@@ -279,7 +323,8 @@ export function Chat({ id }: { id: string }) {
                           : 'rounded-bl-md bg-card text-card-foreground ring-1 ring-border',
                       )}
                     >
-                      {m.text}
+                      {m.text || null}
+                      {m.mediaPath ? <ChatMedia path={m.mediaPath} alt="Crew chat upload" /> : null}
                     </div>
                   )}
                   <div className={cn('mt-0.5 flex items-center gap-1 px-1', mine && 'justify-end')}>
@@ -369,6 +414,8 @@ export function Chat({ id }: { id: string }) {
 
       {/* Composer */}
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
+        <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={sendMedia} className="hidden" />
+        <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={uploading || !isPersistedChat} aria-label="Add photo or GIF" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><ImagePlus size={19} /></button>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
