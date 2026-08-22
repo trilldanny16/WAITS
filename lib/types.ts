@@ -84,6 +84,8 @@ export interface ChatMessage {
   workoutId: string
   userId: string
   text: string
+  mediaPath?: string
+  mediaKind?: 'image' | 'gif'
   createdAt: number
 }
 
