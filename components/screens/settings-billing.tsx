@@ -107,6 +107,13 @@ export function SettingsBilling() {
           </button>
         </section>
 
+        <section className="mt-5 rounded-3xl bg-card p-4 ring-1 ring-border">
+          <h2 className="text-sm font-bold text-card-foreground">Gym access</h2>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access. WAITS does not sell gym memberships or guarantee entry.
+          </p>
+        </section>
+
         <section className="mt-5">
           <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Legal &amp; Privacy
