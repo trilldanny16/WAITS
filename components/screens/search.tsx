@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search as SearchIcon, X } from 'lucide-react'
+import { Crown, Search as SearchIcon, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { WorkoutCard } from '../workout-card'
@@ -18,7 +18,7 @@ import {
 type SearchMode = 'friends' | 'workouts'
 
 export function Search() {
-  const { workouts, users, getUser, currentUserId, isFollowing, pushToast } = useStore()
+  const { workouts, users, getUser, currentUserId, isFollowing, isPremium, pushToast } = useStore()
   const { openUser } = useNav()
   const [query, setQuery] = useState('')
   const [requestStates, setRequestStates] = useState<Record<string, FriendRequestState>>({})
@@ -140,9 +140,14 @@ const realMatchedUsers = useMemo(() => {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="shrink-0 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <div className="mb-3">
+      <header className="shrink-0 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
+        <div className="mb-3 flex items-center justify-between">
           <SectionWordmark>Social</SectionWordmark>
+          {isPremium ? (
+            <button type="button" onClick={() => openUser(currentUserId)} className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Open Pro profile">
+              <Crown size={24} />
+            </button>
+          ) : null}
         </div>
         <div className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3 ring-1 ring-border">
           <SearchIcon size={18} className="text-muted-foreground" />
