@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { MapPin, Clock, Users } from 'lucide-react'
 import type { Workout } from '@/lib/types'
 import { useStore } from './store'
@@ -10,22 +10,15 @@ import { WorkoutTypeIcon } from './workout-type-icon'
 import { formatDateLabel, formatTime, todayISO } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 
-export function WorkoutCard({ workout }: { workout: Workout }) {
+export function WorkoutCard({
+  workout,
+  showLocationDetails = false,
+}: {
+  workout: Workout
+  showLocationDetails?: boolean
+}) {
   const { getUser, isFull, hasJoined, joinWorkout, leaveWorkout, currentUserId } = useStore()
   const [changingAttendance, setChangingAttendance] = useState(false)
-  const changingAttendanceRef = useRef(false)
-
-  const changeAttendance = async (operation: () => Promise<boolean | { ok: boolean; error?: string }>) => {
-    if (changingAttendanceRef.current) return
-    changingAttendanceRef.current = true
-    setChangingAttendance(true)
-    try {
-      await operation()
-    } finally {
-      changingAttendanceRef.current = false
-      setChangingAttendance(false)
-    }
-  }
   const { openWorkout, openUser } = useNav()
 
   const host = getUser(workout.hostId)
@@ -36,6 +29,9 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
   const futureWorkout = workout.date !== todayISO()
   const visibilityLabel = workout.visibility === 'friends' ? 'Friends' : 'Public'
   const dateLabel = futureWorkout ? formatDateLabel(workout.date) : null
+  const locationLabel = workout.address.toLowerCase().includes(workout.city.toLowerCase())
+    ? workout.address
+    : `${workout.address}, ${workout.city}`
 
   return (
     <article className="overflow-hidden rounded-3xl bg-card shadow-sm ring-1 ring-border">
@@ -63,6 +59,11 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
                   <MapPin size={12} />
                   {workout.gym}
                 </p>
+                {showLocationDetails ? (
+                  <p className="mt-1 truncate pl-4 text-[11px] text-muted-foreground">
+                    {locationLabel}
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -110,8 +111,12 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
             <button
               type="button"
               disabled={changingAttendance}
-              onClick={() => void changeAttendance(() => leaveWorkout(workout.id))}
-              className="mt-2 block w-full rounded-full bg-primary px-4 py-2.5 text-center text-xs font-bold uppercase text-primary-foreground transition-transform active:scale-95 disabled:opacity-50"
+              onClick={async () => {
+                setChangingAttendance(true)
+                await leaveWorkout(workout.id)
+                setChangingAttendance(false)
+              }}
+              className="block w-full rounded-full bg-accent px-4 py-2.5 text-center text-xs font-bold uppercase text-accent-foreground transition-transform active:scale-95 disabled:opacity-50 mt-2"
             >
               {changingAttendance ? 'Leaving…' : 'Leave'}
             </button>
@@ -123,10 +128,14 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
             <button
               type="button"
               disabled={changingAttendance}
-              onClick={() => void changeAttendance(() => joinWorkout(workout.id))}
+              onClick={async () => {
+                setChangingAttendance(true)
+                await joinWorkout(workout.id)
+                setChangingAttendance(false)
+              }}
               className="block w-full rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-lime-foreground shadow-sm transition-transform active:scale-95 mt-2"
             >
-              {changingAttendance ? 'Joining…' : 'JOIN'}
+              {changingAttendance ? 'Joining…' : 'Come Thru'}
             </button>
           )}
         </div>
@@ -134,3 +143,4 @@ export function WorkoutCard({ workout }: { workout: Workout }) {
     </article>
   )
 }
+
