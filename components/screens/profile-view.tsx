@@ -720,7 +720,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 className={cn(
                   'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
                   followed
-                    ? 'border border-red-500/30 bg-background text-red-500'
+                    ? 'bg-red-500 text-white shadow hover:bg-red-600'
                     : 'bg-secondary text-secondary-foreground',
                 )}
               >
