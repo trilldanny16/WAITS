@@ -17,7 +17,7 @@ import {
 type SearchMode = 'friends' | 'workouts'
 
 export function Search() {
-  const { workouts, users, getUser, currentUserId, pushToast } = useStore()
+  const { workouts, users, getUser, currentUserId, isFollowing, pushToast } = useStore()
   const { openUser } = useNav()
   const [query, setQuery] = useState('')
   const [requestStates, setRequestStates] = useState<Record<string, FriendRequestState>>({})
@@ -94,9 +94,15 @@ const q = query.trim().toLowerCase()
 const realMatchedUsers = useMemo(() => {
   return realUsers.filter((user) => {
     const name = user.display_name?.toLowerCase() ?? ''
-    return user.id !== currentUserId && (!q || name.includes(q))
+    const relationshipState = requestStates[user.id] ?? 'none'
+    const alreadyKnown = isFollowing(user.id) || relationshipState !== 'none'
+
+    return (
+      user.id !== currentUserId &&
+      (!q ? !alreadyKnown : name.includes(q))
+    )
   })
-}, [q, realUsers, currentUserId])
+}, [q, realUsers, currentUserId, isFollowing, requestStates])
 
   const realUserNames = useMemo(
     () => new Set(realUsers.map((user) => user.display_name?.trim().toLowerCase()).filter(Boolean)),
@@ -108,12 +114,13 @@ const realMatchedUsers = useMemo(() => {
       (u) =>
         u.id !== currentUserId &&
         !realUserNames.has(u.name.trim().toLowerCase()) &&
+        (q || !isFollowing(u.id)) &&
         (!q ||
           u.name.toLowerCase().includes(q) ||
           u.username.toLowerCase().includes(q) ||
           u.favoriteSplit.toLowerCase().includes(q)),
     )
-  }, [q, users, currentUserId, realUserNames])
+  }, [q, users, currentUserId, realUserNames, isFollowing])
 
   const matchedWorkouts = useMemo(() => {
     return workouts.filter((w) => {
@@ -139,7 +146,7 @@ const realMatchedUsers = useMemo(() => {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={mode === 'friends' ? 'Search for People' : 'Search workouts or gyms'}
+            placeholder={mode === 'friends' ? 'Search for People' : 'Search Workouts or Gyms'}
             className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
           {query ? (
@@ -178,7 +185,7 @@ const realMatchedUsers = useMemo(() => {
         {mode === 'friends' ? (
           <section className="mb-5">
             <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              {q ? 'People' : 'Suggested people'}
+              {q ? 'People' : 'Suggested People'}
             </h2>
             <div className="space-y-2">
               {realMatchedUsers.map((u) => (
@@ -208,6 +215,7 @@ const realMatchedUsers = useMemo(() => {
     type="button"
     disabled={
       sendingTo === u.id ||
+      isFollowing(u.id) ||
       requestStates[u.id] === 'accepted' ||
       requestStates[u.id] === 'pending_incoming'
     }
@@ -218,8 +226,8 @@ const realMatchedUsers = useMemo(() => {
   >
     {sendingTo === u.id
       ? requestStates[u.id] === 'pending_outgoing' ? 'Canceling...' : 'Sending...'
-      : requestStates[u.id] === 'accepted'
-        ? 'Connected'
+      : isFollowing(u.id) || requestStates[u.id] === 'accepted'
+        ? 'Following'
         : requestStates[u.id] === 'pending_incoming'
           ? 'Request received'
           : requestStates[u.id] === 'pending_outgoing'
@@ -240,7 +248,9 @@ const realMatchedUsers = useMemo(() => {
                     <span className="block truncate text-sm font-semibold text-card-foreground">{u.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">@{u.username}</span>
                   </span>
-                  <span className="rounded-xl bg-lime px-3 py-2 text-xs font-bold text-black">View</span>
+                  <span className="rounded-xl bg-lime px-3 py-2 text-xs font-bold text-black">
+                    {isFollowing(u.id) ? 'Following' : 'View'}
+                  </span>
                 </button>
               ))}
               {realMatchedUsers.length === 0 && matchedUsers.length === 0 ? (
