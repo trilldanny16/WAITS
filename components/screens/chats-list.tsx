@@ -296,7 +296,7 @@ const declineFriendRequest = async (requestId: string) => {
         <section className="mb-4">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personal DMs</p>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary"><Crown size={11} /> Pro starts</span>
+            <span className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm" aria-label="WAITS Pro feature"><Crown size={17} /></span>
           </div>
           {directConnections.length === 0 ? (
             <div className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground ring-1 ring-border">
