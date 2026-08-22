@@ -73,16 +73,6 @@ export function DirectMessage({ id }: { id: string }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [messages.length])
 
-  const sendSelectedGif = async (gif: GifResult) => {
-    try {
-      const file = await gifUrlToFile(gif.originalUrl)
-      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
-      await sendMedia(target)
-      setShowGifPicker(false)
-    } catch (gifError) {
-      setError((gifError as Error).message)
-    }
-  }
 
   const sendText = async () => {
     const trimmed = text.trim()
@@ -136,6 +126,18 @@ export function DirectMessage({ id }: { id: string }) {
   }
 
   const other = otherId ? getUser(otherId) : null
+
+  const sendSelectedGif = async (gif: GifResult) => {
+    try {
+      const file = await gifUrlToFile(gif.originalUrl)
+      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
+      await sendMedia(target)
+      setShowGifPicker(false)
+    } catch (gifError) {
+      setError((gifError as Error).message)
+    }
+  }
+
 
   return (
     <div className="relative flex h-full flex-col bg-background">
