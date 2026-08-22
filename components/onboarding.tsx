@@ -6,7 +6,6 @@ import {
   Mail,
   Check,
   Clock,
-  Dumbbell,
   ArrowRight,
   ArrowLeft,
   Phone,
@@ -16,6 +15,7 @@ import {
 import { savePhoneLead } from '@/app/actions/phone-leads'
 import { supabase } from '@/lib/supabase-client'
 import { cn } from '@/lib/utils'
+import { BrandMark } from './brand-mark'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -329,7 +329,7 @@ const { error } = await supabase
           <div className="my-7 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex flex-col items-center gap-3 text-center">
               <span className="flex size-16 items-center justify-center rounded-3xl bg-lime text-lime-foreground shadow-lg">
-                <Dumbbell size={34} strokeWidth={2.6} />
+                <BrandMark size={42} />
               </span>
 
               <span className="text-balance text-4xl font-black uppercase tracking-[0.06em]">
