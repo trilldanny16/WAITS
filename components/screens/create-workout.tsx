@@ -195,7 +195,7 @@ export function CreateWorkout() {
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 pb-3 pt-[calc(env(safe-area-inset-top)+49px)]">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
         <button
           type="button"
           onClick={back}
