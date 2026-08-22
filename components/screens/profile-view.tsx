@@ -22,7 +22,6 @@ import {
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
-import { WorkoutCard } from '../workout-card'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
@@ -958,20 +957,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 })}
               </div>
             </section>
-
-            {/* Upcoming workouts */}
-            {scheduledWorkouts.length > 0 ? (
-              <section className="mt-6">
-                <h2 className="mb-3 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Upcoming Workouts
-                </h2>
-                <div className="space-y-3">
-                  {scheduledWorkouts.map((w) => (
-                    <WorkoutCard key={w.id} workout={w} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
           </>
         )}
       </div>
