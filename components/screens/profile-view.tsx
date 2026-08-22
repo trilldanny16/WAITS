@@ -27,6 +27,7 @@ import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import { SocialList } from './social-list'
+import { SafetyActions } from '../safety-actions'
 import {
   getFriendRequestState,
   cancelFriendRequest,
@@ -747,6 +748,15 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 <p role="alert" className="mt-2 text-center text-sm font-medium text-red-500">
                   {connectionError}
                 </p>
+              ) : null}
+              {isPersistedProfile ? (
+                <SafetyActions
+                  targetType="user"
+                  targetId={userId}
+                  targetName={user.name}
+                  blockUserId={userId}
+                  onBlocked={back}
+                />
               ) : null}
             </div>
           )}
