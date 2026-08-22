@@ -14,6 +14,7 @@ import { ProfileView } from './screens/profile-view'
 import { CreateWorkout } from './screens/create-workout'
 import { WorkoutDetail } from './screens/workout-detail'
 import { Chat } from './screens/chat'
+import { DirectMessage } from './screens/direct-message'
 import { CommunityChat } from './screens/community-chat'
 import { Paywall } from './screens/paywall'
 import { SettingsBilling } from './screens/settings-billing'
@@ -48,6 +49,7 @@ function Overlays() {
         {top.type === 'create' && <CreateWorkout />}
         {top.type === 'workout' && <WorkoutDetail id={top.id} />}
         {top.type === 'chat' && <Chat id={top.id} />}
+        {top.type === 'dm' && <DirectMessage id={top.id} />}
         {top.type === 'community' && <CommunityChat />}
         {top.type === 'paywall' && <Paywall feature={top.feature} />}
         {top.type === 'user' && <ProfileView userId={top.id} />}
