@@ -1,20 +1,23 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, Clock3, Globe, Send } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { ChevronLeft, Clock3, Globe, ImagePlus, Send } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
 import { relativeMessageTime } from '@/lib/date-utils'
 import { supabase } from '@/lib/supabase-client'
 import { cn } from '@/lib/utils'
+import { ChatMedia, removeChatMedia, uploadChatMedia } from '../chat-media'
 
 const COMMUNITY_MESSAGE_LIFETIME_MS = 24 * 60 * 60 * 1000
 
 type CommunityMessageRow = {
   id: string
   user_id: string
-  text: string
+  text: string | null
+  media_path: string | null
+  media_kind: 'image' | 'gif' | null
   created_at: string
 }
 
@@ -28,18 +31,20 @@ export function CommunityChat() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [mutatingId, setMutatingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const composingRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
 
   const loadMessages = useCallback(async () => {
     const cutoff = new Date(Date.now() - COMMUNITY_MESSAGE_LIFETIME_MS).toISOString()
     const { data, error: loadError } = await supabase
       .from('community_messages')
-      .select('id, user_id, text, created_at')
+      .select('id, user_id, text, media_path, media_kind, created_at')
       .gt('created_at', cutoff)
       .order('created_at', { ascending: true })
 
@@ -109,7 +114,7 @@ export function CommunityChat() {
     const { data, error: sendError } = await supabase
       .from('community_messages')
       .insert({ user_id: currentUserId, text: trimmedText })
-      .select('id, user_id, text, created_at')
+      .select('id, user_id, text, media_path, media_kind, created_at')
       .single()
 
     if (sendError || !data) {
@@ -130,6 +135,44 @@ export function CommunityChat() {
   }
 
 
+  const sendMedia = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || uploading) return
+
+    setUploading(true)
+    setError(null)
+    const upload = await uploadChatMedia(file, currentUserId)
+    if (!upload.ok) {
+      setError(upload.error)
+      pushToast({ title: 'Image not sent', body: upload.error })
+      setUploading(false)
+      return
+    }
+
+    const { data, error: sendError } = await supabase
+      .from('community_messages')
+      .insert({ user_id: currentUserId, text: null, media_path: upload.path, media_kind: upload.kind })
+      .select('id, user_id, text, media_path, media_kind, created_at')
+      .single()
+
+    if (sendError || !data) {
+      await removeChatMedia(upload.path)
+      const message = sendError?.message ?? 'Supabase did not confirm the image.'
+      setError(`Image was not sent: ${message}`)
+      pushToast({ title: 'Image not sent', body: message })
+      setUploading(false)
+      return
+    }
+
+    setMessages((current) =>
+      [...current.filter((message) => message.id !== data.id), data].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    )
+    setUploading(false)
+  }
+
   const saveEdit = async (messageId: string) => {
     const trimmedText = editText.trim()
     if (!trimmedText || mutatingId) return
@@ -141,7 +184,7 @@ export function CommunityChat() {
       .update({ text: trimmedText })
       .eq('id', messageId)
       .eq('user_id', currentUserId)
-      .select('id, user_id, text, created_at')
+      .select('id, user_id, text, media_path, media_kind, created_at')
       .single()
 
     if (updateError || !data) {
@@ -232,10 +275,11 @@ export function CommunityChat() {
                   </div>
                 ) : (
                   <>
-                    <p className="mt-1.5 text-sm leading-relaxed text-card-foreground">{message.text}</p>
+                    {message.text ? <p className="mt-1.5 text-sm leading-relaxed text-card-foreground">{message.text}</p> : null}
+                    {message.media_path ? <ChatMedia path={message.media_path} alt="Community chat upload" /> : null}
                     {mine ? (
                       <div className="mt-2 flex gap-3">
-                        <button type="button" onClick={() => { setEditingId(message.id); setEditText(message.text) }} disabled={Boolean(mutatingId)} className="text-xs font-semibold text-primary disabled:opacity-40">Edit</button>
+                        {message.text ? <button type="button" onClick={() => { setEditingId(message.id); setEditText(message.text ?? '') }} disabled={Boolean(mutatingId)} className="text-xs font-semibold text-primary disabled:opacity-40">Edit</button> : null}
                         <button type="button" onClick={() => void deleteMessage(message.id)} disabled={Boolean(mutatingId)} className="text-xs font-semibold text-destructive disabled:opacity-40">{mutatingId === message.id ? 'Deleting…' : 'Delete'}</button>
                       </div>
                     ) : null}
@@ -248,6 +292,8 @@ export function CommunityChat() {
       </div>
 
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
+        <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={sendMedia} className="hidden" />
+        <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={uploading} aria-label="Add photo or GIF" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><ImagePlus size={19} /></button>
         <input value={text} onChange={(event) => setText(event.target.value)} onCompositionStart={() => (composingRef.current = true)} onCompositionEnd={() => (composingRef.current = false)} onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey && !composingRef.current && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void submit() }
         }} placeholder="Post to the community…" className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary" />
