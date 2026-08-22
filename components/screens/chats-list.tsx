@@ -8,6 +8,7 @@ import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-utils'
 import { supabase } from '@/lib/supabase-client'
+import { SectionWordmark } from '../section-wordmark'
 
 export function ChatsList() {
   const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
@@ -153,7 +154,7 @@ const declineFriendRequest = async (requestId: string) => {
   return (
     <div className="flex h-full flex-col">
       <header className="shrink-0 px-5 pb-2 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <h1 className="text-2xl font-black uppercase tracking-[0.06em] text-primary">Chats</h1>
+        <SectionWordmark>Chats</SectionWordmark>
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-3">
