@@ -721,7 +721,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                   'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
                   followed
                     ? 'bg-red-500 text-white shadow hover:bg-red-600'
-                    : 'bg-secondary text-secondary-foreground',
+                    : 'bg-lime text-lime-foreground shadow hover:brightness-95',
                 )}
               >
                 {followed ? (
