@@ -30,18 +30,6 @@ export function Chat({ id }: { id: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
 
-  const sendSelectedGif = async (gif: GifResult) => {
-    try {
-      const file = await gifUrlToFile(gif.originalUrl)
-      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
-      await sendMedia(target)
-      setShowGifPicker(false)
-    } catch (gifError) {
-      const message = (gifError as Error).message
-      setActionError(message)
-      pushToast({ title: 'GIF not sent', body: message })
-    }
-  }
 
   const workout = workouts.find((w) => w.id === id)
   const isPersistedChat = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
@@ -229,6 +217,20 @@ export function Chat({ id }: { id: string }) {
     setConfirmDeleteId(null)
     setDeletingId(null)
   }
+
+  const sendSelectedGif = async (gif: GifResult) => {
+    try {
+      const file = await gifUrlToFile(gif.originalUrl)
+      const target = { target: { files: [file], value: '' } } as unknown as ChangeEvent<HTMLInputElement>
+      await sendMedia(target)
+      setShowGifPicker(false)
+    } catch (gifError) {
+      const message = (gifError as Error).message
+      setActionError(message)
+      pushToast({ title: 'GIF not sent', body: message })
+    }
+  }
+
 
   return (
     <div className="relative flex h-full flex-col bg-background">
