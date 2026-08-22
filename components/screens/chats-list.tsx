@@ -48,7 +48,7 @@ export function ChatsList() {
 
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
-      .select('id, display_name')
+      .select('id, display_name, email')
       .in('id', senderIds)
 
     if (profileError) {
@@ -63,7 +63,7 @@ export function ChatsList() {
           id: request.id,
           sender_id: request.sender_id,
           sender_name: profile?.display_name ?? null,
-          sender_email: null,
+          sender_email: profile?.email ?? null,
         }
       }),
     )
@@ -153,8 +153,7 @@ const declineFriendRequest = async (requestId: string) => {
   return (
     <div className="flex h-full flex-col">
       <header className="shrink-0 px-5 pb-2 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Chats</h1>
-        <p className="text-sm text-muted-foreground">The public community plus your crew chats.</p>
+        <h1 className="text-2xl font-black uppercase tracking-[0.06em] text-primary">Chats</h1>
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-3">
@@ -322,3 +321,4 @@ const declineFriendRequest = async (requestId: string) => {
     </div>
   )
 }
+
