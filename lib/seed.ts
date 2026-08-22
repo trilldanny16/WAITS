@@ -18,7 +18,7 @@ export const SEED_USERS: User[] = [
     city: 'Boynton Beach',
     favoriteSplit: 'Push / Pull / Legs',
     hue: 210,
-    avatar: '/avatars/danny.png',
+    avatar: '/avatars/danny-model.jpg',
     isPrivate: false,
     gallery: ['/gallery/danny-1.png', '/gallery/danny-2.png', '/gallery/danny-3.png'],
     reliability: 96,
@@ -33,7 +33,7 @@ export const SEED_USERS: User[] = [
     city: 'Boynton Beach',
     favoriteSplit: 'Arnold Split',
     hue: 150,
-    avatar: '/avatars/mike.png',
+    avatar: '/avatars/mike-model.jpg',
     isPrivate: false,
     gallery: ['/gallery/mike-1.png', '/gallery/danny-2.png'],
     reliability: 88,
@@ -48,7 +48,7 @@ export const SEED_USERS: User[] = [
     city: 'Wellington',
     favoriteSplit: 'Upper / Lower',
     hue: 25,
-    avatar: '/avatars/jake.png',
+    avatar: '/avatars/jake-model.jpg',
     isPrivate: false,
   },
   {
@@ -60,7 +60,7 @@ export const SEED_USERS: User[] = [
     city: 'Boca Raton',
     favoriteSplit: 'Run + Full Body',
     hue: 330,
-    avatar: '/avatars/sarah.png',
+    avatar: '/avatars/sarah-model.jpg',
     isPrivate: true,
     gallery: ['/gallery/sarah-1.png'],
     reliability: 91,
@@ -75,7 +75,7 @@ export const SEED_USERS: User[] = [
     city: 'Delray Beach',
     favoriteSplit: 'Basketball + Conditioning',
     hue: 275,
-    avatar: '/avatars/andre.png',
+    avatar: '/avatars/andre-model.jpg',
     isPrivate: false,
   },
   {
@@ -87,7 +87,7 @@ export const SEED_USERS: User[] = [
     city: 'Wellington',
     favoriteSplit: 'CrossFit',
     hue: 190,
-    avatar: '/avatars/lena.png',
+    avatar: '/avatars/lena-model.jpg',
     isPrivate: false,
     gallery: ['/gallery/lena-1.png', '/gallery/danny-3.png'],
     reliability: 94,
@@ -302,3 +302,4 @@ export const COMMUNITY_CHANNEL_ID = 'community'
 export const SEED_FOLLOWING = ['u_mike', 'u_jake', 'u_sarah', 'u_andre', 'u_lena']
 /** Who follows the current user */
 export const SEED_FOLLOWERS = ['u_mike', 'u_jake', 'u_andre', 'u_lena']
+
