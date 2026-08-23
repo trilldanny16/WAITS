@@ -94,17 +94,14 @@ export function WorkoutCard({
               <Users size={14} className="text-muted-foreground" />
               {workout.attendees.length}/{workout.maxParticipants}
             </span>
-            <span className="inline-flex rounded-full bg-secondary px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              {visibilityLabel}
-            </span>
           </div>
         </div>
       </button>
 
       <div className="px-4 pb-4">
-        <div className="w-full">
+        <div className="mt-2 grid w-full grid-cols-[2fr_1fr] items-stretch gap-2">
           {isHost ? (
-            <span className="block w-full rounded-full bg-secondary px-4 py-2.5 text-center text-xs font-bold uppercase text-secondary-foreground mt-2">
+            <span className="block w-full rounded-full bg-secondary px-4 py-2.5 text-center text-xs font-bold uppercase text-secondary-foreground">
               YOUR WORKOUT
             </span>
           ) : joined ? (
@@ -116,12 +113,12 @@ export function WorkoutCard({
                 await leaveWorkout(workout.id)
                 setChangingAttendance(false)
               }}
-              className="block w-full rounded-full bg-accent px-4 py-2.5 text-center text-xs font-bold uppercase text-accent-foreground transition-transform active:scale-95 disabled:opacity-50 mt-2"
+              className="block w-full rounded-full bg-accent px-4 py-2.5 text-center text-xs font-bold uppercase text-accent-foreground transition-transform active:scale-95 disabled:opacity-50"
             >
               {changingAttendance ? 'Leaving…' : 'Leave'}
             </button>
           ) : full ? (
-            <span className="block w-full rounded-full bg-destructive/15 px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-wide text-destructive mt-2">
+            <span className="block w-full rounded-full bg-destructive/15 px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-wide text-destructive">
               Full
             </span>
           ) : (
@@ -133,11 +130,14 @@ export function WorkoutCard({
                 await joinWorkout(workout.id)
                 setChangingAttendance(false)
               }}
-              className="block w-full rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-lime-foreground shadow-sm transition-transform active:scale-95 mt-2"
+              className="block w-full rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-lime-foreground shadow-sm transition-transform active:scale-95"
             >
               {changingAttendance ? 'Joining…' : 'Wait Up!'}
             </button>
           )}
+          <span className="flex min-w-0 items-center justify-center rounded-full bg-secondary px-2 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            {visibilityLabel}
+          </span>
         </div>
       </div>
     </article>
