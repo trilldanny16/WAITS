@@ -94,12 +94,17 @@ export function WorkoutCard({
               <Users size={14} className="text-muted-foreground" />
               {workout.attendees.length}/{workout.maxParticipants}
             </span>
+            {!futureWorkout ? (
+              <span className="inline-flex rounded-full bg-secondary px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                {visibilityLabel}
+              </span>
+            ) : null}
           </div>
         </div>
       </button>
 
       <div className="px-4 pb-4">
-        <div className="mt-2 grid w-full grid-cols-[2fr_1fr] items-stretch gap-2">
+        <div className={cn('mt-2 w-full', futureWorkout && 'grid grid-cols-[2fr_1fr] items-stretch gap-2')}>
           {isHost ? (
             <span className="block w-full rounded-full bg-secondary px-4 py-2.5 text-center text-xs font-bold uppercase text-secondary-foreground">
               YOUR WORKOUT
@@ -135,9 +140,11 @@ export function WorkoutCard({
               {changingAttendance ? 'Joining…' : 'Wait Up!'}
             </button>
           )}
-          <span className="flex min-w-0 items-center justify-center rounded-full bg-secondary px-2 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            {visibilityLabel}
-          </span>
+          {futureWorkout ? (
+            <span className="flex min-w-0 items-center justify-center rounded-full bg-secondary px-2 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              {visibilityLabel}
+            </span>
+          ) : null}
         </div>
       </div>
     </article>
