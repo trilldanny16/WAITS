@@ -8,7 +8,7 @@ Native Expo/React Native client for WAITS. The existing Next.js app remains the 
 - EAS development, preview, and production cloud-build profiles
 - Persistent Supabase Auth session client
 - Adapty React Native initialization with advertising identifiers disabled
-- iOS 15 minimum and Sign in with Apple capability declared
+- iOS 16.4 minimum (required by Expo SDK 57) and Sign in with Apple capability declared
 
 ## Before the first device build
 
