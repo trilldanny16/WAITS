@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.waitsapp.waits",
-      "deploymentTarget": "15.0",
+      "deploymentTarget": "16.4",
       "usesAppleSignIn": true
     },
     "android": {
@@ -22,7 +22,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "15.0",
+            "deploymentTarget": "16.4",
             "useFrameworks": "dynamic"
           }
         }
