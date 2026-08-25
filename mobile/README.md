@@ -9,6 +9,9 @@ Native Expo/React Native client for WAITS. The existing Next.js app remains the 
 - Persistent Supabase Auth session client
 - Adapty React Native initialization with advertising identifiers disabled
 - iOS 16.4 minimum (required by Expo SDK 57) and Sign in with Apple capability declared
+- Persistent session provider, protected tabs, email sign-in/account creation, profile onboarding, and sign-out
+
+Apple and Google buttons will be enabled after their App Store/Supabase provider credentials are available; the session architecture already supports the existing WAITS user IDs.
 
 ## Before the first device build
 
