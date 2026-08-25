@@ -1,7 +1,11 @@
-import { Tabs } from 'expo-router'
+import { Redirect, Tabs } from 'expo-router'
 import { colors } from '@/theme'
+import { useAuth } from '@/providers/AuthProvider'
 
 export default function TabLayout() {
+  const { user, profile, loading } = useAuth()
+  if (!loading && !user) return <Redirect href="/(auth)/sign-in" />
+  if (!loading && !profile?.onboarding_completed) return <Redirect href="/onboarding" />
   return (
     <Tabs
       screenOptions={{
