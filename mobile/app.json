@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "WAITS",
+    "slug": "waits",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "waits",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.waitsapp.waits",
+      "deploymentTarget": "15.0",
+      "usesAppleSignIn": true
+    },
+    "android": {
+      "package": "com.waitsapp.waits"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.0",
+            "useFrameworks": "dynamic"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_AFTER_EAS_INIT"
+      }
+    }
+  }
+}
+
