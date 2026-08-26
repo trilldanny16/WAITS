@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import {
-  ArrowLeft, Bookmark, Check, Clock3, Dumbbell, Heart, Home, Image as ImageIcon,
-  Instagram, Menu, MessageCircle, MoreHorizontal, Play, Plus, Repeat2, Search,
-  Send, Share2, Sparkles, Users, Video, X,
+  ArrowLeft, Bookmark, Check, Clock3, Dumbbell, Heart, Home,
+  Menu, MessageCircle, MoreHorizontal, Play, Plus, Repeat2, Search,
+  Send, Share2, Sparkles, Video,
 } from "lucide-react";
 
 type Platform = "Instagram" | "TikTok" | "X" | "Facebook" | "Threads";
@@ -56,7 +56,7 @@ function InstagramPreview() {
     <div className="platformStack">
       <section className="phone light insta">
         <div className="phoneTop"><strong>9:41</strong><span>● ◒ ▰</span></div>
-        <div className="appBar"><Instagram/><strong>Instagram</strong><span><Plus/><Menu/></span></div>
+        <div className="appBar"><span className="igGlyph">◎</span><strong>Instagram</strong><span><Plus/><Menu/></span></div>
         <div className="profileRow"><Avatar size={84}/><div className="metrics"><Metric value="42" label="posts"/><Metric value="3,842" label="followers"/><Metric value="186" label="following"/></div></div>
         <h3>Come Thru <Verified/></h3><p className="handle">@comethruapp</p>
         <p className="bio">Your workout group chat, actually organized.<br/>Post the session. Find your people. <b>Wait Up!</b></p>
