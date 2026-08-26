@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, Plus, MessageCircle, User } from 'lucide-react'
+import { Home, Search, Plus, Inbox, User } from 'lucide-react'
 import { useNav, type Tab } from './navigation'
 import { cn } from '@/lib/utils'
 import { useStore } from './store'
@@ -9,7 +9,7 @@ const ITEMS: { tab: Tab; label: string; icon: typeof Home }[] = [
   { tab: 'home', label: 'Feed', icon: Home },
   { tab: 'search', label: 'Search', icon: Search },
   { tab: 'create', label: 'Create', icon: Plus },
-  { tab: 'chats', label: 'Chats', icon: MessageCircle },
+  { tab: 'chats', label: 'Chats', icon: Inbox },
   { tab: 'profile', label: 'Profile', icon: User },
 ]
 
