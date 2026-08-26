@@ -47,9 +47,10 @@ export function BottomNav() {
               setTab(t)
               if (t === 'chats') void refreshSocialState()
             }}
+            aria-label={label}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 text-[10px] font-medium transition-colors',
+              'flex flex-1 flex-col items-center justify-center rounded-xl py-1 transition-colors',
               active ? 'text-primary' : 'text-muted-foreground',
             )}
           >
@@ -61,7 +62,6 @@ export function BottomNav() {
                 </span>
               ) : null}
             </span>
-            {label}
           </button>
         )
       })}
