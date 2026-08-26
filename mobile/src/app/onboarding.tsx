@@ -14,26 +14,39 @@ export default function Onboarding() {
   const [error, setError] = useState<string | null>(null)
 
   const finish = async () => {
-    if (!user || name.trim().length < 2 || gym.trim().length < 2 || city.trim().length < 2) {
+    if (saving) return
+    const displayName = name.trim()
+    const homeGym = gym.trim()
+    const homeCity = city.trim()
+    if (!user) {
+      setError('Your session expired. Sign in again to finish your profile.')
+      return
+    }
+    if (displayName.length < 2 || homeGym.length < 2 || homeCity.length < 2) {
       setError('Add your name, gym, and city to continue.')
       return
     }
     setSaving(true)
     setError(null)
-    const { error: updateError } = await supabase.from('profiles').update({
-      display_name: name.trim(),
-      home_gym: gym.trim(),
-      city: city.trim(),
-      onboarding_completed: true,
-      updated_at: new Date().toISOString(),
-    }).eq('id', user.id)
-    if (updateError) {
-      setError(updateError.message)
+    try {
+      const { error: updateError } = await supabase.from('profiles').update({
+        display_name: displayName,
+        home_gym: homeGym,
+        city: homeCity,
+        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id)
+      if (updateError) {
+        setError('We could not save your profile. Check your connection and try again.')
+        return
+      }
+      await refreshProfile()
+      router.replace('/(tabs)')
+    } catch {
+      setError('WAITS could not connect. Check your internet connection and try again.')
+    } finally {
       setSaving(false)
-      return
     }
-    await refreshProfile()
-    router.replace('/(tabs)')
   }
 
   return (
@@ -42,11 +55,11 @@ export default function Onboarding() {
         <Text style={styles.logo}>WAITS</Text>
         <Text style={styles.title}>Set up your profile</Text>
         <Text style={styles.subtitle}>This helps friends recognize you and understand where you normally train.</Text>
-        <TextInput value={name} onChangeText={setName} placeholder="Display name" placeholderTextColor={colors.muted} style={styles.input} maxLength={50} />
-        <TextInput value={gym} onChangeText={setGym} placeholder="Home gym" placeholderTextColor={colors.muted} style={styles.input} maxLength={80} />
-        <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.muted} style={styles.input} maxLength={80} />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Pressable onPress={() => void finish()} disabled={saving} style={styles.button}>
+        <TextInput value={name} onChangeText={setName} editable={!saving} autoCapitalize="words" autoComplete="name" textContentType="name" returnKeyType="next" placeholder="Display name" placeholderTextColor={colors.muted} style={styles.input} maxLength={50} accessibilityLabel="Display name" />
+        <TextInput value={gym} onChangeText={setGym} editable={!saving} autoCapitalize="words" returnKeyType="next" placeholder="Home gym" placeholderTextColor={colors.muted} style={styles.input} maxLength={80} accessibilityLabel="Home gym" />
+        <TextInput value={city} onChangeText={setCity} editable={!saving} autoCapitalize="words" textContentType="addressCity" returnKeyType="done" onSubmitEditing={() => void finish()} placeholder="City" placeholderTextColor={colors.muted} style={styles.input} maxLength={80} accessibilityLabel="City" />
+        {error ? <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">{error}</Text> : null}
+        <Pressable onPress={() => void finish()} disabled={saving} accessibilityRole="button" accessibilityLabel="Continue to WAITS" accessibilityState={{ disabled: saving, busy: saving }} style={({ pressed }) => [styles.button, pressed && !saving && styles.pressed, saving && styles.disabled]}>
           {saving ? <ActivityIndicator color={colors.ink} /> : <Text style={styles.buttonText}>CONTINUE</Text>}
         </Pressable>
         <Text style={styles.note}>Your exact workout location is only shared according to each workout's privacy setting.</Text>
@@ -65,6 +78,8 @@ const styles = StyleSheet.create({
   error: { marginTop: 14, color: '#D92D20', fontSize: 13, fontWeight: '600' },
   button: { height: 54, marginTop: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: colors.lime },
   buttonText: { color: colors.ink, fontSize: 14, fontWeight: '900' },
+  pressed: { transform: [{ scale: 0.99 }], opacity: 0.9 },
+  disabled: { opacity: 0.55 },
   note: { marginTop: 16, textAlign: 'center', color: colors.muted, fontSize: 11, lineHeight: 16 },
 })
 

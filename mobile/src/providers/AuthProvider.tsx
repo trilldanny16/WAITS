@@ -1,5 +1,5 @@
 import type { Session, User } from '@supabase/supabase-js'
-import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react'
 import { identifyAdaptyUser } from '@/lib/adapty'
 import { supabase } from '@/lib/supabase'
 
@@ -27,9 +27,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<MobileProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const currentUserId = useRef<string | null>(null)
 
-  const loadProfile = async (userId?: string) => {
-    const id = userId ?? session?.user.id
+  const loadProfile = useCallback(async (userId?: string) => {
+    const id = userId ?? currentUserId.current
     if (!id) {
       setProfile(null)
       return
@@ -39,13 +40,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .select('id,display_name,home_gym,city,onboarding_completed,is_pro')
       .eq('id', id)
       .maybeSingle<MobileProfile>()
-    setProfile(data ?? null)
-  }
+    if (currentUserId.current === id) setProfile(data ?? null)
+  }, [])
 
   useEffect(() => {
     let active = true
     void supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return
+      currentUserId.current = data.session?.user.id ?? null
       setSession(data.session)
       if (data.session) {
         await Promise.all([
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      currentUserId.current = nextSession?.user.id ?? null
       setSession(nextSession)
       if (!nextSession) setProfile(null)
       else {
@@ -69,7 +72,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       active = false
       listener.subscription.unsubscribe()
     }
-  }, [])
+  }, [loadProfile])
 
   const value = useMemo<AuthState>(() => ({
     session,
@@ -77,8 +80,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     profile,
     loading,
     refreshProfile: () => loadProfile(),
-    signOut: async () => { await supabase.auth.signOut() },
-  }), [session, profile, loading])
+    signOut: async () => {
+      setLoading(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        setLoading(false)
+        throw error
+      }
+    },
+  }), [session, profile, loading, loadProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -16,27 +16,37 @@ export default function SignIn() {
   if (!loading && user) return <Redirect href="/" />
 
   const submit = async () => {
+    if (submitting) return
     const normalizedEmail = email.trim().toLowerCase()
-    if (!normalizedEmail || password.length < 8) {
+    const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    if (!looksLikeEmail || password.length < 8) {
       setMessage('Enter your email and a password with at least 8 characters.')
       return
     }
     setSubmitting(true)
     setMessage(null)
-    const result = creating
-      ? await supabase.auth.signUp({ email: normalizedEmail, password })
-      : await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
-    setSubmitting(false)
-    if (result.error) {
-      setMessage(result.error.message)
-      return
+    try {
+      const result = creating
+        ? await supabase.auth.signUp({ email: normalizedEmail, password })
+        : await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+      if (result.error) {
+        setMessage(creating
+          ? 'We could not create that account. Check your details and try again.'
+          : 'We could not sign you in. Check your email and password and try again.')
+        return
+      }
+      if (creating && !result.data.session) {
+        setMessage('Check your email to confirm your WAITS account, then sign in.')
+        setCreating(false)
+        setPassword('')
+        return
+      }
+      router.replace('/')
+    } catch {
+      setMessage('WAITS could not connect. Check your internet connection and try again.')
+    } finally {
+      setSubmitting(false)
     }
-    if (creating && !result.data.session) {
-      setMessage('Check your email to confirm your WAITS account, then sign in.')
-      setCreating(false)
-      return
-    }
-    router.replace('/')
   }
 
   return (
@@ -50,13 +60,13 @@ export default function SignIn() {
         <View style={styles.card}>
           <Text style={styles.title}>{creating ? 'Create your account' : 'Welcome back'}</Text>
           <Text style={styles.subtitle}>{creating ? 'Join friends who already have a gym membership.' : 'Sign in to your workouts, chats, and schedule.'}</Text>
-          <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" placeholder="Email" placeholderTextColor={colors.muted} style={styles.input} />
-          <TextInput value={password} onChangeText={setPassword} secureTextEntry autoComplete={creating ? 'new-password' : 'current-password'} placeholder="Password" placeholderTextColor={colors.muted} style={styles.input} />
-          {message ? <Text style={styles.message}>{message}</Text> : null}
-          <Pressable onPress={() => void submit()} disabled={submitting} style={({ pressed }) => [styles.primary, pressed && styles.pressed, submitting && styles.disabled]}>
+          <TextInput value={email} onChangeText={setEmail} editable={!submitting} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" textContentType="emailAddress" returnKeyType="next" placeholder="Email" placeholderTextColor={colors.muted} style={styles.input} accessibilityLabel="Email address" />
+          <TextInput value={password} onChangeText={setPassword} editable={!submitting} secureTextEntry autoComplete={creating ? 'new-password' : 'current-password'} textContentType={creating ? 'newPassword' : 'password'} returnKeyType="go" onSubmitEditing={() => void submit()} placeholder="Password" placeholderTextColor={colors.muted} style={styles.input} accessibilityLabel="Password" />
+          {message ? <Text style={styles.message} accessibilityRole="alert" accessibilityLiveRegion="polite">{message}</Text> : null}
+          <Pressable onPress={() => void submit()} disabled={submitting} accessibilityRole="button" accessibilityLabel={creating ? 'Create account' : 'Sign in'} accessibilityState={{ disabled: submitting, busy: submitting }} style={({ pressed }) => [styles.primary, pressed && !submitting && styles.pressed, submitting && styles.disabled]}>
             {submitting ? <ActivityIndicator color={colors.ink} /> : <Text style={styles.primaryText}>{creating ? 'CREATE ACCOUNT' : 'SIGN IN'}</Text>}
           </Pressable>
-          <Pressable onPress={() => { setCreating((value) => !value); setMessage(null) }} style={styles.switchButton}>
+          <Pressable disabled={submitting} accessibilityRole="button" accessibilityState={{ disabled: submitting }} onPress={() => { setCreating((value) => !value); setMessage(null); setPassword('') }} style={styles.switchButton}>
             <Text style={styles.switchText}>{creating ? 'Already have an account? Sign in' : 'New to WAITS? Create an account'}</Text>
           </Pressable>
         </View>
