@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Wordmark } from "@/components/wordmark";
 import {
-  ArrowLeft, Bookmark, Check, Clock3, Dumbbell, Heart, Home,
+  ArrowLeft, Bookmark, Check, Dumbbell, Heart, Home,
   Menu, MessageCircle, MoreHorizontal, Play, Plus, Repeat2, Search,
   Send, Share2, Sparkles, Video,
 } from "lucide-react";
@@ -31,14 +32,13 @@ const grid = [
 function Brand({ inverse = false }: { inverse?: boolean }) {
   return (
     <div className="brand" style={{ color: inverse ? "white" : "#0A84FF" }}>
-      <span className="brandIcon"><Clock3 size={16}/><Dumbbell size={13}/></span>
-      <span>WAITS</span>
+      <Wordmark iconSize={22} strokeWidth={2.4}/>
     </div>
   );
 }
 
 function Avatar({ size = 44 }: { size?: number }) {
-  return <div className="avatar" style={{ width: size, height: size }}><Clock3/><Dumbbell/></div>;
+  return <div className="avatar" style={{ width: size, height: size, background: "#BAFF29", color: "#1C1C1E" }}><Dumbbell strokeWidth={2.6} style={{ position: "static", width: "54%", height: "54%", opacity: 1, transform: "none" }}/></div>;
 }
 
 function Verified() { return <span className="verified"><Check size={10}/></span>; }
