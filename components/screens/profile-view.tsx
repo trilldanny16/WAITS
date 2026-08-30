@@ -541,6 +541,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <ChevronLeft size={20} /> Back
           </button>
         ) : null}
+        {isSelf ? <ShareWaitsButton /> : null}
         {showProBadge ? (
           <span className="ml-auto flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Verified WAITS Pro member">
             <Crown size={24} />
@@ -699,7 +700,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               >
                 Settings
               </button>
-              <ShareWaitsButton />
             </div>
 
             
