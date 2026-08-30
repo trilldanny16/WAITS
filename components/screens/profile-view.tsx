@@ -22,6 +22,7 @@ import {
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
+import { ShareWaitsButton } from '../share-waits-button'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
@@ -698,6 +699,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               >
                 Settings
               </button>
+              <ShareWaitsButton />
             </div>
 
             
