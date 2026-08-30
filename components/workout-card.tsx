@@ -28,6 +28,7 @@ export function WorkoutCard({
   const isHost = workout.hostId === currentUserId
   const futureWorkout = workout.date !== todayISO()
   const visibilityLabel = workout.visibility === 'friends' ? 'Friends' : 'Public'
+  const visibilityColor = workout.visibility === 'friends' ? 'bg-yellow-300 text-yellow-950' : 'bg-orange-400 text-orange-950'
   const dateLabel = futureWorkout ? formatDateLabel(workout.date) : null
   const locationLabel = workout.address.toLowerCase().includes(workout.city.toLowerCase())
     ? workout.address
@@ -95,7 +96,7 @@ export function WorkoutCard({
               {workout.attendees.length}/{workout.maxParticipants}
             </span>
             {!futureWorkout ? (
-              <span className="inline-flex rounded-full bg-secondary px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <span className={cn('inline-flex rounded-full px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em]', visibilityColor)}>
                 {visibilityLabel}
               </span>
             ) : null}
@@ -137,11 +138,11 @@ export function WorkoutCard({
               }}
               className="block w-full rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-lime-foreground shadow-sm transition-transform active:scale-95"
             >
-              {changingAttendance ? 'Joining…' : 'Wait Up!'}
+              {changingAttendance ? 'Joining…' : workout.date > todayISO() ? 'Lock Me In!' : 'Wait Up!'}
             </button>
           )}
           {futureWorkout ? (
-            <span className="flex min-w-0 items-center justify-center rounded-full bg-secondary px-2 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className={cn('flex min-w-0 items-center justify-center rounded-full px-2 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.14em]', visibilityColor)}>
               {visibilityLabel}
             </span>
           ) : null}

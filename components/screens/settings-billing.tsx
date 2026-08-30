@@ -135,10 +135,11 @@ export function SettingsBilling() {
           </button>
         </section>
 
-        <section className="mt-5 rounded-3xl bg-card p-4 ring-1 ring-border">
-          <h2 className="text-sm font-bold text-card-foreground">Gym access</h2>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access. WAITS does not sell gym memberships or guarantee entry.
+        <section aria-labelledby="gym-access-heading" className="mt-5 rounded-3xl border border-red-500/30 bg-red-500/10 p-4 text-center">
+          <h2 id="gym-access-heading" className="text-sm font-extrabold text-red-600">Gym Access</h2>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-foreground">
+            WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access.
+            <strong className="mt-2 block font-extrabold">WAITS does not sell gym memberships or guarantee entry.</strong>
           </p>
         </section>
 
