@@ -282,24 +282,6 @@ const declineFriendRequest = async (requestId: string) => {
     </div>
   </section>
 ) : null}
-        {/* Public community channel — pinned entry point */}
-        <button
-          type="button"
-          onClick={openCommunity}
-          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-primary p-3.5 text-left text-primary-foreground shadow-md shadow-primary/25"
-        >
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-            <Globe size={24} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold">Waits Community</p>
-            <p className="truncate text-xs text-primary-foreground/80">
-              Public channel · Messages expire after 24 hours
-            </p>
-          </div>
-          <ChevronRight size={20} className="shrink-0 text-primary-foreground/70" />
-        </button>
-
         <section className="mb-4">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personal DMs</p>
@@ -365,6 +347,24 @@ const declineFriendRequest = async (requestId: string) => {
             </div>
           )}
         </section>
+
+        {/* Public community channel — pinned entry point */}
+        <button
+          type="button"
+          onClick={openCommunity}
+          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-primary p-3.5 text-left text-primary-foreground shadow-md shadow-primary/25"
+        >
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+            <Globe size={24} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold">Waits Community</p>
+            <p className="truncate text-xs text-primary-foreground/80">
+              Public channel · Messages expire after 24 hours
+            </p>
+          </div>
+          <ChevronRight size={20} className="shrink-0 text-primary-foreground/70" />
+        </button>
 
         <p className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Crew Chats
