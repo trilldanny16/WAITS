@@ -25,8 +25,8 @@ const isUnexpired = (message: CommunityMessageRow, now = Date.now()) =>
   new Date(message.created_at).getTime() > now - COMMUNITY_MESSAGE_LIFETIME_MS
 
 export function CommunityChat() {
-  const { getUser, currentUserId, users, pushToast, isPremium } = useStore()
-  const { back, openUser, openPaywall } = useNav()
+  const { getUser, currentUserId, users, pushToast } = useStore()
+  const { back, openUser } = useNav()
   const [messages, setMessages] = useState<CommunityMessageRow[]>([])
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
@@ -107,7 +107,7 @@ export function CommunityChat() {
 
   const submit = async () => {
     const trimmedText = text.trim()
-    if (!isPremium || !trimmedText || sending) return
+    if (!trimmedText || sending) return
 
     setSending(true)
     setError(null)
@@ -138,7 +138,7 @@ export function CommunityChat() {
   const sendMedia = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!isPremium || !file || uploading) return
+    if (!file || uploading) return
 
     setUploading(true)
     setError(null)
@@ -176,7 +176,7 @@ export function CommunityChat() {
 
   const saveEdit = async (messageId: string) => {
     const trimmedText = editText.trim()
-    if (!isPremium || !trimmedText || mutatingId) return
+    if (!trimmedText || mutatingId) return
 
     setMutatingId(messageId)
     setError(null)
@@ -266,7 +266,7 @@ export function CommunityChat() {
                   <span className="truncate text-sm font-bold text-card-foreground">{mine ? 'You' : user.name}</span>
                   <span className="shrink-0 text-[11px] text-muted-foreground">{relativeMessageTime(new Date(message.created_at).getTime())}</span>
                 </div>
-                {isPremium && editingId === message.id ? (
+                {editingId === message.id ? (
                   <div className="mt-2 space-y-2">
                     <input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={2000} autoFocus className="w-full rounded-xl bg-background px-3 py-2 text-sm text-foreground outline-none ring-1 ring-border focus:ring-2 focus:ring-primary" />
                     <div className="flex gap-2">
@@ -280,7 +280,7 @@ export function CommunityChat() {
                     {message.media_path ? <ChatMedia path={message.media_path} alt="Community chat upload" /> : null}
                     {mine ? (
                       <div className="mt-2 flex gap-3">
-                        {isPremium && message.text ? <button type="button" onClick={() => { setEditingId(message.id); setEditText(message.text ?? '') }} disabled={Boolean(mutatingId)} className="text-xs font-semibold text-primary disabled:opacity-40">Edit</button> : null}
+                        {message.text ? <button type="button" onClick={() => { setEditingId(message.id); setEditText(message.text ?? '') }} disabled={Boolean(mutatingId)} className="text-xs font-semibold text-primary disabled:opacity-40">Edit</button> : null}
                         <button type="button" onClick={() => void deleteMessage(message.id)} disabled={Boolean(mutatingId)} className="text-xs font-semibold text-destructive disabled:opacity-40">{mutatingId === message.id ? 'Deleting…' : 'Delete'}</button>
                       </div>
                     ) : null}
@@ -292,19 +292,14 @@ export function CommunityChat() {
         })}
       </div>
 
-      {isPremium ? <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
+      <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
         <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={sendMedia} className="hidden" />
         <button type="button" onClick={() => mediaInputRef.current?.click()} disabled={uploading} aria-label="Add photo" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><ImagePlus size={19} /></button>
         <input value={text} onChange={(event) => setText(event.target.value)} onCompositionStart={() => (composingRef.current = true)} onCompositionEnd={() => (composingRef.current = false)} onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey && !composingRef.current && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void submit() }
         }} placeholder="Post to the community…" className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary" />
         <button type="button" onClick={() => void submit()} disabled={!text.trim() || sending} aria-label="Post" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-90 disabled:opacity-40"><Send size={18} /></button>
-      </div> : (
-        <div className="shrink-0 border-t border-border bg-card p-4 text-center">
-          <p className="text-sm text-muted-foreground">Posting In Community Requires WAITS Pro.</p>
-          <button onClick={() => openPaywall('Community Posting')} className="mt-2 rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">Upgrade To Pro</button>
-        </div>
-      )}
+      </div>
     </div>
   )
 }

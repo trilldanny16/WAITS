@@ -11,10 +11,9 @@ do $$ begin
  insert into public.direct_messages(conversation_id,sender_id,text) values(current_setting('test.dm_id')::uuid,auth.uid(),'rollback test');
  raise exception 'Free sent DM';
  exception when insufficient_privilege then null; end;
- begin
- insert into public.community_messages(user_id,text) values(auth.uid(),'rollback test');
- raise exception 'Free posted community';
- exception when insufficient_privilege then null; end;
+ insert into public.community_messages(user_id,text) values(auth.uid(),'rollback Free community');
+ update public.community_messages set text='rollback Free edited community' where user_id=auth.uid() and text='rollback Free community';
+ if not exists(select 1 from public.community_messages where user_id=auth.uid() and text='rollback Free edited community') then raise exception 'Free community edit failed'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub','',true);
