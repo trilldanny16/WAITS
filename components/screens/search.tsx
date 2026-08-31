@@ -276,7 +276,7 @@ const realMatchedUsers = useMemo(() => {
             ) : (
               <div className="space-y-3">
                 {matchedWorkouts.map((w) => (
-                  <WorkoutCard key={w.id} workout={w} joinLabel="Lock Me In!" />
+                  <WorkoutCard key={w.id} workout={w} />
                 ))}
               </div>
             )}
