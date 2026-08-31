@@ -86,7 +86,7 @@ export function WorkoutCard({
               {formatTime(workout.time)}
             </span>
             {dateLabel ? (
-              <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">
                 {dateLabel}
               </span>
             ) : null}
