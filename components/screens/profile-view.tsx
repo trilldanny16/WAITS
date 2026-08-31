@@ -581,10 +581,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             ) : null}
           </div>
           {avatarError ? <p className="mt-2 text-xs font-medium text-red-500">{avatarError}</p> : null}
-          <h1 className="mt-3 flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
+          <p className="mt-3 text-sm text-muted-foreground">@{user.username}</p>
+          <h1 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
             {user.name}
           </h1>
-          <p className="text-sm text-muted-foreground">@{user.username}</p>
           <p className="mt-1 flex items-center gap-1 text-sm font-medium text-foreground">
             <MapPin size={14} className="text-primary" />
             {user.homeGym}
@@ -611,14 +611,14 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           />
         </div>
 
-        {/* Favorite split */}
+        {/* Favorite workout */}
         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
           <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
             <Dumbbell size={20} />
           </span>
           <div className="flex-1 text-center">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Favorite Split
+              Favorite Workout
             </p>
             <p className="text-sm font-semibold text-card-foreground">{user.favoriteSplit}</p>
           </div>
@@ -650,7 +650,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
                   />
                   <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-                    City
+                    Home Town
                   </label>
                   <input
                     value={editCity}
@@ -666,7 +666,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
                     rows={3}
                   />
-                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">Favorite Split</label>
+                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">Favorite Workout</label>
                   <input value={editFavoriteSplit} onChange={(event) => setEditFavoriteSplit(event.target.value)} placeholder="Push / Pull / Legs" className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none" />
                   {editError ? (
                     <p className="mt-3 text-sm font-medium text-red-500">{editError}</p>
