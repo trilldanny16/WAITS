@@ -460,6 +460,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
   const followed = isFollowing(userId)
   const locked = user.isPrivate && !isSelf && !followed
+  // Accepted connections populate both lists; a pending/one-way follow is not enough.
+  const mutuallyFollowing = following.includes(userId) && followers.includes(userId)
+  const scheduleLocked = locked || (!isSelf && !isPremium && !mutuallyFollowing)
   const showProBadge = user.isVerifiedPro === true
   const gallery = galleryFor(userId)
   // Gallery access is enforced by both the Pro UI gate and Supabase RLS.
@@ -498,10 +501,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
   const scheduledWorkouts = useMemo(
     () =>
-      workouts
+      (scheduleLocked ? [] : workouts)
         .filter((workout) => workout.hostId === userId || workout.attendees.includes(userId))
         .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
-    [workouts, userId],
+    [workouts, userId, scheduleLocked],
   )
 
   // Weekly schedule keyed by weekday (Mon=0 .. Sun=6) so recurring
@@ -930,14 +933,14 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           </section>
         ) : null}
 
-        {locked ? (
+        {scheduleLocked ? (
           <div className="mt-6 flex flex-col items-center rounded-3xl bg-card px-6 py-10 text-center ring-1 ring-border">
             <span className="flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Lock size={24} />
             </span>
-            <h2 className="mt-3 text-base font-bold text-foreground">This account is private</h2>
+            <h2 className="mt-3 text-base font-bold text-foreground">{locked ? 'This account is private' : 'Weekly Schedule Locked'}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Follow {user.name.split(' ')[0]} to see their weekly schedule and workouts.
+              You and {user.name.split(' ')[0]} must follow each other to view their weekly schedule.
             </p>
           </div>
         ) : (
