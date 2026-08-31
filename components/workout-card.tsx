@@ -90,7 +90,7 @@ export function WorkoutCard({
                 {dateLabel}
               </span>
             ) : null}
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-muted-foreground">
               <Users size={14} className="text-muted-foreground" />
               {workout.attendees.length}/{workout.maxParticipants}
             </span>
