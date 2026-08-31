@@ -754,7 +754,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                   </>
                 )}
               </button>
-              {followed && isPersistedProfile ? (
+              {isPremium && followed && isPersistedProfile ? (
                 <button type="button" disabled={startingDm !== null} onClick={() => void startDirectMessage(userId)}
                   className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow disabled:opacity-50">
                   {startingDm === userId ? 'Opening…' : 'Message'}
