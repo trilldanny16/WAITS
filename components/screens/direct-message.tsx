@@ -21,8 +21,8 @@ type DirectMessageRow = {
 }
 
 export function DirectMessage({ id }: { id: string }) {
-  const { back } = useNav()
-  const { currentUserId, getUser, pushToast } = useStore()
+  const { back, openPaywall } = useNav()
+  const { currentUserId, getUser, pushToast, isPremium } = useStore()
   const [otherId, setOtherId] = useState<string | null>(null)
   const [messages, setMessages] = useState<DirectMessageRow[]>([])
   const [text, setText] = useState('')
@@ -32,6 +32,7 @@ export function DirectMessage({ id }: { id: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const loadConversation = useCallback(async () => {
+    if (!isPremium) { setMessages([]); setOtherId(null); return }
     const { data: conversation, error: conversationError } = await supabase
       .from('direct_conversations')
       .select('participant_a, participant_b')
@@ -39,7 +40,9 @@ export function DirectMessage({ id }: { id: string }) {
       .single()
 
     if (conversationError || !conversation) {
-      setError('This conversation is unavailable.')
+      setMessages([])
+      setOtherId(null)
+      setError('This conversation requires two connected Pro members.')
       return
     }
 
@@ -56,16 +59,17 @@ export function DirectMessage({ id }: { id: string }) {
     }
     setMessages((data ?? []) as DirectMessageRow[])
     setError(null)
-  }, [currentUserId, id])
+  }, [currentUserId, id, isPremium])
 
   useEffect(() => {
+    if (!isPremium) { setMessages([]); setOtherId(null); return }
     void loadConversation()
     const channel = supabase
       .channel(`direct-messages:${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages', filter: `conversation_id=eq.${id}` }, () => void loadConversation())
       .subscribe()
     return () => { void supabase.removeChannel(channel) }
-  }, [id, loadConversation])
+  }, [id, loadConversation, isPremium])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -74,7 +78,7 @@ export function DirectMessage({ id }: { id: string }) {
 
   const sendText = async () => {
     const trimmed = text.trim()
-    if (!trimmed || sending) return
+    if (!isPremium || !otherId || !trimmed || sending) return
     setSending(true)
     const { error: sendError } = await supabase
       .from('direct_messages')
@@ -92,7 +96,7 @@ export function DirectMessage({ id }: { id: string }) {
   const sendMedia = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file || sending) return
+    if (!isPremium || !otherId || !file || sending) return
     setSending(true)
 
     const upload = await uploadChatMedia(file, currentUserId)
@@ -123,6 +127,15 @@ export function DirectMessage({ id }: { id: string }) {
     setSending(false)
   }
 
+  if (!isPremium) return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
+      <h1 className="text-xl font-bold">Personal DMs Are Pro Only</h1>
+      <p className="text-sm text-muted-foreground">Free members can chat in workouts they host or join.</p>
+      <button onClick={() => openPaywall('Personal DMs')} className="rounded-full bg-primary px-6 py-3 font-bold text-primary-foreground">Upgrade To Pro</button>
+      <button onClick={back} className="text-sm font-bold">Back</button>
+    </div>
+  )
+
   const other = otherId ? getUser(otherId) : null
 
   return (
@@ -134,7 +147,7 @@ export function DirectMessage({ id }: { id: string }) {
         {other ? <Avatar user={other} size={40} /> : null}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-sm font-extrabold text-card-foreground">{other?.name ?? 'Direct Message'}</h1>
-          <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><ShieldCheck size={11} /> Connected members only</p>
+          <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><ShieldCheck size={11} /> Connected Pro members only</p>
         </div>
       </header>
 

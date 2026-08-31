@@ -8,7 +8,7 @@ import { PremiumCheckout } from '../premium-checkout'
 import { PRO_PLAN } from '@/lib/products'
 
 const PERKS = [
-  { icon: MessageCircle, title: 'Start Personal DMs', body: 'Start private conversations with your connections. Free members can reply.' },
+  { icon: MessageCircle, title: 'Start Personal DMs', body: 'Private conversations between connected Pro members. Pro is required to read, send, and reply.' },
   { icon: Images, title: 'See Everyone’s Gallery', body: 'Unlock other members’ gym progress photos.' },
   { icon: BarChart3, title: 'Reliability & Stats', body: 'Attendance streaks, reliability score & weekly insights.' },
   { icon: Users, title: 'Larger Workout Groups', body: 'Host more people with expanded participant capacity.' },

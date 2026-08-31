@@ -33,6 +33,7 @@ export function ChatsList() {
   const followingPeople = useMemo(() => Array.from(new Set(following))
     .filter((id) => id !== currentUserId)
     .map(getUser)
+    .filter((person) => person.isVerifiedPro === true)
     .filter((person) => (person.name + ' ' + person.username).toLowerCase().includes(peopleQuery.trim().toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name)), [following, currentUserId, getUser, peopleQuery])
   const inboxConnections = directConnections.filter((connection) => connection.conversationId)
@@ -156,6 +157,7 @@ const declineFriendRequest = async (requestId: string) => {
 }
 
   const loadDirectConnections = useCallback(async () => {
+    if (!isPremium) { setDirectConnections([]); setLoadingConnections(false); return }
     setLoadingConnections(true)
     const { data: accepted, error: connectionError } = await supabase
       .from('friend_requests')
@@ -190,9 +192,10 @@ const declineFriendRequest = async (requestId: string) => {
       return { otherId, conversationId: conversation?.id ?? null }
     }))
     setLoadingConnections(false)
-  }, [currentUserId])
+  }, [currentUserId, isPremium])
 
   useEffect(() => {
+    if (!isPremium) { setDirectConnections([]); setShowNewMessage(false); return }
     void loadDirectConnections()
     const refresh = () => void loadDirectConnections()
     window.addEventListener('focus', refresh)
@@ -203,7 +206,7 @@ const declineFriendRequest = async (requestId: string) => {
       window.removeEventListener('focus', refresh)
       void supabase.removeChannel(channel)
     }
-  }, [loadDirectConnections, currentUserId, following])
+  }, [loadDirectConnections, currentUserId, following, isPremium])
 
   const myWorkouts = useMemo(
     () =>
@@ -281,7 +284,7 @@ const declineFriendRequest = async (requestId: string) => {
     </div>
   </section>
 ) : null}
-        <section className="mb-4">
+        {isPremium ? <section className="mb-4">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personal DMs</p>
             {isPremium ? <button type="button" aria-label="New Message" aria-expanded={showNewMessage} aria-controls="new-message-picker"
@@ -301,7 +304,7 @@ const declineFriendRequest = async (requestId: string) => {
                 <input autoFocus aria-label="Search people you follow" placeholder="Search people you follow" value={peopleQuery} maxLength={100}
                   onChange={(event) => setPeopleQuery(event.target.value)} className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none" />
               </label>
-              <p className="my-3 text-xs text-muted-foreground">Choose an accepted connection. Pro starts new DMs; everyone can reply.</p>
+              <p className="my-3 text-xs text-muted-foreground">Choose an accepted connection. Both members must have WAITS Pro to use personal DMs.</p>
               <div className="max-h-64 space-y-1 overflow-y-auto">
                 {followingPeople.map((person) => (
                   <button type="button" key={person.id} disabled={startingDm !== null} onClick={() => void startDirectMessage(person.id)}
@@ -311,14 +314,14 @@ const declineFriendRequest = async (requestId: string) => {
                     <span className="text-xs font-bold text-primary">{startingDm === person.id ? 'Opening…' : 'Message'}</span>
                   </button>
                 ))}
-                {followingPeople.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">{peopleQuery.trim() ? 'No matching people.' : 'Your accepted connections will appear here. Find people in Social and connect first.'}</p> : null}
+                {followingPeople.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">{peopleQuery.trim() ? 'No matching people.' : 'Your accepted Pro connections will appear here. Find people in Social and connect first.'}</p> : null}
               </div>
             </section>
           ) : null}
           {requestError ? <p role="alert" className="mb-2 text-sm text-red-600">{requestError}</p> : null}
           {loadingConnections ? <p role="status" className="py-3 text-center text-sm text-muted-foreground">Loading conversations…</p> : inboxConnections.length === 0 ? (
             <div className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground ring-1 ring-border">
-              {isPremium ? 'No conversations yet. Tap the compose icon to message someone you follow.' : 'No conversations yet. When a Pro connection messages you, you can reply here.'}
+              No conversations yet. Tap the compose icon to message a Pro connection.
             </div>
           ) : (
             <div className="space-y-2">
@@ -345,7 +348,7 @@ const declineFriendRequest = async (requestId: string) => {
               })}
             </div>
           )}
-        </section>
+        </section> : null}
 
         {/* Public community channel — pinned entry point */}
         <button

@@ -14,6 +14,7 @@ export function useStartDirectMessage() {
 
   const startDirectMessage = async (otherId: string) => {
     if (busy.current || !currentUserId || otherId === currentUserId) return
+    if (!isPremium) { openPaywall('Personal DMs'); return }
     busy.current = true
     setStartingDm(otherId)
     try {
@@ -27,10 +28,6 @@ export function useStartDirectMessage() {
       if (existing.error) throw existing.error
       if (existing.data) {
         openDm(existing.data.id)
-        return
-      }
-      if (!isPremium) {
-        openPaywall('Start personal DMs')
         return
       }
       const created = await supabase.from('direct_conversations')
@@ -49,7 +46,7 @@ export function useStartDirectMessage() {
     } catch {
       pushToast({
         title: 'DM unavailable',
-        body: 'Make sure your connection is accepted and your Pro membership is active, then try again.',
+        body: 'Both members need an active Pro membership and an accepted connection.',
       })
     } finally {
       busy.current = false
