@@ -22,6 +22,7 @@ import {
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
+import { useStartDirectMessage } from '../use-start-direct-message'
 import { ShareWaitsButton } from '../share-waits-button'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime } from '@/lib/date-utils'
@@ -80,6 +81,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   } = useStore()
 
   const { back, openWorkout, openPaywall, openSettings } = useNav()
+  const { startDirectMessage, startingDm } = useStartDirectMessage()
   const user = getUser(userId)
   const isSelf = userId === currentUserId
   const isPersistedProfile = isPersistedUserId(userId)
@@ -746,6 +748,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                   </>
                 )}
               </button>
+              {followed && isPersistedProfile ? (
+                <button type="button" disabled={startingDm !== null} onClick={() => void startDirectMessage(userId)}
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow disabled:opacity-50">
+                  {startingDm === userId ? 'Opening…' : 'Message'}
+                </button>
+              ) : null}
               {connectionError ? (
                 <p role="alert" className="mt-2 text-center text-sm font-medium text-red-500">
                   {connectionError}
