@@ -120,7 +120,7 @@ export function SettingsBilling() {
                 {isPremium ? 'WAITS Pro' : 'WAITS Free'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {isPremium ? 'Your Pro membership is active.' : 'Upgrade for chats, galleries, stats, and more.'}
+                {isPremium ? 'Your Pro membership is active.' : 'Upgrade to start personal DMs, host larger groups, and unlock galleries and stats.'}
               </p>
             </div>
           </div>

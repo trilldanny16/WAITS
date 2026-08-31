@@ -8,10 +8,10 @@ import { PremiumCheckout } from '../premium-checkout'
 import { PRO_PLAN } from '@/lib/products'
 
 const PERKS = [
-  { icon: MessageCircle, title: 'Crew chats', body: 'Message everyone in a workout you join or host.' },
+  { icon: MessageCircle, title: 'Start personal DMs', body: 'Start private conversations with your connections. Free members can reply.' },
   { icon: Images, title: 'See everyone’s gallery', body: 'Unlock other members’ gym progress photos.' },
   { icon: BarChart3, title: 'Reliability & stats', body: 'Attendance streaks, reliability score & weekly insights.' },
-  { icon: Users, title: 'Unlimited groups & workouts', body: 'Choose any participant capacity and post as many sessions as you want.' },
+  { icon: Users, title: 'Larger workout groups', body: 'Host more people with expanded participant capacity.' },
   { icon: Sparkles, title: 'Pro profile', body: 'A Pro badge and a custom profile accent color.' },
 ]
 
@@ -66,6 +66,8 @@ export function Paywall({ feature }: { feature?: string }) {
             Free for the first 7 days, then $9.99 billed monthly.
           </p>
         </div>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">Workout Chats are included with Free for hosts and people who join.</p>
 
         {/* Perks */}
         <ul className="mt-5 space-y-2.5">

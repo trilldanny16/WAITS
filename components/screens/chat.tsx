@@ -12,7 +12,7 @@ import type { ChatMessage } from '@/lib/types'
 import { ChatMedia, removeChatMedia, uploadChatMedia } from '../chat-media'
 
 export function Chat({ id }: { id: string }) {
-  const { workouts, getUser, messagesFor, sendMessage, editMessage, deleteMessage, currentUserId, pushToast } = useStore()
+  const { workouts, getUser, messagesFor, sendMessage, editMessage, deleteMessage, currentUserId, pushToast, hasJoined } = useStore()
   const { back } = useNav()
   const [text, setText] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -31,11 +31,12 @@ export function Chat({ id }: { id: string }) {
 
   const workout = workouts.find((w) => w.id === id)
   const isPersistedChat = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
-  const sessionMessages = messagesFor(id)
+  const canAccessChat = Boolean(workout && (workout.hostId === currentUserId || hasJoined(workout)))
+  const sessionMessages = canAccessChat ? messagesFor(id) : []
   const messages = isPersistedChat ? persistedMessages : sessionMessages
 
   const loadPersistedMessages = useCallback(async () => {
-    if (!isPersistedChat) return
+    if (!isPersistedChat || !canAccessChat) { setPersistedMessages([]); return }
     const { data, error } = await supabase
       .from('crew_messages')
       .select('id, workout_id, user_id, text, media_path, media_kind, created_at')
@@ -58,7 +59,7 @@ export function Chat({ id }: { id: string }) {
       createdAt: new Date(message.created_at).getTime(),
     })))
     setActionError(null)
-  }, [id, isPersistedChat])
+  }, [id, isPersistedChat, canAccessChat])
 
   useEffect(() => {
     if (!isPersistedChat) return
@@ -72,16 +73,16 @@ export function Chat({ id }: { id: string }) {
       )
       .subscribe()
     return () => { void supabase.removeChannel(channel) }
-  }, [id, isPersistedChat, loadPersistedMessages])
+  }, [id, isPersistedChat, canAccessChat, loadPersistedMessages])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [messages.length])
 
-  if (!workout) {
+  if (!workout || !canAccessChat) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-background p-6 text-center">
-        <p className="text-sm text-muted-foreground">This chat is no longer available.</p>
+        <p className="text-sm text-muted-foreground">Join this workout to access its participant-only chat.</p>
         <button
           type="button"
           onClick={back}
@@ -231,7 +232,7 @@ export function Chat({ id }: { id: string }) {
           </button>
           <div className="min-w-0 px-3 text-center">
             <p className="truncate text-base font-bold text-foreground">
-              {host.name.split(' ')[0]}&apos;s crew
+              {host.name.split(' ')[0]}&apos;s workout
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {workout.attendees.length} {workout.attendees.length === 1 ? 'member' : 'members'}
@@ -433,7 +434,7 @@ export function Chat({ id }: { id: string }) {
               void submit()
             }
           }}
-          placeholder="Message the crew…"
+          placeholder="Message the workout…"
           className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
         />
         <button

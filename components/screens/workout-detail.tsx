@@ -320,7 +320,6 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
       <div className="shrink-0 border-t border-border bg-card/95 px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur">
         <div className="flex gap-3">
           {canChat ? (
-            isHost || isPremium ? (
               <button
                 type="button"
                 onClick={() => openChat(workout.id)}
@@ -329,16 +328,6 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
                 <MessageCircle size={18} />
                 Open Chat
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openPaywall('Crew chats')}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary py-4 text-sm font-bold text-secondary-foreground"
-              >
-                <Crown size={16} className="text-primary" />
-                Chat · Pro
-              </button>
-            )
           ) : null}
 
           {isHost ? null : joined ? (

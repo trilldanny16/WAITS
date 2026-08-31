@@ -37,8 +37,7 @@ export function ChatsList() {
     .sort((a, b) => a.name.localeCompare(b.name)), [following, currentUserId, getUser, peopleQuery])
   const inboxConnections = directConnections.filter((connection) => connection.conversationId)
 
-  const openCrew = (workoutId: string, isHost: boolean) =>
-    (isHost || isPremium ? openChat(workoutId) : openPaywall('Crew chats'))
+  const openCrew = (workoutId: string) => openChat(workoutId)
 
   const loadFriendRequests = useCallback(async () => {
     setRequestError(null)
@@ -367,22 +366,8 @@ const declineFriendRequest = async (requestId: string) => {
         </button>
 
         <p className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Crew Chats
+          Workout Chats
         </p>
-
-        {!isPremium && myWorkouts.some((workout) => workout.hostId !== currentUserId) ? (
-          <button
-            type="button"
-            onClick={() => openPaywall('Crew chats')}
-            className="mb-3 flex w-full items-center gap-3 rounded-2xl bg-accent p-3.5 text-left text-accent-foreground"
-          >
-            <Crown size={20} className="shrink-0" />
-            <span className="flex-1 text-xs font-semibold">
-              Crew chats are a Waits Pro feature. Upgrade to message your workout groups.
-            </span>
-            <ChevronRight size={18} className="shrink-0 opacity-70" />
-          </button>
-        ) : null}
 
         {myWorkouts.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-8 text-center">
@@ -398,7 +383,7 @@ const declineFriendRequest = async (requestId: string) => {
           <ul className="space-y-2">
             {myWorkouts.map((w) => {
               const host = getUser(w.hostId)
-              const canAccessCrew = w.hostId === currentUserId || isPremium
+              const canAccessCrew = w.hostId === currentUserId || hasJoined(w)
               const last = messages
                 .filter((m) => m.workoutId === w.id)
                 .sort((a, b) => b.createdAt - a.createdAt)[0]
@@ -406,7 +391,7 @@ const declineFriendRequest = async (requestId: string) => {
                 <li key={w.id}>
                   <button
                     type="button"
-                    onClick={() => openCrew(w.id, w.hostId === currentUserId)}
+                    onClick={() => openCrew(w.id)}
                     className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border"
                   >
                     <span className="relative">
