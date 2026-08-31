@@ -95,7 +95,7 @@ export function WorkoutCard({
               {workout.attendees.length}/{workout.maxParticipants}
             </span>
             {!futureWorkout ? (
-              <span className="inline-flex rounded-full bg-secondary px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="inline-flex rounded-full bg-secondary px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-black">
                 {visibilityLabel}
               </span>
             ) : null}
@@ -141,7 +141,7 @@ export function WorkoutCard({
             </button>
           )}
           {futureWorkout ? (
-            <span className="flex min-w-0 items-center justify-center rounded-full bg-secondary px-2 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="flex min-w-0 items-center justify-center rounded-full bg-secondary px-2 py-2.5 text-center text-xs font-extrabold uppercase tracking-wide text-black">
               {visibilityLabel}
             </span>
           ) : null}
