@@ -8,11 +8,11 @@ import { PremiumCheckout } from '../premium-checkout'
 import { PRO_PLAN } from '@/lib/products'
 
 const PERKS = [
-  { icon: MessageCircle, title: 'Start personal DMs', body: 'Start private conversations with your connections. Free members can reply.' },
-  { icon: Images, title: 'See everyone’s gallery', body: 'Unlock other members’ gym progress photos.' },
-  { icon: BarChart3, title: 'Reliability & stats', body: 'Attendance streaks, reliability score & weekly insights.' },
-  { icon: Users, title: 'Larger workout groups', body: 'Host more people with expanded participant capacity.' },
-  { icon: Sparkles, title: 'Pro profile', body: 'A Pro badge and a custom profile accent color.' },
+  { icon: MessageCircle, title: 'Start Personal DMs', body: 'Start private conversations with your connections. Free members can reply.' },
+  { icon: Images, title: 'See Everyone’s Gallery', body: 'Unlock other members’ gym progress photos.' },
+  { icon: BarChart3, title: 'Reliability & Stats', body: 'Attendance streaks, reliability score & weekly insights.' },
+  { icon: Users, title: 'Larger Workout Groups', body: 'Host more people with expanded participant capacity.' },
+  { icon: Sparkles, title: 'Pro Profile', body: 'A Pro badge and a custom profile accent color.' },
 ]
 
 function priceLabel() {
@@ -51,7 +51,7 @@ export function Paywall({ feature }: { feature?: string }) {
           <span className="flex size-16 items-center justify-center rounded-2xl bg-white/15">
             <Crown size={32} />
           </span>
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight">
+          <h1 className="mt-3 text-2xl font-extrabold capitalize tracking-tight">
             {feature ? `Unlock ${feature}` : 'Go Pro'}
           </h1>
           <p className="mt-1 max-w-[20rem] text-pretty text-sm text-primary-foreground/80">
@@ -105,7 +105,7 @@ export function Paywall({ feature }: { feature?: string }) {
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-extrabold text-lime-foreground transition-transform active:scale-[0.98]"
           >
             <Crown size={20} />
-            Upgrade for {priceLabel()}
+            Upgrade For {priceLabel()}
           </button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Cancel anytime · Secure checkout by Stripe
