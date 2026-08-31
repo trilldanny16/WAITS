@@ -1,18 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MessageCircle, Globe, ChevronRight, Crown, Lock, Bell } from 'lucide-react'
+import { MessageCircle, Globe, ChevronRight, Crown, Lock, Bell, SquarePen, Search, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime, formatDateLabel, relativeMessageTime } from '@/lib/date-utils'
 import { supabase } from '@/lib/supabase-client'
+import { useStartDirectMessage } from '../use-start-direct-message'
 import { SectionWordmark } from '../section-wordmark'
 
 export function ChatsList() {
-  const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
-  const { openChat, openCommunity, openDm, openPaywall, openUser } = useNav()
+  const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState, following } = useStore()
+  const { openChat, openCommunity, openPaywall, openUser } = useNav()
 
   type FriendRequest = {
   id: string
@@ -25,7 +26,17 @@ export function ChatsList() {
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
   const [directConnections, setDirectConnections] = useState<Array<{ otherId: string; conversationId: string | null }>>([])
-  const [startingDm, setStartingDm] = useState<string | null>(null)
+  const { startDirectMessage, startingDm } = useStartDirectMessage()
+  const [showNewMessage, setShowNewMessage] = useState(false)
+  const [peopleQuery, setPeopleQuery] = useState('')
+  const [loadingConnections, setLoadingConnections] = useState(true)
+  const followingPeople = useMemo(() => Array.from(new Set(following))
+    .filter((id) => id !== currentUserId)
+    .map(getUser)
+    .filter((person) => (person.name + ' ' + person.username).toLowerCase().includes(peopleQuery.trim().toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name)), [following, currentUserId, getUser, peopleQuery])
+  const inboxConnections = directConnections.filter((connection) => connection.conversationId)
+
   const openCrew = (workoutId: string, isHost: boolean) =>
     (isHost || isPremium ? openChat(workoutId) : openPaywall('Crew chats'))
 
@@ -146,6 +157,7 @@ const declineFriendRequest = async (requestId: string) => {
 }
 
   const loadDirectConnections = useCallback(async () => {
+    setLoadingConnections(true)
     const { data: accepted, error: connectionError } = await supabase
       .from('friend_requests')
       .select('sender_id, receiver_id')
@@ -154,6 +166,7 @@ const declineFriendRequest = async (requestId: string) => {
 
     if (connectionError) {
       setRequestError(connectionError.message)
+      setLoadingConnections(false)
       return
     }
 
@@ -163,6 +176,7 @@ const declineFriendRequest = async (requestId: string) => {
 
     if (conversationError) {
       setRequestError(conversationError.message)
+      setLoadingConnections(false)
       return
     }
 
@@ -176,51 +190,21 @@ const declineFriendRequest = async (requestId: string) => {
       )
       return { otherId, conversationId: conversation?.id ?? null }
     }))
+    setLoadingConnections(false)
   }, [currentUserId])
 
   useEffect(() => {
     void loadDirectConnections()
-  }, [loadDirectConnections])
-
-  const startDirectMessage = async (otherId: string, conversationId: string | null) => {
-    if (conversationId) {
-      openDm(conversationId)
-      return
+    const refresh = () => void loadDirectConnections()
+    window.addEventListener('focus', refresh)
+    const channel = supabase.channel('dm-inbox:' + currentUserId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_conversations' }, refresh)
+      .subscribe()
+    return () => {
+      window.removeEventListener('focus', refresh)
+      void supabase.removeChannel(channel)
     }
-    if (!isPremium) {
-      openPaywall('Start personal DMs')
-      return
-    }
-
-    setStartingDm(otherId)
-    const [participantA, participantB] = [currentUserId, otherId].sort()
-    const { data, error } = await supabase
-      .from('direct_conversations')
-      .insert({
-        participant_a: participantA,
-        participant_b: participantB,
-        created_by: currentUserId,
-      })
-      .select('id')
-      .single()
-
-    if (error || !data) {
-      const { data: existing } = await supabase
-        .from('direct_conversations')
-        .select('id')
-        .or(`and(participant_a.eq.${participantA},participant_b.eq.${participantB})`)
-        .maybeSingle()
-      if (existing?.id) openDm(existing.id)
-      else {
-        setRequestError(error?.message ?? 'The conversation could not be started.')
-        pushToast({ title: 'DM unavailable', body: error?.message })
-      }
-    } else {
-      openDm(data.id)
-    }
-    setStartingDm(null)
-    void loadDirectConnections()
-  }
+  }, [loadDirectConnections, currentUserId, following])
 
   const myWorkouts = useMemo(
     () =>
@@ -319,21 +303,51 @@ const declineFriendRequest = async (requestId: string) => {
         <section className="mb-4">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personal DMs</p>
-
+            <button type="button" aria-label="New Message" aria-expanded={showNewMessage} aria-controls="new-message-picker"
+              onClick={() => { setShowNewMessage((open) => !open); setPeopleQuery(''); void refreshSocialState(); void loadDirectConnections() }}
+              className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <SquarePen size={19} />
+            </button>
           </div>
-          {directConnections.length === 0 ? (
+          {showNewMessage ? (
+            <section id="new-message-picker" aria-labelledby="new-message-heading" className="mb-3 rounded-2xl bg-card p-4 ring-1 ring-border">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 id="new-message-heading" className="text-base font-extrabold">New Message</h2>
+                <button type="button" aria-label="Close New Message" onClick={() => setShowNewMessage(false)} className="flex size-9 items-center justify-center rounded-full bg-secondary"><X size={18} /></button>
+              </div>
+              <label className="flex items-center gap-2 rounded-xl bg-secondary px-3">
+                <Search size={17} className="shrink-0 text-muted-foreground" />
+                <input autoFocus aria-label="Search people you follow" placeholder="Search people you follow" value={peopleQuery} maxLength={100}
+                  onChange={(event) => setPeopleQuery(event.target.value)} className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none" />
+              </label>
+              <p className="my-3 text-xs text-muted-foreground">Choose an accepted connection. Pro starts new DMs; everyone can reply.</p>
+              <div className="max-h-64 space-y-1 overflow-y-auto">
+                {followingPeople.map((person) => (
+                  <button type="button" key={person.id} disabled={startingDm !== null} onClick={() => void startDirectMessage(person.id)}
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-secondary disabled:opacity-50">
+                    <Avatar user={person} size={40} />
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{person.name}</span><span className="block truncate text-xs text-muted-foreground">@{person.username}</span></span>
+                    <span className="text-xs font-bold text-primary">{startingDm === person.id ? 'Opening…' : 'Message'}</span>
+                  </button>
+                ))}
+                {followingPeople.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">{peopleQuery.trim() ? 'No matching people.' : 'Your accepted connections will appear here. Find people in Social and connect first.'}</p> : null}
+              </div>
+            </section>
+          ) : null}
+          {requestError ? <p role="alert" className="mb-2 text-sm text-red-600">{requestError}</p> : null}
+          {loadingConnections ? <p role="status" className="py-3 text-center text-sm text-muted-foreground">Loading conversations…</p> : inboxConnections.length === 0 ? (
             <div className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground ring-1 ring-border">
-              Connect with someone to start a private conversation.
+              No conversations yet. Tap the compose icon to message someone you follow.
             </div>
           ) : (
             <div className="space-y-2">
-              {directConnections.map(({ otherId, conversationId }) => {
+              {inboxConnections.map(({ otherId, conversationId }) => {
                 const person = getUser(otherId)
                 return (
                   <button
                     key={otherId}
                     type="button"
-                    onClick={() => void startDirectMessage(otherId, conversationId)}
+                    onClick={() => void startDirectMessage(otherId)}
                     disabled={startingDm === otherId}
                     className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-border disabled:opacity-50"
                   >
