@@ -83,6 +83,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const { back, openWorkout, openPaywall, openSettings } = useNav()
   const { startDirectMessage, startingDm } = useStartDirectMessage()
   const user = getUser(userId)
+  const homeGym = /^(add your home gym|gym not set)$/i.test(user.homeGym.trim()) ? '' : user.homeGym.trim()
   const isSelf = userId === currentUserId
   const isPersistedProfile = isPersistedUserId(userId)
 
@@ -97,7 +98,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [portalError, setPortalError] = useState<string | null>(null)
   const [showPreviewFixtures, setShowPreviewFixtures] = useState(false)
   const [editName, setEditName] = useState(user.name)
-  const [editHomeGym, setEditHomeGym] = useState(user.homeGym)
+  const [editHomeGym, setEditHomeGym] = useState(homeGym)
   const [editCity, setEditCity] = useState(user.city)
   const [editBio, setEditBio] = useState(user.bio)
   const [editFavoriteSplit, setEditFavoriteSplit] = useState(user.favoriteSplit)
@@ -220,12 +221,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
   useEffect(() => {
     setEditName(user.name)
-    setEditHomeGym(user.homeGym)
+    setEditHomeGym(homeGym)
     setEditCity(user.city)
     setEditBio(user.bio)
     setEditFavoriteSplit(user.favoriteSplit)
     setEditError(null)
-  }, [user.name, user.homeGym, user.city, user.bio, user.favoriteSplit])
+  }, [user.name, homeGym, user.city, user.bio, user.favoriteSplit])
 
   useEffect(() => {
     let active = true
@@ -585,10 +586,12 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           <h1 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
             {user.name}
           </h1>
-          <p className="mt-1 flex items-center gap-1 text-sm font-medium text-foreground">
-            <MapPin size={14} className="text-primary" />
-            {user.homeGym}
-          </p>
+          {homeGym ? (
+            <p className="mt-1 flex items-center gap-1 text-sm font-medium text-foreground">
+              <MapPin size={14} className="text-primary" />
+              {homeGym}
+            </p>
+          ) : null}
           {user.bio ? (
             <p className="mt-2 max-w-[18rem] text-pretty text-sm font-bold text-muted-foreground">
               {user.bio}
