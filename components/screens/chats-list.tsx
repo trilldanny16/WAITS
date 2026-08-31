@@ -284,13 +284,13 @@ const declineFriendRequest = async (requestId: string) => {
         <section className="mb-4">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personal DMs</p>
-            <button type="button" aria-label="New Message" aria-expanded={showNewMessage} aria-controls="new-message-picker"
+            {isPremium ? <button type="button" aria-label="New Message" aria-expanded={showNewMessage} aria-controls="new-message-picker"
               onClick={() => { setShowNewMessage((open) => !open); setPeopleQuery(''); void refreshSocialState(); void loadDirectConnections() }}
               className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <SquarePen size={19} />
-            </button>
+            </button> : null}
           </div>
-          {showNewMessage ? (
+          {isPremium && showNewMessage ? (
             <section id="new-message-picker" aria-labelledby="new-message-heading" className="mb-3 rounded-2xl bg-card p-4 ring-1 ring-border">
               <div className="mb-3 flex items-center justify-between">
                 <h2 id="new-message-heading" className="text-base font-extrabold">New Message</h2>
@@ -318,7 +318,7 @@ const declineFriendRequest = async (requestId: string) => {
           {requestError ? <p role="alert" className="mb-2 text-sm text-red-600">{requestError}</p> : null}
           {loadingConnections ? <p role="status" className="py-3 text-center text-sm text-muted-foreground">Loading conversations…</p> : inboxConnections.length === 0 ? (
             <div className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground ring-1 ring-border">
-              No conversations yet. Tap the compose icon to message someone you follow.
+              {isPremium ? 'No conversations yet. Tap the compose icon to message someone you follow.' : 'No conversations yet. When a Pro connection messages you, you can reply here.'}
             </div>
           ) : (
             <div className="space-y-2">
