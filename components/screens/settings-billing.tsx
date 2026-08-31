@@ -102,7 +102,15 @@ export function SettingsBilling() {
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-8">
-        <section className="rounded-3xl bg-card p-4 ring-1 ring-border">
+        <section aria-labelledby="gym-access-heading" className="rounded-3xl border border-red-500/30 bg-red-500/10 p-4 text-center">
+          <h2 id="gym-access-heading" className="text-sm font-extrabold text-red-600">Gym Access</h2>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-foreground">
+            WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access.
+            <strong className="mt-2 block font-extrabold">WAITS does not sell gym memberships or guarantee entry.</strong>
+          </p>
+        </section>
+
+        <section className="mt-5 rounded-3xl bg-card p-4 ring-1 ring-border">
           <div className="flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
               <Crown size={22} />
@@ -133,14 +141,6 @@ export function SettingsBilling() {
             </span>
             <ChevronRight size={18} />
           </button>
-        </section>
-
-        <section aria-labelledby="gym-access-heading" className="mt-5 rounded-3xl border border-red-500/30 bg-red-500/10 p-4 text-center">
-          <h2 id="gym-access-heading" className="text-sm font-extrabold text-red-600">Gym Access</h2>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-foreground">
-            WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access.
-            <strong className="mt-2 block font-extrabold">WAITS does not sell gym memberships or guarantee entry.</strong>
-          </p>
         </section>
 
         <section className="mt-5">
