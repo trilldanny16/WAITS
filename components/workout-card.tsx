@@ -13,9 +13,11 @@ import { cn } from '@/lib/utils'
 export function WorkoutCard({
   workout,
   showLocationDetails = false,
+  joinLabel,
 }: {
   workout: Workout
   showLocationDetails?: boolean
+  joinLabel?: 'Lock Me In!' | 'Wait Up!'
 }) {
   const { getUser, isFull, hasJoined, joinWorkout, leaveWorkout, currentUserId } = useStore()
   const [changingAttendance, setChangingAttendance] = useState(false)
@@ -137,7 +139,7 @@ export function WorkoutCard({
               }}
               className="block w-full rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-lime-foreground shadow-sm transition-transform active:scale-95"
             >
-              {changingAttendance ? 'Joining…' : workout.date > todayISO() ? 'Lock Me In!' : 'Wait Up!'}
+              {changingAttendance ? 'Joining…' : (joinLabel ?? (workout.date > todayISO() ? 'Lock Me In!' : 'Wait Up!'))}
             </button>
           )}
           {futureWorkout ? (
