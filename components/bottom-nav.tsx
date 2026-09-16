@@ -20,7 +20,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="relative z-30 mx-3 mb-[calc(env(safe-area-inset-bottom)+10px)] mt-2 flex h-16 shrink-0 items-stretch justify-around rounded-[1.75rem] border border-border/70 bg-card/90 px-2 shadow-[0_12px_32px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+      className="relative z-30 mx-3 mb-[calc(env(safe-area-inset-bottom)+18px)] mt-2 flex h-16 shrink-0 items-stretch justify-around rounded-[1.75rem] border border-border/70 bg-card/90 px-2 shadow-[0_12px_32px_rgba(15,23,42,0.18)] backdrop-blur-xl"
     >
       {ITEMS.map(({ tab: t, label, icon: Icon }) => {
         if (t === 'create') {
