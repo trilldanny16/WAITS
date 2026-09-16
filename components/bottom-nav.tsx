@@ -20,7 +20,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="relative z-30 flex shrink-0 items-stretch justify-around border-t border-border bg-card/95 px-2 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2 backdrop-blur"
+      className="relative z-30 mx-3 mb-[calc(env(safe-area-inset-bottom)+10px)] mt-2 flex h-16 shrink-0 items-stretch justify-around rounded-[1.75rem] border border-border/70 bg-card/90 px-2 shadow-[0_12px_32px_rgba(15,23,42,0.18)] backdrop-blur-xl"
     >
       {ITEMS.map(({ tab: t, label, icon: Icon }) => {
         if (t === 'create') {
@@ -32,7 +32,7 @@ export function BottomNav() {
               aria-label="Create workout"
               className="flex flex-1 flex-col items-center justify-center"
             >
-              <span className="flex size-12 items-center justify-center rounded-full bg-lime text-lime-foreground shadow-md shadow-lime/40 transition-transform active:scale-90">
+              <span className="flex size-12 items-center justify-center rounded-full bg-lime text-lime-foreground shadow-lg shadow-lime/40 ring-4 ring-background transition-transform active:scale-90">
                 <Icon size={26} strokeWidth={2.6} />
               </span>
             </button>
@@ -50,7 +50,7 @@ export function BottomNav() {
             aria-label={label}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center rounded-xl py-1 transition-colors',
+              'flex flex-1 flex-col items-center justify-center rounded-2xl py-1 transition-colors active:scale-95',
               active ? 'text-primary' : 'text-muted-foreground',
             )}
           >
