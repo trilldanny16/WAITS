@@ -20,7 +20,6 @@ import { Paywall } from './screens/paywall'
 import { SettingsBilling } from './screens/settings-billing'
 import { useStore } from './store'
 import { supabase } from '@/lib/supabase-client'
-import { IosStatusBar } from './ios-status-bar'
 
 function ActiveTab() {
   const { tab } = useNav()
@@ -150,7 +149,6 @@ export function AppShell() {
   return (
     <div className="flex min-h-[100dvh] w-full justify-center bg-neutral-200 dark:bg-black md:py-6">
       <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-2xl md:h-[900px] md:max-h-[calc(100dvh-3rem)] md:rounded-[3rem] md:ring-1 md:ring-black/10">
-        <IosStatusBar />
         <div className="relative flex min-h-0 flex-1 flex-col">
         {stage === 'loading' ? (
           <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
