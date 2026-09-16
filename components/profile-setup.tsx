@@ -47,7 +47,7 @@ export function ProfileSetup({ onContinue }: ProfileSetupProps) {
 }
 
   return (
-    <div className="flex h-full flex-col justify-between bg-primary px-7 py-6 text-primary-foreground">
+    <div className="flex h-full flex-col justify-between bg-background px-7 py-6 text-foreground">
       <div className="flex flex-1 flex-col justify-center">
         <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white/10">
           <User size={42} />

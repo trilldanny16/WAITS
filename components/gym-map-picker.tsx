@@ -56,7 +56,7 @@ export function GymMapPreview({ lat, lng }: { lat: number; lng: number }) {
         keyboard: false,
       })
       L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         { maxZoom: 20, subdomains: 'abcd' },
       ).addTo(map)
       const icon = L.divIcon({
@@ -149,7 +149,7 @@ export function GymMapPicker({
         attributionControl: true,
       })
       L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         {
           attribution: '&copy; OpenStreetMap &copy; CARTO',
           maxZoom: 20,

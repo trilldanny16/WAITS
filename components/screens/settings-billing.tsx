@@ -102,8 +102,8 @@ export function SettingsBilling() {
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-8">
-        <section aria-labelledby="gym-access-heading" className="rounded-3xl border border-red-500/30 bg-red-500/10 p-4 text-center">
-          <h2 id="gym-access-heading" className="text-sm font-extrabold text-red-600">Gym Access</h2>
+        <section aria-labelledby="gym-access-heading" className="rounded-3xl border border-destructive/30 bg-destructive/10 p-4 text-center">
+          <h2 id="gym-access-heading" className="text-sm font-extrabold text-destructive">Gym Access</h2>
           <p className="mt-2 text-sm font-medium leading-relaxed text-foreground">
             WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access.
             <strong className="mt-2 block font-extrabold">WAITS does not sell gym memberships or guarantee entry.</strong>
@@ -163,9 +163,9 @@ export function SettingsBilling() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-3xl border border-red-500/30 bg-card p-4">
+        <section className="mt-5 rounded-3xl border border-destructive/30 bg-card p-4">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
               <Trash2 size={19} />
             </span>
             <div className="min-w-0 flex-1">
@@ -175,7 +175,7 @@ export function SettingsBilling() {
               </p>
               {!showDelete ? (
                 <button type="button" onClick={() => setShowDelete(true)}
-                  className="mt-3 rounded-xl bg-red-500 px-4 py-2 text-xs font-bold text-white">
+                  className="mt-3 rounded-xl bg-destructive px-4 py-2 text-xs font-bold text-destructive-foreground">
                   Delete Account
                 </button>
               ) : (
@@ -191,7 +191,7 @@ export function SettingsBilling() {
                       className="flex-1 rounded-xl bg-secondary py-2 text-xs font-bold">Cancel</button>
                     <button type="button" onClick={() => void deleteAccount()}
                       disabled={deleteText !== 'DELETE' || deleting}
-                      className="flex-1 rounded-xl bg-red-500 py-2 text-xs font-bold text-white disabled:opacity-40">
+                      className="flex-1 rounded-xl bg-destructive py-2 text-xs font-bold text-destructive-foreground disabled:opacity-40">
                       {deleting ? 'Deleting…' : 'Delete Forever'}
                     </button>
                   </div>

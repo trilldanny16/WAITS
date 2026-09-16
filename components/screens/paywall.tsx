@@ -48,7 +48,7 @@ export function Paywall({ feature }: { feature?: string }) {
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
         {/* Hero */}
         <div className="flex flex-col items-center rounded-3xl bg-primary px-6 py-8 text-center text-primary-foreground">
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-white/15">
+          <span className="flex size-16 items-center justify-center rounded-2xl bg-primary-foreground/15">
             <Crown size={32} />
           </span>
           <h1 className="mt-3 text-2xl font-extrabold capitalize tracking-tight">

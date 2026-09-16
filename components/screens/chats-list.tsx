@@ -235,7 +235,7 @@ const declineFriendRequest = async (requestId: string) => {
       <Bell size={14} /> Friend Requests ({friendRequests.length})
     </p>
 
-    {requestError ? <p role="alert" className="mb-2 text-sm text-red-600">{requestError}</p> : null}
+    {requestError ? <p role="alert" className="mb-2 text-sm text-destructive">{requestError}</p> : null}
 
     <div className="space-y-2">
       {friendRequests.map((request) => (
@@ -318,7 +318,7 @@ const declineFriendRequest = async (requestId: string) => {
               </div>
             </section>
           ) : null}
-          {requestError ? <p role="alert" className="mb-2 text-sm text-red-600">{requestError}</p> : null}
+          {requestError ? <p role="alert" className="mb-2 text-sm text-destructive">{requestError}</p> : null}
           {loadingConnections ? <p role="status" className="py-3 text-center text-sm text-muted-foreground">Loading conversations…</p> : inboxConnections.length === 0 ? (
             <div className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground ring-1 ring-border">
               No conversations yet. Tap the compose icon to message a Pro connection.
@@ -356,7 +356,7 @@ const declineFriendRequest = async (requestId: string) => {
           onClick={openCommunity}
           className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-primary p-3.5 text-left text-primary-foreground shadow-md shadow-primary/25"
         >
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-foreground/15">
             <Globe size={24} />
           </span>
           <div className="min-w-0 flex-1">
@@ -444,4 +444,3 @@ const declineFriendRequest = async (requestId: string) => {
     </div>
   )
 }
-

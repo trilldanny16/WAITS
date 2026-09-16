@@ -103,7 +103,7 @@ export function PremiumCheckout({ onSuccess }: { onSuccess: () => void }) {
           ) : null}
         </EmbeddedCheckoutProvider>
       ) : (
-        <div className="rounded-2xl bg-card p-6 text-center text-sm text-red-600">
+        <div className="rounded-2xl bg-card p-6 text-center text-sm text-destructive">
           Stripe is not configured. Add `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in your local environment.
         </div>
       )}

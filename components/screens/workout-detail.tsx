@@ -144,7 +144,7 @@ function WorkoutDetailContent({ workout }: { workout: Workout }) {
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-4">
         {/* Type banner */}
         <div className="flex items-center gap-3 rounded-3xl bg-primary p-5 text-primary-foreground">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-white/15">
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-primary-foreground/15">
             <WorkoutTypeIcon type={workout.types[0]} size={28} />
           </span>
           <div>
@@ -378,4 +378,3 @@ function Row({
     </div>
   )
 }
-

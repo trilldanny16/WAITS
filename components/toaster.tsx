@@ -15,7 +15,7 @@ export function Toaster() {
         <div
           key={t.id}
           role="status"
-          className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl bg-foreground/95 px-4 py-3 text-left text-background shadow-lg backdrop-blur animate-in slide-in-from-top-4 fade-in"
+          className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl bg-popover/95 px-4 py-3 text-left text-popover-foreground shadow-lg ring-1 ring-border backdrop-blur animate-in slide-in-from-top-4 fade-in"
         >
           <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground">
             <Bell size={16} />
@@ -30,7 +30,7 @@ export function Toaster() {
             type="button"
             onClick={() => dismissToast(t.id)}
             aria-label={`Dismiss notification: ${t.title}`}
-            className="-mr-1 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-background/75 transition-colors hover:bg-background/10 hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime"
+            className="-mr-1 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime"
           >
             <X size={17} strokeWidth={2.5} />
           </button>

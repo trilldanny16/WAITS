@@ -581,7 +581,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
               </>
             ) : null}
           </div>
-          {avatarError ? <p className="mt-2 text-xs font-medium text-red-500">{avatarError}</p> : null}
+          {avatarError ? <p className="mt-2 text-xs font-medium text-destructive">{avatarError}</p> : null}
           <p className="mt-3 text-sm text-muted-foreground">@{user.username}</p>
           <h1 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
             {user.name}
@@ -672,7 +672,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                   <label className="mt-4 block text-xs font-semibold text-muted-foreground">Favorite Workout</label>
                   <input value={editFavoriteSplit} onChange={(event) => setEditFavoriteSplit(event.target.value)} placeholder="Push / Pull / Legs" className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none" />
                   {editError ? (
-                    <p className="mt-3 text-sm font-medium text-red-500">{editError}</p>
+                    <p className="mt-3 text-sm font-medium text-destructive">{editError}</p>
                   ) : null}
                   <div className="mt-4 flex gap-3">
                     <button
@@ -730,7 +730,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 className={cn(
                   'flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-colors disabled:opacity-60',
                   followed
-                    ? 'bg-red-500 text-white shadow hover:bg-red-600'
+                    ? 'bg-destructive text-destructive-foreground shadow hover:bg-destructive/90'
                     : 'bg-lime text-lime-foreground shadow hover:brightness-95',
                 )}
               >
@@ -761,7 +761,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                 </button>
               ) : null}
               {connectionError ? (
-                <p role="alert" className="mt-2 text-center text-sm font-medium text-red-500">
+                <p role="alert" className="mt-2 text-center text-sm font-medium text-destructive">
                   {connectionError}
                 </p>
               ) : null}
@@ -784,7 +784,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             type="button"
             onClick={() => void handleSignOut()}
             disabled={signingOut}
-            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-red-500 text-sm font-bold text-white shadow transition-colors hover:bg-red-600 disabled:opacity-50"
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-destructive text-sm font-bold text-destructive-foreground shadow transition-colors hover:bg-destructive/90 disabled:opacity-50"
           >
             {signingOut ? 'Signing Out…' : 'Sign Out'}
           </button>

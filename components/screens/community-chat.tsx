@@ -235,10 +235,10 @@ export function CommunityChat() {
     <div className="flex h-full flex-col bg-background">
       <header className="shrink-0 bg-primary px-3 pb-4 pt-[calc(env(safe-area-inset-top)+14px)] text-primary-foreground">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={back} className="flex size-9 items-center justify-center rounded-full bg-white/15" aria-label="Back">
+          <button type="button" onClick={back} className="flex size-9 items-center justify-center rounded-full bg-primary-foreground/15" aria-label="Back">
             <ChevronLeft size={22} />
           </button>
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-white/15"><Globe size={22} /></span>
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-primary-foreground/15"><Globe size={22} /></span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-extrabold">Waits Community</p>
             <p className="truncate text-xs text-primary-foreground/75">{users.length} lifters · Public channel</p>
@@ -303,4 +303,3 @@ export function CommunityChat() {
     </div>
   )
 }
-

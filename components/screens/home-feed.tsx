@@ -33,7 +33,7 @@ function Section({
   return (
     <section className="mt-6 first:mt-2">
       <h2 className="mb-3 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {accent ? <Flame size={14} className="text-lime-foreground" /> : null}
+        {accent ? <Flame size={14} className="text-lime" /> : null}
         {title}
       </h2>
       <div className="space-y-3">

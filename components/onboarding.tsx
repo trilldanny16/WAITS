@@ -310,7 +310,7 @@ const { error } = await supabase
 }
 
   return (
-    <div className="relative flex h-full flex-col bg-primary text-primary-foreground">
+    <div className="relative flex h-full flex-col bg-background text-foreground">
       {step === 1 ? (
         <div className="flex shrink-0 items-center px-7 pt-[calc(env(safe-area-inset-top)+16px)]">
           <button
@@ -388,7 +388,7 @@ const { error } = await supabase
                         placeholder="(555) 123-4567"
                         value={phone}
                         onChange={(event) => setPhone(event.target.value)}
-                        className="h-12 w-full rounded-xl border border-white/20 bg-white/5 pl-10 pr-3 text-base font-medium text-primary-foreground placeholder:text-primary-foreground/45 outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
+                        className="h-12 w-full rounded-xl border border-white/20 bg-white/5 pl-10 pr-3 text-base font-medium text-primary-foreground placeholder:text-muted-foreground outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
                       />
                     </div>
 
@@ -465,7 +465,7 @@ const { error } = await supabase
               type="button"
               onClick={handleAppleSignIn}
               disabled={authLoading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-secondary py-3.5 text-base font-semibold text-secondary-foreground ring-1 ring-border transition-transform active:scale-[0.98] disabled:opacity-60"
             >
               {authLoading ? (
                 <Loader2 size={19} className="animate-spin" />
@@ -479,7 +479,7 @@ const { error } = await supabase
               type="button"
               onClick={handleGoogleSignIn}
               disabled={authLoading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-secondary py-3.5 text-base font-semibold text-secondary-foreground ring-1 ring-border transition-transform active:scale-[0.98] disabled:opacity-60"
             >
               {authLoading ? (
                 <Loader2 size={19} className="animate-spin" />
@@ -515,7 +515,7 @@ const { error } = await supabase
                     className={cn(
                       'rounded-lg px-3 py-2 text-sm font-semibold',
                       authMode === 'signup'
-                        ? 'bg-white text-black'
+                        ? 'bg-primary text-primary-foreground'
                         : 'text-white/70',
                     )}
                   >
@@ -532,7 +532,7 @@ const { error } = await supabase
                     className={cn(
                       'rounded-lg px-3 py-2 text-sm font-semibold',
                       authMode === 'signin'
-                        ? 'bg-white text-black'
+                        ? 'bg-primary text-primary-foreground'
                         : 'text-white/70',
                     )}
                   >
@@ -547,7 +547,7 @@ const { error } = await supabase
                     placeholder="Email address"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="h-12 w-full rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white placeholder:text-white/45 outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
+                    className="h-12 w-full rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white placeholder:text-muted-foreground outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
                   />
 
                   <input
@@ -565,7 +565,7 @@ const { error } = await supabase
                         void handleEmailAuth()
                       }
                     }}
-                    className="h-12 w-full rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white placeholder:text-white/45 outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
+                    className="h-12 w-full rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white placeholder:text-muted-foreground outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
                   />
 
                   <button
@@ -619,4 +619,3 @@ const { error } = await supabase
     </div>
   )
 }
-
