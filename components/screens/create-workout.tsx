@@ -205,11 +205,7 @@ export function CreateWorkout() {
           <X size={20} />
         </button>
         <h1 className="text-base font-bold text-foreground">New Workout</h1>
-        {isPremium ? (
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Verified WAITS Pro member">
-            <Crown size={24} />
-          </span>
-        ) : <div className="w-11" />}
+        <div className="w-11" aria-hidden="true" />
       </header>
 
       <div className="no-scrollbar flex-1 space-y-6 overflow-y-auto p-5">

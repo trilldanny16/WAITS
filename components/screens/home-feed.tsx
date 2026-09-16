@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Crown, Flame, CalendarDays } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { WorkoutCard } from '../workout-card'
@@ -10,30 +10,17 @@ import { Wordmark } from '../wordmark'
 import { relativeBucket, timeToMinutes } from '@/lib/date-utils'
 import type { Workout } from '@/lib/types'
 
-function greeting(): string {
-  const choices = [
-    'Ready to move',
-    'Let’s get after it',
-    'Time to train',
-    'Your next session awaits',
-  ]
-  return choices[Math.floor(Math.random() * choices.length)]
-}
-
 function Section({
   title,
-  accent,
   workouts,
 }: {
   title: string
-  accent?: boolean
   workouts: Workout[]
 }) {
   if (workouts.length === 0) return null
   return (
     <section className="mt-6 first:mt-2">
-      <h2 className="mb-3 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {accent ? <Flame size={14} className="text-lime" /> : null}
+      <h2 className="mb-3 flex items-center justify-center gap-2 px-1 text-center text-xs font-bold uppercase tracking-widest text-white">
         {title}
       </h2>
       <div className="space-y-3">
@@ -46,9 +33,8 @@ function Section({
 }
 
 export function HomeFeed() {
-  const { workouts, getUser, currentUserId, isPremium } = useStore()
+  const { workouts, getUser, currentUserId } = useStore()
   const { openUser } = useNav()
-  const me = getUser(currentUserId)
 
   const { today, week } = useMemo(() => {
     const sorted = [...workouts].sort(
@@ -76,21 +62,8 @@ export function HomeFeed() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <header className="shrink-0 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+14px)]">
-        <div className="flex items-center justify-between">
+        <div className="flex min-h-11 items-center justify-center">
           <Wordmark iconSize={18} className="text-lg text-primary" />
-          {isPremium ? (
-            <button type="button" onClick={() => openUser(currentUserId)} className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Open Pro profile">
-              <Crown size={24} />
-            </button>
-          ) : null}
-        </div>
-        <div className="mt-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            {greeting()}
-          </p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            {me.name.split(' ')[0]}
-          </h1>
         </div>
 
         {/* Friends rail */}

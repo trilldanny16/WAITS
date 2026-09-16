@@ -218,13 +218,8 @@ const declineFriendRequest = async (requestId: string) => {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex shrink-0 items-center justify-between px-3 pb-2 pt-[calc(env(safe-area-inset-top)+14px)]">
+      <header className="flex min-h-11 shrink-0 items-center justify-center px-3 pb-2 pt-[calc(env(safe-area-inset-top)+14px)]">
         <SectionWordmark>Chats</SectionWordmark>
-        {isPremium ? (
-          <button type="button" onClick={() => openUser(currentUserId)} className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Open Pro profile">
-            <Crown size={24} />
-          </button>
-        ) : null}
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-3">

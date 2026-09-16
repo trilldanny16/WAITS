@@ -464,7 +464,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   // Accepted connections populate both lists; a pending/one-way follow is not enough.
   const mutuallyFollowing = following.includes(userId) && followers.includes(userId)
   const scheduleLocked = locked || (!isSelf && !isPremium && !mutuallyFollowing)
-  const showProBadge = user.isVerifiedPro === true
   const gallery = galleryFor(userId)
   // Gallery access is enforced by both the Pro UI gate and Supabase RLS.
   const galleryLocked = !isPremium
@@ -548,11 +547,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           </button>
         ) : null}
         {isSelf ? <ShareWaitsButton /> : null}
-        {showProBadge ? (
-          <span className="ml-auto flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Verified WAITS Pro member">
-            <Crown size={24} />
-          </span>
-        ) : null}
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
