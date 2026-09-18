@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import {
   Apple,
   Mail,
@@ -328,9 +329,14 @@ const { error } = await supabase
         {step === 0 ? (
           <div className="my-7 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex flex-col items-center gap-3 text-center">
-              <span className="flex size-16 items-center justify-center rounded-3xl bg-lime text-lime-foreground shadow-lg">
-                <Dumbbell size={34} strokeWidth={2.6} />
-              </span>
+              <Image
+                src="/icon.svg"
+                alt="WAITS"
+                width={64}
+                height={64}
+                priority
+                className="size-16 rounded-3xl shadow-lg"
+              />
 
               <span className="text-balance text-4xl font-black uppercase tracking-[0.06em]">
                 WAITS
@@ -619,3 +625,4 @@ const { error } = await supabase
     </div>
   )
 }
+

@@ -8,7 +8,7 @@ const geistSans = Geist({
   variable: '--font-geist-sans',
 })
 
-const geistMono = Geist({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-geist-mono',
 })
@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   description:
     'Waits is a social fitness app that helps friends coordinate workouts effortlessly. Know when your friends are training, and join them with one tap.',
   generator: 'v0.app',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/apple-icon.png',
+  },
 }
 
 export const viewport: Viewport = {
