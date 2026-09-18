@@ -24,6 +24,7 @@ import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
 import { useStartDirectMessage } from '../use-start-direct-message'
 import { ShareWaitsButton } from '../share-waits-button'
+import { SectionWordmark } from '../section-wordmark'
 import { WorkoutTypeIcon } from '../workout-type-icon'
 import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
@@ -535,7 +536,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <header className="flex shrink-0 items-center gap-2 px-3 pb-1 pt-[calc(env(safe-area-inset-top)+14px)]">
+      <header className="relative flex min-h-11 shrink-0 items-center gap-2 px-3 pb-1 pt-[calc(env(safe-area-inset-top)+14px)]">
         {!asTab ? (
           <button
             type="button"
@@ -547,6 +548,11 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
           </button>
         ) : null}
         {isSelf ? <ShareWaitsButton /> : null}
+        {asTab ? (
+          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
+            <SectionWordmark>Profile</SectionWordmark>
+          </div>
+        ) : null}
         {user.isVerifiedPro === true ? (
           <span className="ml-auto flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Verified WAITS Pro member">
             <Crown size={24} />
