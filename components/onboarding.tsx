@@ -326,51 +326,56 @@ if (data.session?.user) {
     }
   }
 
- const handleEnterWaits = async () => {
-  if (!hasSession) {
-    setAuthError('You must sign in before entering WAITS.')
-    setStep(0)
-    return
+  const handleEnterWaits = async () => {
+    if (!hasSession) {
+      setAuthError('You must sign in before entering WAITS.')
+      setStep(0)
+      return
+    }
+
+    setAuthError(null)
+    setAuthLoading(true)
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        setAuthError('Your login session could not be verified. Please sign in again.')
+        return
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: user.id,
+            email: user.email,
+            weekly_rhythm: days,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'id',
+          },
+        )
+
+      if (error) {
+        console.error('Unable to complete onboarding', error)
+        setAuthError("We couldn't save your weekly rhythm. Please try again.")
+        return
+      }
+
+      onDone()
+    } catch (error) {
+      console.error('Unable to complete onboarding', error)
+      setAuthError("We couldn't save your weekly rhythm. Please try again.")
+    } finally {
+      setAuthLoading(false)
+    }
   }
-
-  setAuthError(null)
-  setAuthLoading(true)
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    setAuthError('Your login session could not be verified.')
-    setAuthLoading(false)
-    return
-  }
-
-const { error } = await supabase
-  .from('profiles')
-  .upsert(
-    {
-      id: user.id,
-      email: user.email,
-      weekly_rhythm: days,
-      onboarding_completed: true,
-      updated_at: new Date().toISOString(),
-    },
-    {
-      onConflict: 'id',
-    },
-  )
-
-  if (error) {
-    setAuthError(error.message)
-    setAuthLoading(false)
-    return
-  }
-
-  setAuthLoading(false)
-  onDone()
-}
 
   return (
     <div className="relative flex h-full flex-col bg-primary text-white">
@@ -674,14 +679,30 @@ const { error } = await supabase
             </p>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={handleEnterWaits}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-bold text-lime-foreground transition-transform active:scale-[0.98]"
-          >
-            Enter WAITS
-            <ArrowRight size={20} strokeWidth={2.6} />
-          </button>
+          <div className="space-y-3">
+            {authError ? (
+              <p
+                role="alert"
+                className="rounded-xl bg-red-500/20 px-3 py-2 text-center text-sm font-medium text-white"
+              >
+                {authError}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleEnterWaits}
+              disabled={authLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-bold text-lime-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {authLoading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <ArrowRight size={20} strokeWidth={2.6} />
+              )}
+              {authLoading ? 'Saving...' : 'Enter WAITS'}
+            </button>
+          </div>
         )}
       </div>
     </div>
