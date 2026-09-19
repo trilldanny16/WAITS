@@ -61,13 +61,13 @@ export function HomeFeed() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <header className="shrink-0 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+14px)]">
+      <header className="shrink-0 overflow-visible px-3 pb-3 pt-[calc(env(safe-area-inset-top)+20px)]">
         <div className="flex min-h-11 items-center justify-center">
           <Wordmark iconSize={18} className="text-lg text-primary" />
         </div>
 
         {/* Friends rail */}
-        <div className="no-scrollbar -mx-5 mt-4 flex gap-4 overflow-x-auto px-5 pb-1">
+        <div className="no-scrollbar -mx-5 mt-6 flex gap-4 overflow-x-auto px-5 pb-2 pt-1">
           {railUsers.map((u) => (
             <button
               key={u.id}

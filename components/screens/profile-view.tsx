@@ -536,7 +536,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <header className="relative flex min-h-11 shrink-0 items-center gap-2 px-3 pb-1 pt-[calc(env(safe-area-inset-top)+14px)]">
+      <header className="relative flex min-h-11 shrink-0 items-center gap-2 px-3 pb-1 pt-[calc(env(safe-area-inset-top)+20px)]">
         {!asTab ? (
           <button
             type="button"

@@ -2,6 +2,7 @@
 
 import { ProfileSetup } from './profile-setup'
 import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
 import { StoreProvider } from './store'
 import { NavProvider, useNav } from './navigation'
 import { BottomNav } from './bottom-nav'
@@ -151,8 +152,17 @@ export function AppShell() {
       <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-2xl md:h-[900px] md:max-h-[calc(100dvh-3rem)] md:rounded-[3rem] md:ring-1 md:ring-border">
         <div className="relative flex min-h-0 flex-1 flex-col">
         {stage === 'loading' ? (
-          <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
-            Checking your session…
+          <div className="flex h-full flex-col items-center justify-center bg-black text-sm font-semibold text-muted-foreground">
+            <Image
+              src="/icon.svg"
+              alt="WAITS"
+              width={72}
+              height={72}
+              priority
+              className="size-[72px] rounded-3xl"
+            />
+            <span className="mt-4 text-2xl font-black tracking-[0.14em] text-white">WAITS</span>
+            <span className="mt-3 text-xs font-semibold text-white/55">Loading your workouts…</span>
           </div>
         ) : stage === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">

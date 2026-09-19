@@ -22,6 +22,14 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 type AuthMode = 'signup' | 'signin'
 
+declare global {
+  interface Window {
+    ReactNativeWebView?: {
+      postMessage: (message: string) => void
+    }
+  }
+}
+
 function GoogleGlyph() {
   return (
     <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden="true">
@@ -118,6 +126,53 @@ if (data.session?.user) {
       subscription.unsubscribe()
     }
   }, [onDone])
+
+  useEffect(() => {
+    const receiveNativeAuth = async (event: MessageEvent) => {
+      if (typeof event.data !== 'string') return
+
+      try {
+        const message = JSON.parse(event.data) as {
+          type?: string
+          accessToken?: string
+          refreshToken?: string
+          error?: string
+        }
+
+        if (message.type === 'WAITS_APPLE_SIGN_IN_CANCELLED') {
+          setAuthLoading(false)
+          return
+        }
+
+        if (message.type === 'WAITS_APPLE_SIGN_IN_ERROR') {
+          setAuthError(message.error || 'Apple sign in could not be completed. Please try again.')
+          setAuthLoading(false)
+          return
+        }
+
+        if (
+          message.type === 'WAITS_APPLE_SESSION' &&
+          message.accessToken &&
+          message.refreshToken
+        ) {
+          const { error } = await supabase.auth.setSession({
+            access_token: message.accessToken,
+            refresh_token: message.refreshToken,
+          })
+
+          if (error) {
+            setAuthError(error.message)
+            setAuthLoading(false)
+          }
+        }
+      } catch {
+        // Ignore unrelated messages from the embedded browser.
+      }
+    }
+
+    window.addEventListener('message', receiveNativeAuth)
+    return () => window.removeEventListener('message', receiveNativeAuth)
+  }, [])
 
   const toggleDay = (day: string) => {
     setDays((previousDays) =>
@@ -247,6 +302,13 @@ if (data.session?.user) {
     setAuthMessage(null)
     setAuthLoading(true)
 
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({ type: 'WAITS_NATIVE_APPLE_SIGN_IN' }),
+      )
+      return
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
@@ -311,7 +373,7 @@ const { error } = await supabase
 }
 
   return (
-    <div className="relative flex h-full flex-col bg-background text-foreground">
+    <div className="relative flex h-full flex-col bg-primary text-white">
       {step === 1 ? (
         <div className="flex shrink-0 items-center px-7 pt-[calc(env(safe-area-inset-top)+16px)]">
           <button
@@ -335,7 +397,7 @@ const { error } = await supabase
                 width={64}
                 height={64}
                 priority
-                className="size-16 rounded-3xl shadow-lg"
+                className="size-16 rounded-3xl shadow-lg ring-1 ring-white/20"
               />
 
               <span className="text-balance text-4xl font-black uppercase tracking-[0.06em]">
@@ -343,7 +405,7 @@ const { error } = await supabase
               </span>
             </div>
 
-            <p className="mx-auto mt-3 max-w-[16rem] text-center text-lg font-medium text-primary-foreground/80">
+            <p className="mx-auto mt-3 max-w-[16rem] text-center text-lg font-medium text-white/85">
               <span className="block">Never lift alone.</span>
               <span className="block">Train with friends.</span>
               <span className="block">Join in with one tap.</span>
@@ -471,7 +533,7 @@ const { error } = await supabase
               type="button"
               onClick={handleAppleSignIn}
               disabled={authLoading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-secondary py-3.5 text-base font-semibold text-secondary-foreground ring-1 ring-border transition-transform active:scale-[0.98] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-black py-3.5 text-base font-semibold text-white ring-1 ring-white/15 transition-transform active:scale-[0.98] disabled:opacity-60"
             >
               {authLoading ? (
                 <Loader2 size={19} className="animate-spin" />
@@ -485,7 +547,7 @@ const { error } = await supabase
               type="button"
               onClick={handleGoogleSignIn}
               disabled={authLoading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-secondary py-3.5 text-base font-semibold text-secondary-foreground ring-1 ring-border transition-transform active:scale-[0.98] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black ring-1 ring-white/25 transition-transform active:scale-[0.98] disabled:opacity-60"
             >
               {authLoading ? (
                 <Loader2 size={19} className="animate-spin" />

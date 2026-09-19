@@ -140,7 +140,7 @@ const realMatchedUsers = useMemo(() => {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="shrink-0 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
+      <header className="shrink-0 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+20px)]">
         <div className="mb-3 flex min-h-11 items-center justify-center">
           <SectionWordmark>Social</SectionWordmark>
          </div>
@@ -281,3 +281,4 @@ const realMatchedUsers = useMemo(() => {
     </div>
   )
 }
+

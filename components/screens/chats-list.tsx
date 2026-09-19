@@ -218,7 +218,7 @@ const declineFriendRequest = async (requestId: string) => {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex min-h-11 shrink-0 items-center justify-center px-3 pb-2 pt-[calc(env(safe-area-inset-top)+14px)]">
+      <header className="flex min-h-11 shrink-0 items-center justify-center px-3 pb-2 pt-[calc(env(safe-area-inset-top)+20px)]">
         <SectionWordmark>Chats</SectionWordmark>
       </header>
 
@@ -439,3 +439,4 @@ const declineFriendRequest = async (requestId: string) => {
     </div>
   )
 }
+
