@@ -9,7 +9,7 @@ export function Toaster() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none absolute inset-x-0 top-0 z-50 flex flex-col items-center gap-2 px-3 pt-3"
+      className="pointer-events-none absolute inset-x-0 top-0 z-50 flex flex-col items-center gap-2 px-3 pt-[calc(env(safe-area-inset-top)+12px)]"
     >
       {toasts.map((t) => (
         <div
