@@ -7,10 +7,11 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto min-h-screen max-w-3xl bg-background px-6 py-10 text-foreground">\n      <Link href="/" className="text-sm font-bold text-primary">← Back to WAITS</Link>
+    <main className="mx-auto min-h-screen max-w-3xl bg-background px-6 py-10 text-foreground">
+      <Link href="/" className="text-sm font-bold text-primary">← Back to WAITS</Link>
       <h1 className="mt-6 text-3xl font-extrabold">Privacy Policy — WAITS</h1>
 
-      <p className="mb-4">Last updated: August 17, 2026</p>
+      <p className="mb-4">Last updated: September 28, 2026</p>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Introduction</h2>
@@ -24,24 +25,10 @@ export default function PrivacyPage() {
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Information We Collect</h2>
         <ul className="list-disc ml-6">
-          <li>
-            <strong>Account and Profile Information:</strong> name, email,
-            avatar and other profile fields you provide.
-          </li>
-          <li>
-            <strong>Payment Information:</strong> We integrate with Stripe to
-            process payments. Payment information (credit card numbers) is
-            handled directly by Stripe and is not stored on our servers.
-          </li>
-          <li>
-            <strong>User-Provided Content:</strong> any content you create in
-            the App (workouts, messages, uploaded images).
-          </li>
-          <li>
-            <strong>Usage and Device Data:</strong> logs, analytics, device
-            metadata and technical information collected to operate and
-            improve the App.
-          </li>
+          <li><strong>Account and Profile Information:</strong> name, email, avatar and other profile fields you provide.</li>
+          <li><strong>Subscription Information:</strong> On iOS, subscriptions are processed by Apple. We use Adapty to synchronize subscription status and feature access. We do not receive or store your full payment-card number.</li>
+          <li><strong>User-Provided Content:</strong> any content you create in the App (workouts, messages, uploaded images).</li>
+          <li><strong>Usage and Device Data:</strong> logs, analytics, device metadata and technical information collected to operate and improve the App.</li>
         </ul>
       </section>
 
@@ -49,71 +36,45 @@ export default function PrivacyPage() {
         <h2 className="text-xl font-semibold">How We Use Information</h2>
         <ul className="list-disc ml-6">
           <li>To provide and maintain the App's features.</li>
-          <li>To process payments and manage subscriptions (via Stripe).</li>
-          <li>To respond to support requests and communicate important
-            updates.</li>
+          <li>To manage subscription status and premium access.</li>
+          <li>To respond to support requests and communicate important updates.</li>
           <li>To analyze usage, improve the service, and detect abuse.</li>
         </ul>
       </section>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Third-Party Services</h2>
-        <p>
-          We use third-party providers to power parts of the App, including but
-          not limited to Stripe (payments) and Vercel (hosting). These
-          providers have their own privacy practices — please review their
-          policies for details.
-        </p>
+        <p>We use third-party providers to power parts of the App, including Apple and Adapty for iOS subscriptions, Supabase for authentication and app data, and Vercel for hosting. These providers have their own privacy practices.</p>
       </section>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Data Security</h2>
-        <p>
-          We implement reasonable technical and organizational measures to
-          protect your information. However, no method of transmission over
-          the internet is 100% secure.
-        </p>
+        <p>We implement reasonable technical and organizational measures to protect your information. However, no method of transmission over the internet is 100% secure.</p>
       </section>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Your Rights and Choices</h2>
-        <p>
-          You may access, correct, or delete your account information by
-          contacting us. You can also opt out of certain communications.
-        </p>
+        <p>You may access, correct, or delete your account information by contacting us. You can also opt out of certain communications.</p>
       </section>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Children's Privacy</h2>
-        <p>
-          The App is not directed to children under 13 and we do not knowingly
-          collect personal information from children.
-        </p>
+        <p>The App is not directed to children under 13 and we do not knowingly collect personal information from children.</p>
       </section>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Data Retention</h2>
-        <p>
-          We retain personal data as long as necessary to provide the App and
-          fulfill the purposes described in this policy, unless a longer
-          retention period is required by law.
-        </p>
+        <p>We retain personal data as long as necessary to provide the App and fulfill the purposes described in this policy, unless a longer retention period is required by law.</p>
       </section>
 
       <section className="mb-6">
         <h2 className="text-xl font-semibold">Contact</h2>
-        <p>
-          For privacy questions or requests, email us at privacy@waits.app. You
-          should replace this address with your preferred contact email.
-        </p>
+        <p>For privacy questions or requests, email us at privacy@waits.app.</p>
       </section>
 
       <section>
         <h2 className="text-xl font-semibold">Changes to This Policy</h2>
-        <p>
-          We may update this policy from time to time. We will post changes on
-          this page and update the "Last updated" date above.
-        </p>
+        <p>We may update this policy from time to time. We will post changes on this page and update the "Last updated" date above.</p>
       </section>
     </main>
   )
