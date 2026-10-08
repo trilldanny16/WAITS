@@ -102,6 +102,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const [portalError, setPortalError] = useState<string | null>(null)
   const [showPreviewFixtures, setShowPreviewFixtures] = useState(false)
   const [editName, setEditName] = useState(user.name)
+  const [editUsername, setEditUsername] = useState(user.username)
   const [editHomeGym, setEditHomeGym] = useState(homeGym)
   const [editCity, setEditCity] = useState(user.city)
   const [editBio, setEditBio] = useState(user.bio)
@@ -225,12 +226,13 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
 
   useEffect(() => {
     setEditName(user.name)
+    setEditUsername(user.username)
     setEditHomeGym(homeGym)
     setEditCity(user.city)
     setEditBio(user.bio)
     setEditFavoriteSplit(user.favoriteSplit)
     setEditError(null)
-  }, [user.name, homeGym, user.city, user.bio, user.favoriteSplit])
+  }, [user.name, user.username, homeGym, user.city, user.bio, user.favoriteSplit])
 
   useEffect(() => {
     let active = true
@@ -341,6 +343,11 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   }, [userId])
 
   const handleSaveProfile = async () => {
+    const username = editUsername.trim().replace(/^@/, '').toLowerCase()
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+      setEditError('Username must be 3–30 letters, numbers, or underscores.')
+      return
+    }
     const trimmedName = editName.trim()
     const nameParts = trimmedName.split(/\s+/).filter(Boolean)
 
@@ -376,6 +383,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     .from('profiles')
     .update({
       display_name: trimmedName,
+      username,
       home_gym: editHomeGym.trim(),
       city: editCity.trim(),
       bio: editBio.trim(),
@@ -383,16 +391,17 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
       updated_at: new Date().toISOString(),
     })
     .eq('id', authUser.id)
-    .select('id, display_name, home_gym, city, bio, favorite_split')
+    .select('id, username, display_name, home_gym, city, bio, favorite_split')
     .single()
 
   if (error || !savedProfile) {
     console.error('Failed to save profile:', error)
-    setEditError(error?.message ?? 'Profile was not saved.')
+    setEditError(error?.code === '23505' ? 'That username is already taken. Choose another.' : error?.message ?? 'Profile was not saved.')
     return
   }
 
   updateUser(authUser.id, {
+    username: savedProfile.username ?? username,
     name: savedProfile.display_name ?? trimmedName,
     homeGym: savedProfile.home_gym ?? '',
     city: savedProfile.city ?? '',
@@ -666,8 +675,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none"
                   />
                   <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-                    Home Gym
+                    <span>Username</span>
                   </label>
+                  <input aria-label="Username" autoCapitalize="none" autoCorrect="off" maxLength={30} value={editUsername} onChange={(event) => setEditUsername(event.target.value)} className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none" />
+                  <label className="mt-4 block text-xs font-semibold text-muted-foreground">Home Gym</label>
                   <input
                     value={editHomeGym}
                     onChange={(e) => setEditHomeGym(e.target.value)}

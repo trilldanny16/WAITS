@@ -57,7 +57,7 @@ interface StoreValue {
   disconnectUser: (userId: string) => Promise<{ ok: boolean; error?: string }>
   toasts: Toast[]
   getUser: (id: string) => User
-  updateUser: (id: string, updates: Partial<Pick<User, 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => void
+  updateUser: (id: string, updates: Partial<Pick<User, 'username' | 'name' | 'bio' | 'homeGym' | 'city' | 'favoriteSplit' | 'avatar'>>) => void
   isFull: (w: Workout) => boolean
   hasJoined: (w: Workout) => boolean
   joinWorkout: (id: string) => Promise<{ ok: boolean; error?: string }>
@@ -86,10 +86,11 @@ const StoreContext = createContext<StoreValue | null>(null)
 let idCounter = 100
 const nextId = (prefix: string) => `${prefix}_${idCounter++}`
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>(SEED_USERS)
-  const [currentUserId, setCurrentUserId] = useState('')
-  const [authReady, setAuthReady] = useState(false)
+export function StoreProvider({ children, previewOnly = false }: { children: ReactNode; previewOnly?: boolean }) {
+  previewOnly = previewOnly && process.env.NODE_ENV === 'development'
+  const [users, setUsers] = useState<User[]>(previewOnly ? SEED_USERS.map((user) => user.id === 'u_danny' ? { ...user, name: 'Jordan Blake', username: 'jordantrains', bio: 'Always down to find a workout buddy.', city: 'Austin, TX' } : user) : SEED_USERS)
+  const [currentUserId, setCurrentUserId] = useState(previewOnly ? 'u_danny' : '')
+  const [authReady, setAuthReady] = useState(previewOnly)
   const [workouts, setWorkouts] = useState<Workout[]>(() => seedWorkouts())
   const [messages, setMessages] = useState<ChatMessage[]>(() => seedMessages())
   const [following, setFollowing] = useState<string[]>([])
@@ -114,7 +115,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
+      .select('id, username, display_name, home_gym, city, bio, favorite_split, is_pro, avatar_path')
     const profile = profiles?.find((candidate) => candidate.id === user.id)
 
     const email = user.email ?? ''
@@ -125,11 +126,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const toUser = (row: NonNullable<typeof profiles>[number]): User => ({
       id: row.id,
       name: row.display_name?.trim() || 'WAITS User',
-      username:
+      username: row.username || (
         row.id === user.id
           ? authenticatedUsername
           : (row.display_name ?? '').toLowerCase().replace(/[^a-z0-9_]/g, '') ||
-            `user_${row.id.slice(0, 6)}`,
+            `user_${row.id.slice(0, 6)}`),
       bio: row.bio ?? '',
       homeGym: row.home_gym ?? 'Add your home gym',
       city: row.city ?? '',

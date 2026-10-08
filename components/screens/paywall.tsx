@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X, Check, MessageCircle, Images, BarChart3, Users, Sparkles, Crown } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -23,6 +23,11 @@ export function Paywall({ feature }: { feature?: string }) {
   const { setPremium, pushToast } = useStore()
   const { back } = useNav()
   const [checkingOut, setCheckingOut] = useState(false)
+  const [nativePurchases, setNativePurchases] = useState(false)
+  useEffect(() => {
+    setNativePurchases(Boolean(window.ReactNativeWebView))
+  }, [])
+  const openNativePlans = () => window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'WAITS_NATIVE_OPEN_PAYWALL' }))
 
   const handleSuccess = () => {
     setPremium(true)
@@ -60,10 +65,10 @@ export function Paywall({ feature }: { feature?: string }) {
               : 'Level up your training network with the full Waits experience.'}
           </p>
           <p className="mt-4 text-3xl font-extrabold">
-            {priceLabel()}
+            {nativePurchases ? 'Monthly or Annual' : priceLabel()}
           </p>
           <p className="mt-2 text-sm text-primary-foreground/80">
-            Free for the first 7 days, then $9.99 billed monthly.
+            {nativePurchases ? 'Choose your plan. Prices and available offers are shown by the App Store.' : 'Free for the first 7 days, then $9.99 billed monthly.'}
           </p>
         </div>
 
@@ -89,7 +94,7 @@ export function Paywall({ feature }: { feature?: string }) {
         </ul>
 
         {/* Checkout */}
-        {checkingOut ? (
+        {checkingOut && !nativePurchases ? (
           <div className="mt-6">
             <PremiumCheckout onSuccess={handleSuccess} />
           </div>
@@ -101,14 +106,14 @@ export function Paywall({ feature }: { feature?: string }) {
         <div className="shrink-0 border-t border-border bg-card/95 px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur">
           <button
             type="button"
-            onClick={() => setCheckingOut(true)}
+            onClick={() => nativePurchases ? openNativePlans() : setCheckingOut(true)}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-extrabold text-lime-foreground transition-transform active:scale-[0.98]"
           >
             <Crown size={20} />
-            Upgrade For {priceLabel()}
+            {nativePurchases ? 'Choose Monthly or Annual' : `Upgrade For ${priceLabel()}`}
           </button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Cancel anytime · Secure checkout by Stripe
+            {nativePurchases ? 'App Store purchases · Restore Purchases available' : 'Cancel anytime · Secure checkout by Stripe'}
           </p>
         </div>
       ) : null}
