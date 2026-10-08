@@ -559,7 +559,7 @@ if (data.session?.user) {
               ) : (
                 <GoogleGlyph />
               )}
-              Continue with Google
+              Sign in with Google
             </button>
 
             <button
