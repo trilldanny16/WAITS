@@ -11,12 +11,14 @@ import {
   ShieldCheck,
   Crown,
   Trash2,
+  Pencil,
+  LogOut,
 } from 'lucide-react'
 import { useNav } from '../navigation'
 import { useStore } from '../store'
 import { supabase } from '@/lib/supabase-client'
 
-export function SettingsBilling() {
+export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut = false }: { onBack?: () => void; onEditProfile?: () => void; onSignOut?: () => void; signingOut?: boolean } = {}) {
   const { back, openPaywall } = useNav()
   const { isPremium, pushToast } = useStore()
   const [openingPortal, setOpeningPortal] = useState(false)
@@ -89,7 +91,7 @@ export function SettingsBilling() {
       <header className="flex shrink-0 items-center gap-3 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
         <button
           type="button"
-          onClick={back}
+          onClick={onBack ?? back}
           aria-label="Back"
           className="flex size-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
         >
@@ -102,6 +104,10 @@ export function SettingsBilling() {
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-8">
+        {onEditProfile ? <section className="mb-5 overflow-hidden rounded-3xl bg-card ring-1 ring-border">
+          <button type="button" onClick={onEditProfile} className="flex w-full items-center gap-3 px-4 py-4 text-left text-foreground"><Pencil size={20} className="text-primary" /><span className="flex-1 text-sm font-bold">Edit Profile</span><ChevronRight size={18} /></button>
+          <button type="button" onClick={onSignOut} disabled={signingOut} className="flex w-full items-center gap-3 border-t border-border px-4 py-4 text-left text-destructive disabled:opacity-50"><LogOut size={20} /><span className="text-sm font-bold">{signingOut ? 'Signing Out…' : 'Sign Out'}</span></button>
+        </section> : null}
         <section aria-labelledby="gym-access-heading" className="rounded-3xl border border-destructive/30 bg-destructive/10 p-4 text-center">
           <h2 id="gym-access-heading" className="text-sm font-extrabold text-destructive">Gym Access</h2>
           <p className="mt-2 text-sm font-medium leading-relaxed text-foreground">

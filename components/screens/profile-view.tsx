@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Camera,
+  Settings,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -30,6 +31,7 @@ import { formatTime } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase-client'
 import { SocialList } from './social-list'
+import { SettingsBilling } from './settings-billing'
 import { SafetyActions } from '../safety-actions'
 import {
   getFriendRequestState,
@@ -89,6 +91,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
   const isPersistedProfile = isPersistedUserId(userId)
 
   const [isEditing, setIsEditing] = useState(false)
+  const [showAccountSettings, setShowAccountSettings] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
@@ -533,6 +536,10 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
     )
   }
 
+  if (showAccountSettings && isSelf) {
+    return <SettingsBilling onBack={() => setShowAccountSettings(false)} onEditProfile={() => { setShowAccountSettings(false); setIsEditing(true) }} onSignOut={() => void handleSignOut()} signingOut={signingOut} />
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
@@ -553,7 +560,16 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             <SectionWordmark>Profile</SectionWordmark>
           </div>
         ) : null}
-        {user.isVerifiedPro === true ? (
+        {isSelf ? (
+          <button
+            type="button"
+            onClick={() => setShowAccountSettings(true)}
+            className="ml-auto flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow"
+            aria-label="Settings"
+          >
+            <Settings size={24} />
+          </button>
+        ) : user.isVerifiedPro === true ? (
           <span className="ml-auto flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow" aria-label="Verified WAITS Pro member">
             <Crown size={24} />
           </span>
@@ -696,23 +712,7 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
                     </button>
                   </div>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-lime text-sm font-bold text-lime-foreground shadow transition-colors hover:brightness-95"
-                >
-                  Edit Profile
-                </button>
-              
-              )}
-              <button
-                type="button"
-                onClick={openSettings}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow"
-              >
-                Settings
-              </button>
+              ) : null}
             </div>
 
             
@@ -782,18 +782,6 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
             </div>
           )}
         </div>
-
-        {/* Sign out (own profile) */}
-        {isSelf ? (
-          <button
-            type="button"
-            onClick={() => void handleSignOut()}
-            disabled={signingOut}
-            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-destructive text-sm font-bold text-destructive-foreground shadow transition-colors hover:bg-destructive/90 disabled:opacity-50"
-          >
-            {signingOut ? 'Signing Out…' : 'Sign Out'}
-          </button>
-        ) : null}
 
         {/* Reliability & stats (Waits Pro) */}
         {!locked ? (
