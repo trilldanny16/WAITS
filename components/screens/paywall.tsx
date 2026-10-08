@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Check, MessageCircle, Images, BarChart3, Users, Sparkles, Crown } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
@@ -20,13 +20,19 @@ function priceLabel() {
 }
 
 export function Paywall({ feature }: { feature?: string }) {
-  const { setPremium, pushToast } = useStore()
+  const { pushToast } = useStore()
   const { back } = useNav()
   const [checkingOut, setCheckingOut] = useState(false)
   const [isNativeIOS, setIsNativeIOS] = useState(false)
+  const nativePaywallOpened = useRef(false)
 
   useEffect(() => {
-    setIsNativeIOS(/WAITS-iOS/i.test(navigator.userAgent))
+    const nativeIOS = /WAITS-iOS/i.test(navigator.userAgent)
+    setIsNativeIOS(nativeIOS)
+    if (nativeIOS && window.ReactNativeWebView && !nativePaywallOpened.current) {
+      nativePaywallOpened.current = true
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WAITS_NATIVE_OPEN_PAYWALL' }))
+    }
   }, [])
 
   const startUpgrade = () => {
@@ -43,30 +49,30 @@ export function Paywall({ feature }: { feature?: string }) {
   }
 
   const handleSuccess = () => {
-    setPremium(true)
-    pushToast({ title: 'Welcome to Waits Pro 👑', body: 'All premium features are unlocked.' })
+    window.dispatchEvent(new MessageEvent('message', { data: { type: 'WAITS_ENTITLEMENT_CHANGED' } }))
+    pushToast({ title: 'Checking your membership', body: 'Pro access updates after the server confirms your subscription.' })
     back()
   }
 
   return (
     <div className="flex h-full flex-col bg-background">
       <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(env(safe-area-inset-top)+14px)]">
-        <button type="button" onClick={back} className="flex size-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground" aria-label="Close">
+        <button type="button" onClick={back} className="flex size-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground" aria-label="Close">
           <X size={20} />
         </button>
-        <span className="text-base font-bold text-foreground">Waits Pro</span>
-        <div className="w-9" />
+        <span className="text-base font-extrabold tracking-wide text-primary">WAITS PRO</span>
+        <div className="w-11" />
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-6">
-        <div className="flex flex-col items-center rounded-3xl bg-primary px-6 py-8 text-center text-primary-foreground">
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-primary-foreground/15"><Crown size={32} /></span>
-          <h1 className="mt-3 text-2xl font-extrabold capitalize tracking-tight">{feature ? `Unlock ${feature}` : 'Go Pro'}</h1>
+        <div className="flex flex-col items-center rounded-3xl border border-primary/30 bg-primary/10 px-5 py-6 text-center text-white">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary"><Crown size={26} /></span>
+          <h1 className="mt-3 text-2xl font-extrabold tracking-tight">Train with more possibilities.</h1>
           <p className="mt-1 max-w-[20rem] text-pretty text-sm text-primary-foreground/80">
-            {feature ? `${feature} is a Waits Pro feature. Upgrade to unlock it plus everything below.` : 'Level up your training network with the full Waits experience.'}
+            {feature && feature !== 'WAITS Pro' ? `${feature} and more with WAITS Pro.` : 'Your training network, unlocked.'}
           </p>
-          <p className="mt-4 text-3xl font-extrabold">{isNativeIOS ? 'Monthly or Annual' : priceLabel()}</p>
-          <p className="mt-2 text-sm text-primary-foreground/80">{isNativeIOS ? 'Choose your Apple subscription on the next screen.' : 'Billed monthly. Cancel anytime.'}</p>
+          {!isNativeIOS ? <p className="mt-4 text-3xl font-extrabold">{priceLabel()}</p> : null}
+          <p className="mt-2 text-sm text-white/80">{isNativeIOS ? 'Select your plan in the Apple purchase screen.' : 'Billed monthly. Cancel anytime.'}</p>
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">Workout Chats are included with Free for hosts and people who join.</p>
@@ -91,11 +97,12 @@ export function Paywall({ feature }: { feature?: string }) {
         <div className="shrink-0 border-t border-border bg-card/95 px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur">
           <button type="button" onClick={startUpgrade} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-extrabold text-lime-foreground transition-transform active:scale-[0.98]">
             <Crown size={20} />
-            {isNativeIOS ? 'View Monthly & Annual Plans' : `Upgrade For ${priceLabel()}`}
+            {isNativeIOS ? 'View Pro Plans' : `Upgrade For ${priceLabel()}`}
           </button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             {isNativeIOS ? 'Secure purchase through Apple · Restore Purchases available' : 'Cancel anytime · Secure checkout by Stripe'}
           </p>
+          <div className="mt-2 flex items-center justify-center gap-5 text-xs text-muted-foreground"><a href="/terms" className="inline-flex min-h-11 items-center underline underline-offset-2">Terms of Service</a><a href="/privacy" className="inline-flex min-h-11 items-center underline underline-offset-2">Privacy Policy</a></div>
         </div>
       ) : null}
     </div>

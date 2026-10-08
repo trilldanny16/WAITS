@@ -51,6 +51,36 @@ function GoogleGlyph() {
   )
 }
 
+export function SignInBrand() {
+  return <div className="flex flex-col items-center text-center">
+    <div className="flex h-36 w-56 items-center justify-center overflow-hidden rounded-[28px] bg-black">
+      <Image src="/waits-clock-logo.svg" alt="WAITS clock and weights logo" width={176} height={112} priority className="pointer-events-none h-28 w-44 object-contain" />
+    </div>
+    <h1 className="mt-4 text-4xl font-black uppercase tracking-[0.06em]">WAITS</h1>
+    <p className="mt-2 text-2xl font-extrabold">Never lift alone.</p>
+    <p className="mt-1 text-base text-white/90">Find your people. Train together.</p>
+  </div>
+}
+
+export function SignInLegal() {
+  return <div className="pt-2 text-center text-xs leading-relaxed text-white/90">
+    <p>Train at gyms where you already have membership or guest access. WAITS does not sell gym memberships.</p>
+    <p className="mt-3">By continuing, you agree to our</p>
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      <a href="/terms" className="inline-flex min-h-11 items-center px-1 font-semibold text-white underline underline-offset-2">Terms of Service</a><span aria-hidden="true">·</span><a href="/privacy" className="inline-flex min-h-11 items-center px-1 font-semibold text-white underline underline-offset-2">Privacy Policy</a>
+    </div>
+  </div>
+}
+
+export function SignInOptions({ busy = false, onApple, onGoogle, onEmail }: { busy?: boolean; onApple: () => void; onGoogle: () => void; onEmail: () => void }) {
+  const buttonStyle = 'flex min-h-[62px] w-full items-center justify-center gap-2.5 rounded-2xl py-3.5 text-lg font-semibold transition-transform active:scale-[0.98] disabled:opacity-60'
+  return <div className="space-y-3">
+    <button type="button" onClick={onApple} disabled={busy} className={cn(buttonStyle, 'bg-black text-white ring-1 ring-white/15')}>{busy ? <Loader2 size={19} className="animate-spin" /> : <Apple size={20} fill="currentColor" />}Sign in with Apple</button>
+    <button type="button" onClick={onGoogle} disabled={busy} className={cn(buttonStyle, 'bg-white text-black ring-1 ring-white/25')}>{busy ? <Loader2 size={19} className="animate-spin" /> : <GoogleGlyph />}Sign in with Google</button>
+    <button type="button" onClick={onEmail} disabled={busy} className={cn(buttonStyle, 'border border-white/50 text-white')}><Mail size={19} />Continue with Email</button>
+  </div>
+}
+
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState<0 | 1>(0)
   const [days, setDays] = useState<string[]>(['Mon', 'Wed', 'Fri'])
@@ -354,7 +384,7 @@ if (data.session?.user) {
   }
 
   return (
-    <div className="relative flex h-full flex-col bg-primary text-white">
+    <div className="relative h-full overflow-y-auto bg-[#0088FF] text-white">
       {step === 1 ? (
         <div className="relative z-30 flex shrink-0 items-center px-7 pt-[calc(env(safe-area-inset-top)+16px)]">
           <button
@@ -368,32 +398,9 @@ if (data.session?.user) {
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col justify-center overflow-y-auto px-7">
+      <div className="mx-auto flex max-w-[440px] flex-col justify-center px-6 pt-[calc(env(safe-area-inset-top)+24px)]">
         {step === 0 ? (
-          <div className="my-7 animate-in fade-in slide-in-from-bottom-4">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <Image
-                src="/waits-clock-logo.svg"
-                alt="WAITS"
-                width={180}
-                height={120}
-                priority
-                className="pointer-events-none h-28 w-44 object-contain"
-              />
-
-              <span className="text-balance text-4xl font-black uppercase tracking-[0.06em]">
-                WAITS
-              </span>
-            </div>
-
-            <p className="mx-auto mt-3 max-w-[16rem] text-center text-lg font-medium text-white/85">
-              <span className="block">Never lift alone.</span>
-              <span className="block">Train with friends.</span>
-              <span className="block">Join in with one tap.</span>
-            </p>
-
-
-          </div>
+          <div className="my-5 animate-in fade-in slide-in-from-bottom-4"><SignInBrand /></div>
         ) : (
           <div className="mt-7 flex animate-in flex-col items-center text-center fade-in slide-in-from-right-4">
             <div className="mb-4 flex flex-col items-center gap-4 text-center">
@@ -437,49 +444,14 @@ if (data.session?.user) {
         )}
       </div>
 
-      <div className="shrink-0 px-7 pb-[calc(env(safe-area-inset-bottom)+28px)]">
+      <div className="mx-auto max-w-[440px] px-6 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-5">
         {step === 0 ? (
           <div className="space-y-3">
-            <button
-              type="button"
-              onClick={handleAppleSignIn}
-              disabled={authLoading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-black py-3.5 text-base font-semibold text-white ring-1 ring-white/15 transition-transform active:scale-[0.98] disabled:opacity-60"
-            >
-              {authLoading ? (
-                <Loader2 size={19} className="animate-spin" />
-              ) : (
-                <Apple size={20} className="-mt-0.5" fill="currentColor" />
-              )}
-              Sign in with Apple
-            </button>
-
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={authLoading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-white py-3.5 text-base font-semibold text-black ring-1 ring-white/25 transition-transform active:scale-[0.98] disabled:opacity-60"
-            >
-              {authLoading ? (
-                <Loader2 size={19} className="animate-spin" />
-              ) : (
-                <GoogleGlyph />
-              )}
-              Sign in with Google
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
+            <SignInOptions busy={authLoading} onApple={() => void handleAppleSignIn()} onGoogle={() => void handleGoogleSignIn()} onEmail={() => {
                 setShowEmailForm((current) => !current)
                 setAuthError(null)
                 setAuthMessage(null)
-              }}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/25 py-3.5 text-base font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
-            >
-              <Mail size={19} />
-              Continue with Email
-            </button>
+              }} />
 
             {showEmailForm ? (
               <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
@@ -577,12 +549,7 @@ if (data.session?.user) {
               </p>
             ) : null}
 
-            <p className="pt-1 text-center text-xs text-primary-foreground/70">
-              WAITS coordinates workouts at gyms where you already have membership or guest access. WAITS does not sell gym memberships.
-            </p>
-            <p className="text-center text-xs text-primary-foreground/55">
-              By continuing you agree to our Terms &amp; Privacy Policy.
-            </p>
+            <SignInLegal />
           </div>
         ) : (
           <div className="space-y-3">

@@ -23,13 +23,14 @@ export function MessagingHeader({ title, onBack, close = false, children }: { ti
   </header>
 }
 
-export function NewMessage({ onBack, onCreate, busy, previewPeople }: { onBack: () => void; onCreate: (id: string) => void; busy: boolean; previewPeople?: User[] }) {
+export function NewMessage({ onBack, onCreate, busy, previewPeople, currentUserId }: { onBack: () => void; onCreate: (id: string) => void; busy: boolean; previewPeople?: User[]; currentUserId?: string }) {
   const [query, setQuery] = useState('')
   const [people, setPeople] = useState<User[]>(previewPeople ?? [])
   const [reload, setReload] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => { setSelected(null); setPeople(previewPeople ?? []); setError(null) }, [currentUserId, previewPeople])
   useEffect(() => {
     if (previewPeople) { setPeople(previewPeople.filter((person) => (person.name + ' ' + person.username).toLowerCase().includes(query.toLowerCase()))); setLoading(false); return }
     let active = true
@@ -38,7 +39,7 @@ export function NewMessage({ onBack, onCreate, busy, previewPeople }: { onBack: 
       getMessagingRecipients(query.trim()).then((rows) => { if (active) { setPeople(rows.map(messagingUser)); setError(null) } }).catch(() => { if (active) setError('Could not load your friends. Please try again.') }).finally(() => { if (active) setLoading(false) })
     }, query ? 250 : 0)
     return () => { active = false; window.clearTimeout(timer) }
-  }, [query, reload, previewPeople])
+  }, [query, reload, previewPeople, currentUserId])
   return <div className="flex h-full min-h-0 flex-col bg-[#0E0F11] text-white">
     <MessagingHeader title="New Message" onBack={onBack} close><button type="button" disabled={!selected || busy || loading || Boolean(error)} onClick={() => selected && onCreate(selected)} className="min-h-11 rounded-full bg-lime px-4 text-sm font-bold text-black disabled:bg-white/5 disabled:text-white/30">{busy ? 'Opening…' : 'Create'}</button></MessagingHeader>
     <div className="px-4"><label className="flex h-13 items-center gap-3 rounded-full bg-white/8 px-4 ring-1 ring-white/5"><Search size={21} className="text-white/45" /><input aria-label="Search friends" placeholder="Search friends" value={query} maxLength={100} onChange={(event) => { setQuery(event.target.value); setSelected(null) }} className="h-13 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-white/45" /></label></div>
@@ -49,12 +50,14 @@ export function NewMessage({ onBack, onCreate, busy, previewPeople }: { onBack: 
 }
 
 const privacyOptions = [
-  { value: 'friends', title: 'Friends', description: 'Only your accepted friends can message you.' },
-  { value: 'everyone', title: 'Everyone', description: 'Allow other WAITS users to send you messages.' },
+  { value: 'friends', title: 'Friends', description: 'Only accepted friends with Pro can start a conversation with you.' },
+  { value: 'everyone', title: 'Everyone', description: 'Allow other WAITS Pro members to start conversations with you.' },
   { value: 'no_one', title: 'No One', description: 'Only you can start new conversations.' },
 ] as const
 
-export function MessagingSettings({ onBack, previewPreferences }: { onBack: () => void; previewPreferences?: { whoCanMessage: 'friends' | 'everyone' | 'no_one'; showWhenOnline: boolean } }) {
+export function MessagingSettings({ onBack, previewPreferences, currentUserId }: { onBack: () => void; previewPreferences?: { whoCanMessage: 'friends' | 'everyone' | 'no_one'; showWhenOnline: boolean }; currentUserId?: string }) {
+  const account = useRef(currentUserId)
+  account.current = currentUserId
   const [preferences, setPreferences] = useState<{ whoCanMessage: 'friends' | 'everyone' | 'no_one'; showWhenOnline: boolean } | null>(previewPreferences ?? null)
   const mounted = useRef(true)
   const [reload, setReload] = useState(0)
@@ -62,8 +65,30 @@ export function MessagingSettings({ onBack, previewPreferences }: { onBack: () =
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const load = () => setReload((value) => value + 1)
-  useEffect(() => { mounted.current = true; if (previewPreferences) { setLoading(false); return () => { mounted.current = false } } let active = true; setLoading(true); getMessagingPreferences().then((value) => { if (active) { setPreferences(value); setError(null) } }).catch(() => { if (active) setError('Could not load messaging settings. Please try again.') }).finally(() => { if (active) setLoading(false) }); return () => { active = false; mounted.current = false } }, [reload, previewPreferences])
-  const save = async (next: NonNullable<typeof preferences>) => { if (saving) return; setSaving(true); setError(null); try { if (!previewPreferences) await saveMessagingPreferences(next); if (mounted.current) setPreferences(next) } catch { if (mounted.current) setError('Your changes were not saved. Please try again.') } finally { if (mounted.current) setSaving(false) } }
+  useEffect(() => {
+    mounted.current = true
+    setSaving(false)
+    setError(null)
+    if (previewPreferences) { setPreferences(previewPreferences); setLoading(false); return () => { mounted.current = false } }
+    let active = true
+    setPreferences(null)
+    setLoading(true)
+    getMessagingPreferences(currentUserId).then((value) => { if (active && account.current === currentUserId) setPreferences(value) })
+      .catch(() => { if (active && account.current === currentUserId) setError('Could not load messaging settings. Please try again.') })
+      .finally(() => { if (active && account.current === currentUserId) setLoading(false) })
+    return () => { active = false; mounted.current = false }
+  }, [reload, previewPreferences, currentUserId])
+  const save = async (next: NonNullable<typeof preferences>) => {
+    if (saving) return
+    const savingAccount = currentUserId
+    setSaving(true)
+    setError(null)
+    try {
+      if (!previewPreferences) await saveMessagingPreferences(next, savingAccount)
+      if (mounted.current && account.current === savingAccount) setPreferences(next)
+    } catch { if (mounted.current && account.current === savingAccount) setError('Your changes were not saved. Please try again.') }
+    finally { if (mounted.current && account.current === savingAccount) setSaving(false) }
+  }
   return <div className="flex h-full min-h-0 flex-col bg-[#0E0F11] text-white"><MessagingHeader title="Messaging Settings" onBack={onBack} />
     <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+24px)]">
       <p className="mb-8 text-sm leading-relaxed text-white/60">Choose who can start a private conversation with you on WAITS.</p>
@@ -119,7 +144,7 @@ export function DirectMessageBubble({ message, mine, onMediaLoad }: { message: {
 export function DirectMessageComposer({ text, onTextChange, onSend, onAddPhoto, sending, disabled, textareaRef }: { text: string; onTextChange: (text: string) => void; onSend: () => void; onAddPhoto: () => void; sending: boolean; disabled: boolean; textareaRef?: React.Ref<HTMLTextAreaElement> }) {
   return <div className="flex shrink-0 items-end gap-2 border-t border-white/7 bg-black px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
     <button type="button" onClick={onAddPhoto} disabled={disabled || sending} aria-label="Add photo" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary disabled:opacity-40"><ImagePlus size={19} /></button>
-    <textarea ref={textareaRef} aria-label="Message" rows={1} maxLength={1000} value={text} onChange={(event) => { onTextChange(event.target.value); event.target.style.height = 'auto'; event.target.style.height = Math.min(event.target.scrollHeight, 120) + 'px' }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); onSend() } }} placeholder="Message…" className="max-h-30 min-h-11 min-w-0 flex-1 resize-none rounded-3xl bg-[#1C1D21] px-4 py-3 text-base leading-5 outline-none focus:ring-2 focus:ring-primary" />
+    <textarea ref={textareaRef} aria-label="Message" disabled={disabled || sending} rows={1} maxLength={1000} value={text} onChange={(event) => { onTextChange(event.target.value); event.target.style.height = 'auto'; event.target.style.height = Math.min(event.target.scrollHeight, 120) + 'px' }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); onSend() } }} placeholder="Message…" className="max-h-30 min-h-11 min-w-0 flex-1 resize-none rounded-3xl bg-[#1C1D21] px-4 py-3 text-base leading-5 outline-none focus:ring-2 focus:ring-primary disabled:opacity-40" />
     <button type="button" onClick={onSend} disabled={disabled || !text.trim() || sending} aria-label="Send" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-lime text-lime-foreground disabled:opacity-40"><Send size={18} /></button>
   </div>
 }

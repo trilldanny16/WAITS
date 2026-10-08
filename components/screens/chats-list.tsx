@@ -193,8 +193,8 @@ const declineFriendRequest = async (requestId: string) => {
 
   const myWorkouts = useMemo(() => workouts.filter((workout) => workout.hostId === currentUserId || hasJoined(workout)).sort((a, b) => a.date.localeCompare(b.date)), [workouts, hasJoined, currentUserId])
 
-  if (pane === 'compose') return <NewMessage onBack={() => setPane('inbox')} busy={startingDm !== null} onCreate={(recipientId) => { void startDirectMessage(recipientId).then((opened) => { if (opened) setPane('inbox') }) }} />
-  if (pane === 'settings') return <MessagingSettings onBack={() => setPane('inbox')} />
+  if (pane === 'compose') return <NewMessage currentUserId={currentUserId} onBack={() => setPane('inbox')} busy={startingDm !== null} onCreate={(recipientId) => { void startDirectMessage(recipientId).then((opened) => { if (opened) setPane('inbox') }) }} />
+  if (pane === 'settings') return <MessagingSettings currentUserId={currentUserId} onBack={() => setPane('inbox')} />
 
   return <div className="flex h-full min-h-0 flex-col bg-black text-white">
     <MessagingInboxHeader onBack={() => setTab('home')} onCompose={() => isPremium ? setPane('compose') : openPaywall('Personal DMs')} onSettings={() => setPane('settings')} />

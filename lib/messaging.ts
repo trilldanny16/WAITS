@@ -19,22 +19,23 @@ export type MessagingInboxItem = {
   unreadCount: number
 }
 
-async function authenticatedUserId() {
+async function authenticatedUserId(expectedUserId?: string) {
   const { data, error } = await supabase.auth.getUser()
   if (error || !data.user) throw error ?? new Error('Sign in to use messaging.')
+  if (expectedUserId && data.user.id !== expectedUserId) throw new Error('Your account changed. Reopen Messages and try again.')
   return data.user.id
 }
 
-export async function getMessagingPreferences(): Promise<MessagingPreferences> {
-  const userId = await authenticatedUserId()
+export async function getMessagingPreferences(expectedUserId?: string): Promise<MessagingPreferences> {
+  const userId = await authenticatedUserId(expectedUserId)
   const { data, error } = await supabase.from('messaging_preferences')
     .select('who_can_message,show_when_online').eq('user_id', userId).maybeSingle()
   if (error) throw error
   return { whoCanMessage: data?.who_can_message ?? 'friends', showWhenOnline: data?.show_when_online ?? true }
 }
 
-export async function saveMessagingPreferences(preferences: MessagingPreferences): Promise<void> {
-  const userId = await authenticatedUserId()
+export async function saveMessagingPreferences(preferences: MessagingPreferences, expectedUserId?: string): Promise<void> {
+  const userId = await authenticatedUserId(expectedUserId)
   const { error } = await supabase.from('messaging_preferences').upsert({
     user_id: userId, who_can_message: preferences.whoCanMessage,
     show_when_online: preferences.showWhenOnline,

@@ -102,6 +102,63 @@ export function StoreProvider({ children, previewOnly = false }: { children: Rea
   const persistedWorkoutIdsRef = useRef<string[]>([])
 
   useEffect(() => {
+    if (previewOnly || !SUPABASE_USER_ID_PATTERN.test(currentUserId)) return
+    let active = true
+    let requestId = 0
+    const timers = new Set<ReturnType<typeof setTimeout>>()
+    const refreshEntitlement = async () => {
+      const request = ++requestId
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (!active || request !== requestId) return
+        if (authError || user?.id !== currentUserId) {
+          setIsPremium(false)
+          return
+        }
+        const { data, error } = await supabase.from('profiles').select('is_pro').eq('id', currentUserId).maybeSingle()
+        if (!active || request !== requestId) return
+        // Only server-owned profile state grants access; SDK/browser events never do.
+        const premium = !error && data?.is_pro === true
+        setIsPremium(premium)
+        setUsers(previous => previous.map(profile => profile.id === currentUserId ? { ...profile, isVerifiedPro: premium } : profile))
+      } catch {
+        if (active && request === requestId) setIsPremium(false)
+      }
+    }
+    const foreground = () => {
+      if (document.visibilityState === 'visible') void refreshEntitlement()
+    }
+    const entitlementChanged = (event: MessageEvent) => {
+      let message: unknown = event.data
+      try { if (typeof message === 'string') message = JSON.parse(message) } catch { return }
+      if (!message || typeof message !== 'object' || !('type' in message) || message.type !== 'WAITS_ENTITLEMENT_CHANGED') return
+      for (const timer of timers) clearTimeout(timer)
+      timers.clear()
+      // Provider webhooks can arrive after the purchase sheet closes.
+      for (const delay of [0, 1000, 3000, 8000, 15000, 30000]) {
+        const timer = setTimeout(() => { timers.delete(timer); void refreshEntitlement() }, delay)
+        timers.add(timer)
+      }
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user.id !== currentUserId) { requestId++; setIsPremium(false) }
+    })
+    foreground()
+    window.addEventListener('focus', foreground)
+    document.addEventListener('visibilitychange', foreground)
+    window.addEventListener('message', entitlementChanged)
+    return () => {
+      active = false
+      requestId++
+      subscription.unsubscribe()
+      for (const timer of timers) clearTimeout(timer)
+      window.removeEventListener('focus', foreground)
+      document.removeEventListener('visibilitychange', foreground)
+      window.removeEventListener('message', entitlementChanged)
+    }
+  }, [currentUserId, previewOnly])
+
+  useEffect(() => {
   const loadCurrentUser = async () => {
     const {
       data: { user },

@@ -77,7 +77,7 @@ export function DirectMessage({ id }: { id: string }) {
     setMessages((data ?? []) as DirectMessageRow[])
     setError(null)
     setLoading(false)
-    void markConversationRead(id).catch(() => {})
+    if (document.visibilityState === 'visible') void markConversationRead(id).catch(() => {})
     void getMessagingPresence(recipientId).then((value) => { if (request === loadingRequest.current) setOnline(value) }).catch(() => { if (request === loadingRequest.current) setOnline(false) })
   }, [currentUserId, id, isPremium])
 
@@ -91,7 +91,16 @@ export function DirectMessage({ id }: { id: string }) {
       .channel(`direct-messages:${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages', filter: `conversation_id=eq.${id}` }, () => void loadConversation())
       .subscribe()
-    return () => { activeIdentity.current = null; loadingRequest.current++; void supabase.removeChannel(channel) }
+    const refresh = () => { if (document.visibilityState === 'visible') void loadConversation() }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      activeIdentity.current = null
+      loadingRequest.current++
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+      void supabase.removeChannel(channel)
+    }
   }, [id, loadConversation, isPremium])
 
   useEffect(() => {
@@ -174,7 +183,7 @@ export function DirectMessage({ id }: { id: string }) {
       nearBottom.current = true
       await loadConversation()
     }
-    setSending(false)
+    if (activeIdentity.current === identity) setSending(false)
   }
 
   if (!isPremium) return (

@@ -504,7 +504,9 @@ export function ProfileView({ userId, asTab = false }: { userId: string; asTab?:
       console.error('Failed to sign out:', error)
       setSigningOut(false)
       pushToast({ title: 'Sign out failed', body: error.message })
+      return
     }
+    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'WAITS_NATIVE_SIGN_OUT' }))
   }
 
   const hostedWorkouts = useMemo(

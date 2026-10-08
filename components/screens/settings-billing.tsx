@@ -83,6 +83,7 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
       const result = await response.json()
       if (!response.ok) throw new Error(result.error ?? 'Account deletion failed.')
       await supabase.auth.signOut()
+      window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'WAITS_NATIVE_SIGN_OUT' }))
       window.location.assign('/')
     } catch (error) {
       pushToast({ title: 'Account not deleted', body: error instanceof Error ? error.message : 'Please try again.' })
@@ -97,7 +98,7 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
           type="button"
           onClick={onBack ?? back}
           aria-label="Back"
-          className="flex size-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
+          className="flex size-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
         >
           <ChevronLeft size={21} />
         </button>
@@ -108,43 +109,7 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-8">
-        <section className="mt-5 rounded-3xl bg-card p-4 ring-1 ring-border">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Crown size={22} />
-            </span>
-            <div>
-              <p className="text-sm font-extrabold text-card-foreground">
-                {isPremium ? 'WAITS Pro' : 'WAITS Free'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {isPremium ? 'Your Pro membership is active.' : 'Upgrade to start personal DMs, host larger groups, and unlock galleries and stats.'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => void openBilling()}
-            disabled={openingPortal}
-            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-primary px-4 py-3 text-left text-primary-foreground disabled:opacity-60"
-          >
-            <span className="flex items-center gap-3">
-              <CreditCard size={19} />
-              <span>
-                <span className="block text-sm font-bold">{isPremium ? 'Manage Billing' : 'View Pro Plans'}</span>
-                <span className="block text-xs opacity-75">
-                  {openingPortal ? 'Opening billing…' : isPremium ? 'Payment method, invoices, and cancellation' : 'See membership benefits and pricing'}
-                </span>
-              </span>
-            </span>
-            <ChevronRight size={18} />
-          </button>
-        </section>
-
-        {onEditProfile ? <section className="mb-5 overflow-hidden rounded-3xl bg-card ring-1 ring-border">
-          <button type="button" onClick={onEditProfile} className="flex w-full items-center gap-3 px-4 py-4 text-left text-foreground"><Pencil size={20} className="text-primary" /><span className="flex-1 text-sm font-bold">Edit Profile</span><ChevronRight size={18} /></button>
-          <button type="button" onClick={onSignOut} disabled={signingOut} className="flex w-full items-center gap-3 border-t border-border px-4 py-4 text-left text-destructive disabled:opacity-50"><LogOut size={20} /><span className="text-sm font-bold">{signingOut ? 'Signing Out…' : 'Sign Out'}</span></button>
-        </section> : null}
+        <AccountSettingsContainer isPremium={isPremium} openingBilling={openingPortal} onBilling={() => void openBilling()} onEditProfile={onEditProfile} onSignOut={onSignOut} signingOut={signingOut} />
 
         <section className="mt-5">
           <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -216,6 +181,23 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
       </div>
     </div>
   )
+}
+
+/** The live screen and design preview share the same unified account surface. */
+export function AccountSettingsContainer({ isPremium, openingBilling = false, signingOut = false, onBilling, onEditProfile, onSignOut }: { isPremium: boolean; openingBilling?: boolean; signingOut?: boolean; onBilling: () => void; onEditProfile?: () => void; onSignOut?: () => void }) {
+  return <section aria-label="Membership and account" className="mt-4 overflow-hidden rounded-3xl bg-card ring-1 ring-border">
+    <div className="p-4">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><Crown size={21} /></span>
+        <div className="min-w-0"><h2 className="text-base font-extrabold text-card-foreground">{isPremium ? 'WAITS Pro' : 'WAITS Free'}</h2><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{isPremium ? 'Your Pro membership is active.' : 'Personal DMs, larger groups, galleries, and stats with Pro.'}</p></div>
+      </div>
+      <button type="button" onClick={onBilling} disabled={openingBilling} className="mt-3 flex min-h-12 w-full items-center gap-3 rounded-2xl bg-primary px-3 py-3 text-left text-primary-foreground disabled:opacity-60">
+        <CreditCard size={19} className="shrink-0" /><span className="flex-1 text-sm font-bold">{openingBilling ? 'Opening billing…' : isPremium ? 'Manage Subscription' : 'View Pro Plans'}</span><ChevronRight size={18} />
+      </button>
+    </div>
+    {onEditProfile ? <button type="button" onClick={onEditProfile} className="flex min-h-14 w-full items-center gap-3 border-t border-border/70 px-4 py-4 text-left text-foreground"><Pencil size={20} className="text-primary" /><span className="flex-1 text-sm font-bold">Edit Profile</span><ChevronRight size={18} className="text-muted-foreground" /></button> : null}
+    {onSignOut ? <button type="button" onClick={onSignOut} disabled={signingOut} className="flex min-h-14 w-full items-center gap-3 border-t border-border/70 px-4 py-4 text-left text-destructive disabled:opacity-50"><LogOut size={20} /><span className="text-sm font-bold">{signingOut ? 'Signing Out…' : 'Sign Out'}</span></button> : null}
+  </section>
 }
 
 function SettingsLink({
