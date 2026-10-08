@@ -31,6 +31,10 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
       openPaywall('WAITS Pro')
       return
     }
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WAITS_NATIVE_MANAGE_SUBSCRIPTIONS' }))
+      return
+    }
     if (openingPortal) return
     setOpeningPortal(true)
 
@@ -104,18 +108,6 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
       </header>
 
       <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-8">
-        {onEditProfile ? <section className="mb-5 overflow-hidden rounded-3xl bg-card ring-1 ring-border">
-          <button type="button" onClick={onEditProfile} className="flex w-full items-center gap-3 px-4 py-4 text-left text-foreground"><Pencil size={20} className="text-primary" /><span className="flex-1 text-sm font-bold">Edit Profile</span><ChevronRight size={18} /></button>
-          <button type="button" onClick={onSignOut} disabled={signingOut} className="flex w-full items-center gap-3 border-t border-border px-4 py-4 text-left text-destructive disabled:opacity-50"><LogOut size={20} /><span className="text-sm font-bold">{signingOut ? 'Signing Out…' : 'Sign Out'}</span></button>
-        </section> : null}
-        <section aria-labelledby="gym-access-heading" className="rounded-3xl border border-destructive/30 bg-destructive/10 p-4 text-center">
-          <h2 id="gym-access-heading" className="text-sm font-extrabold text-destructive">Gym Access</h2>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-foreground">
-            WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access.
-            <strong className="mt-2 block font-extrabold">WAITS does not sell gym memberships or guarantee entry.</strong>
-          </p>
-        </section>
-
         <section className="mt-5 rounded-3xl bg-card p-4 ring-1 ring-border">
           <div className="flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
@@ -141,13 +133,18 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
               <span>
                 <span className="block text-sm font-bold">{isPremium ? 'Manage Billing' : 'View Pro Plans'}</span>
                 <span className="block text-xs opacity-75">
-                  {openingPortal ? 'Opening Stripe…' : isPremium ? 'Payment method, invoices, and cancellation' : 'See membership benefits and pricing'}
+                  {openingPortal ? 'Opening billing…' : isPremium ? 'Payment method, invoices, and cancellation' : 'See membership benefits and pricing'}
                 </span>
               </span>
             </span>
             <ChevronRight size={18} />
           </button>
         </section>
+
+        {onEditProfile ? <section className="mb-5 overflow-hidden rounded-3xl bg-card ring-1 ring-border">
+          <button type="button" onClick={onEditProfile} className="flex w-full items-center gap-3 px-4 py-4 text-left text-foreground"><Pencil size={20} className="text-primary" /><span className="flex-1 text-sm font-bold">Edit Profile</span><ChevronRight size={18} /></button>
+          <button type="button" onClick={onSignOut} disabled={signingOut} className="flex w-full items-center gap-3 border-t border-border px-4 py-4 text-left text-destructive disabled:opacity-50"><LogOut size={20} /><span className="text-sm font-bold">{signingOut ? 'Signing Out…' : 'Sign Out'}</span></button>
+        </section> : null}
 
         <section className="mt-5">
           <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -165,8 +162,16 @@ export function SettingsBilling({ onBack, onEditProfile, onSignOut, signingOut =
           </h2>
           <div className="overflow-hidden rounded-3xl bg-card ring-1 ring-border">
             <SettingsLink href="mailto:support@waits.app" icon={HelpCircle} title="Contact Support" body="Questions, billing help, or account requests" />
-            <SettingsRow icon={LockKeyhole} title="Account Security" body="Authentication is protected by Supabase" />
+            <SettingsRow icon={LockKeyhole} title="Account Security" body="Manage your sign-in and account" />
           </div>
+        </section>
+
+        <section aria-labelledby="gym-access-heading" className="mt-5 rounded-3xl border border-destructive/30 bg-destructive/10 p-4 text-center">
+          <h2 id="gym-access-heading" className="text-sm font-extrabold text-destructive">Gym Access</h2>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-foreground">
+            WAITS helps members coordinate workouts at commercial gyms where they already have membership or guest access.
+            <strong className="mt-2 block font-extrabold">WAITS does not sell gym memberships or guarantee entry.</strong>
+          </p>
         </section>
 
         <section className="mt-5 rounded-3xl border border-destructive/30 bg-card p-4">

@@ -10,11 +10,9 @@ import {
   Dumbbell,
   ArrowRight,
   ArrowLeft,
-  Phone,
   Loader2,
 } from 'lucide-react'
 
-import { savePhoneLead } from '@/app/actions/phone-leads'
 import { supabase } from '@/lib/supabase-client'
 import { cn } from '@/lib/utils'
 
@@ -56,11 +54,6 @@ function GoogleGlyph() {
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState<0 | 1>(0)
   const [days, setDays] = useState<string[]>(['Mon', 'Wed', 'Fri'])
-
-  const [phone, setPhone] = useState('')
-  const [phoneStatus, setPhoneStatus] =
-    useState<'idle' | 'saving' | 'saved'>('idle')
-  const [phoneError, setPhoneError] = useState<string | null>(null)
 
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('signup')
@@ -182,23 +175,6 @@ if (data.session?.user) {
     )
   }
 
-  const submitPhone = async (event: React.FormEvent) => {
-    event.preventDefault()
-
-    if (phoneStatus === 'saving') return
-
-    setPhoneError(null)
-    setPhoneStatus('saving')
-
-    const result = await savePhoneLead(phone)
-
-    if (result.ok) {
-      setPhoneStatus('saved')
-    } else {
-      setPhoneStatus('idle')
-      setPhoneError(result.error)
-    }
-  }
 
   const handleEmailAuth = async () => {
     setAuthError(null)
@@ -380,11 +356,11 @@ if (data.session?.user) {
   return (
     <div className="relative flex h-full flex-col bg-primary text-white">
       {step === 1 ? (
-        <div className="flex shrink-0 items-center px-7 pt-[calc(env(safe-area-inset-top)+16px)]">
+        <div className="relative z-30 flex shrink-0 items-center px-7 pt-[calc(env(safe-area-inset-top)+16px)]">
           <button
             type="button"
             onClick={() => setStep(0)}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-white transition-colors hover:bg-white/15"
+            className="relative z-30 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white transition-colors hover:bg-white/15"
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
@@ -397,12 +373,12 @@ if (data.session?.user) {
           <div className="my-7 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex flex-col items-center gap-3 text-center">
               <Image
-                src="/icon.svg"
+                src="/waits-clock-logo.svg"
                 alt="WAITS"
-                width={64}
-                height={64}
+                width={180}
+                height={120}
                 priority
-                className="size-16 rounded-3xl shadow-lg ring-1 ring-white/20"
+                className="pointer-events-none h-28 w-44 object-contain"
               />
 
               <span className="text-balance text-4xl font-black uppercase tracking-[0.06em]">
@@ -416,77 +392,7 @@ if (data.session?.user) {
               <span className="block">Join in with one tap.</span>
             </p>
 
-            <div className="mt-7 rounded-3xl bg-white/10 p-4">
-              {phoneStatus === 'saved' ? (
-                <div className="flex items-center gap-2.5 py-1.5">
-                  <span className="flex size-7 items-center justify-center rounded-full bg-lime text-lime-foreground">
-                    <Check size={16} strokeWidth={3} />
-                  </span>
 
-                  <p className="text-sm font-semibold text-primary-foreground">
-                    Your phone number was saved.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <label
-                      htmlFor="phone"
-                      className="text-sm font-semibold text-primary-foreground"
-                    >
-                      Join with your phone
-                    </label>
-
-                    <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lime-foreground">
-                      Free
-                    </span>
-                  </div>
-
-                  <p className="mt-0.5 text-xs text-primary-foreground/65">
-                    Enter your number to stay updated.
-                  </p>
-
-                  <form onSubmit={submitPhone} className="mt-3 flex gap-2">
-                    <div className="relative flex-1">
-                      <Phone
-                        size={18}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary-foreground/60"
-                      />
-
-                      <input
-                        id="phone"
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel"
-                        placeholder="(555) 123-4567"
-                        value={phone}
-                        onChange={(event) => setPhone(event.target.value)}
-                        className="h-12 w-full rounded-xl border border-white/20 bg-white/5 pl-10 pr-3 text-base font-medium text-primary-foreground placeholder:text-muted-foreground outline-none focus:border-lime focus:ring-2 focus:ring-lime/40"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={phoneStatus === 'saving'}
-                      className="flex h-12 min-w-12 items-center justify-center rounded-xl bg-lime px-4 text-sm font-bold text-lime-foreground transition-transform active:scale-95 disabled:opacity-70"
-                      aria-label="Save phone number"
-                    >
-                      {phoneStatus === 'saving' ? (
-                        <Loader2 size={20} className="animate-spin" />
-                      ) : (
-                        <ArrowRight size={20} strokeWidth={2.6} />
-                      )}
-                    </button>
-                  </form>
-
-                  {phoneError ? (
-                    <p className="mt-2 text-xs font-medium text-lime">
-                      {phoneError}
-                    </p>
-                  ) : null}
-                </>
-              )}
-            </div>
           </div>
         ) : (
           <div className="mt-7 flex animate-in flex-col items-center text-center fade-in slide-in-from-right-4">
@@ -545,7 +451,7 @@ if (data.session?.user) {
               ) : (
                 <Apple size={20} className="-mt-0.5" fill="currentColor" />
               )}
-              Continue with Apple
+              Sign in with Apple
             </button>
 
             <button
