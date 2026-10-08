@@ -21,6 +21,7 @@ import { Paywall } from './screens/paywall'
 import { SettingsBilling } from './screens/settings-billing'
 import { useStore } from './store'
 import { supabase } from '@/lib/supabase-client'
+import { touchMessagingPresence } from '@/lib/messaging'
 
 function ActiveTab() {
   const { tab } = useNav()
@@ -60,6 +61,20 @@ function Overlays() {
 }
 
 function Inner() {
+  const { currentUserId } = useStore()
+  useEffect(() => {
+    if (!currentUserId) return
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void touchMessagingPresence().catch(() => {})
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 45000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [currentUserId])
   return (
     <>
       <div className="relative flex min-h-0 flex-1 flex-col">
