@@ -1,0 +1,14 @@
+.git/
+.env*
+.vercel/
+node_modules/
+.next/
+mobile/
+outputs/
+*.tsbuildinfo
+*.ipa
+*.p8
+*.p12
+*.key
+*.mobileprovision
+credentials.json
