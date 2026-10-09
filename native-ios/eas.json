@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": { "simulator": false }
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "credentialsSource": "local"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6811923395",
+        "ascApiKeyPath": ".eas-runtime/appstore-connect/AuthKey_UV655VNMLL.p8",
+        "ascApiKeyId": "UV655VNMLL",
+        "ascApiKeyIssuerId": "a65e5dd2-bcdd-45ca-b093-fb8b6a62cfd1"
+      }
+    }
+  }
+}

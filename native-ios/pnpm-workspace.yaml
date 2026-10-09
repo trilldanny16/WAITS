@@ -1,0 +1,8 @@
+allowBuilds:
+  dtrace-provider: true
+  protobufjs: true
+minimumReleaseAgeExclude:
+  - '@expo/eas-build-job@24.3.0'
+  - '@expo/eas-json@24.3.0'
+  - '@expo/steps@24.3.0'
+  - eas-cli@24.3.0

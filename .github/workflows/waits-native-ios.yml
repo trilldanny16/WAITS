@@ -1,0 +1,67 @@
+name: WAITS signed iOS release (standard free Mac)
+on:
+  push:
+    branches: [codex/native-ios-free-release-2026-10-09]
+    paths: [native-ios/**, .github/workflows/waits-native-ios.yml]
+permissions:
+  contents: read
+concurrency:
+  group: waits-signed-ios-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.repository == 'trilldanny16/WAITS' && github.event.repository.private == false && github.actor == 'trilldanny16'
+    runs-on: macos-26
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: native-ios
+    steps:
+      - name: Check out trusted release branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.19.0'
+      - name: Install locked dependencies
+        run: |
+          npm install --global pnpm@11.25.0
+          pnpm install --frozen-lockfile
+      - name: Validate native changes
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit
+          node scripts/test-billing-anonymous-identity.cjs
+          node scripts/test-billing-identity.cjs
+          node scripts/test-billing-diagnostics.cjs
+          node scripts/test-subscription-plans.cjs
+          node scripts/test-native-sign-in-branding.cjs
+          xcodebuild -version
+          pod --version
+          if ! command -v fastlane >/dev/null; then gem install fastlane --no-document; fi
+      - name: Restore encrypted signing material and production configuration
+        env:
+          WAITS_SIGNING_B64: ${{ secrets.WAITS_IOS_SIGNING_B64 }}
+          WAITS_PRODUCTION_B64: ${{ secrets.WAITS_IOS_PRODUCTION_B64 }}
+        run: node ci/prepare-signing.cjs
+      - name: Build on this Mac, not Expo cloud
+        env:
+          EXPO_TOKEN: ${{ secrets.WAITS_IOS_EXPO_TOKEN }}
+          EAS_NO_VCS: '1'
+          CI: '1'
+          EAS_LOCAL_BUILD_ARTIFACTS_DIR: ${{ runner.temp }}/waits-artifacts
+        run: node node_modules/eas-cli/bin/run build --platform ios --profile github-local --local --non-interactive --output "$RUNNER_TEMP/waits-release.ipa"
+      - name: Verify signed bundle identity and upload directly to Apple
+        run: |
+          mkdir -p "$RUNNER_TEMP/waits-inspect"
+          unzip -q "$RUNNER_TEMP/waits-release.ipa" -d "$RUNNER_TEMP/waits-inspect"
+          APP_PATH=$(find "$RUNNER_TEMP/waits-inspect/Payload" -maxdepth 1 -name '*.app' -type d | head -1)
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP_PATH/Info.plist")" = 'com.waitsapp.waits'
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP_PATH/Info.plist")" = '69'
+          codesign --verify --deep --strict "$APP_PATH"
+          xcrun altool --upload-app --type ios --file "$RUNNER_TEMP/waits-release.ipa" --apiKey UV655VNMLL --apiIssuer a65e5dd2-bcdd-45ca-b093-fb8b6a62cfd1
+          printf 'Build 69 uploaded to Apple. Processing, internal availability, device purchase and restore remain unverified. No App Store review submitted.\n' >> "$GITHUB_STEP_SUMMARY"
+      - name: Clean private signing files
+        if: always()
+        run: node ci/cleanup-signing.cjs
