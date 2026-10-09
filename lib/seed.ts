@@ -263,40 +263,8 @@ export function seedMessages(): ChatMessage[] {
       text: 'Deadlift day let’s gooo',
       createdAt: now - 1000 * 60 * 60 * 5,
     },
-    // Public community channel (workoutId: 'community')
-    {
-      id: 'c1',
-      workoutId: 'community',
-      userId: 'u_andre',
-      text: 'Anyone runs hoops at The Yard on weekends? Trying to get a 3s league going 🏀',
-      createdAt: now - 1000 * 60 * 60 * 3,
-    },
-    {
-      id: 'c2',
-      workoutId: 'community',
-      userId: 'u_sarah',
-      text: 'Morning run crew — 6am loop around the lake tomorrow if anyone wants in!',
-      createdAt: now - 1000 * 60 * 96,
-    },
-    {
-      id: 'c3',
-      workoutId: 'community',
-      userId: 'u_jake',
-      text: 'PSA: EOS Wellington just got new hack squat machines. Legs never felt so good.',
-      createdAt: now - 1000 * 60 * 54,
-    },
-    {
-      id: 'c4',
-      workoutId: 'community',
-      userId: 'u_lena',
-      text: 'Looking for a spotter for heavy bench Thursdays. Boynton area 💪',
-      createdAt: now - 1000 * 60 * 18,
-    },
   ]
 }
-
-/** Channel id used for the public community chat */
-export const COMMUNITY_CHANNEL_ID = 'community'
 
 /** Who the current user follows */
 export const SEED_FOLLOWING = ['u_mike', 'u_jake', 'u_sarah', 'u_andre', 'u_lena']

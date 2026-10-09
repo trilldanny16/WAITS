@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Check, ChevronLeft, LoaderCircle, Search, UsersRound, X, MessageCircle, SquarePen, Settings, ImagePlus, Send } from 'lucide-react'
 import { Avatar } from '../avatar'
 import { supabase } from '@/lib/supabase-client'
@@ -102,13 +103,16 @@ export function MessagingSettings({ onBack, previewPreferences, currentUserId }:
 }
 
 export function MessagingInboxHeader({ onBack, onCompose, onSettings }: { onBack: () => void; onCompose: () => void; onSettings: () => void }) {
-  return <header className="grid shrink-0 grid-cols-[96px_1fr_96px] items-center px-4 pb-4 pt-[calc(env(safe-area-inset-top)+16px)]">
+  return <header className="grid shrink-0 grid-cols-[96px_minmax(0,1fr)_96px] items-center gap-y-2 bg-black px-4 pb-4 pt-[calc(env(safe-area-inset-top)+20px)]">
     <button type="button" onClick={onBack} aria-label="Back to Home" className="flex size-11 items-center justify-center rounded-full bg-[#17181B] ring-1 ring-white/10"><ChevronLeft size={26} /></button>
-    <h1 className="text-center text-xl font-bold tracking-tight">Messages</h1>
+    <div className="flex min-w-0 justify-center">
+      <Image src="/waits-clock-logo.svg" alt="WAITS" width={44} height={28} priority className="pointer-events-none h-7 w-11 shrink-0 object-contain" />
+    </div>
     <div className="flex items-center justify-end gap-0 rounded-full bg-[#17181B] p-1 ring-1 ring-white/10">
       <button type="button" aria-label="New Message" onClick={onCompose} className="flex size-11 items-center justify-center rounded-full"><SquarePen size={22} /></button>
       <button type="button" aria-label="Messaging Settings" onClick={onSettings} className="flex size-11 items-center justify-center rounded-full"><Settings size={23} /></button>
     </div>
+    <h1 className="col-span-3 text-center text-lg font-black uppercase leading-tight tracking-[0.06em] text-primary">Messages</h1>
   </header>
 }
 

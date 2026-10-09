@@ -53,9 +53,7 @@ function GoogleGlyph() {
 
 export function SignInBrand() {
   return <div className="flex flex-col items-center text-center">
-    <div className="flex h-36 w-56 items-center justify-center overflow-hidden rounded-[28px] bg-black">
-      <Image src="/waits-clock-logo.svg" alt="WAITS clock and weights logo" width={176} height={112} priority className="pointer-events-none h-28 w-44 object-contain" />
-    </div>
+    <Image src="/waits-clock-logo.svg" alt="WAITS clock and weights logo" width={192} height={122} priority className="pointer-events-none h-[122px] w-48 object-contain" />
     <h1 className="mt-4 text-4xl font-black uppercase tracking-[0.06em]">WAITS</h1>
     <p className="mt-2 text-2xl font-extrabold">Never lift alone.</p>
     <p className="mt-1 text-base text-white/90">Find your people. Train together.</p>
@@ -75,7 +73,7 @@ export function SignInLegal() {
 export function SignInOptions({ busy = false, onApple, onGoogle, onEmail }: { busy?: boolean; onApple: () => void; onGoogle: () => void; onEmail: () => void }) {
   const buttonStyle = 'flex min-h-[62px] w-full items-center justify-center gap-2.5 rounded-2xl py-3.5 text-lg font-semibold transition-transform active:scale-[0.98] disabled:opacity-60'
   return <div className="space-y-3">
-    <button type="button" onClick={onApple} disabled={busy} className={cn(buttonStyle, 'bg-black text-white ring-1 ring-white/15')}>{busy ? <Loader2 size={19} className="animate-spin" /> : <Apple size={20} fill="currentColor" />}Sign in with Apple</button>
+    <button type="button" onClick={onApple} disabled={busy} className={cn(buttonStyle, 'bg-white text-black')}>{busy ? <Loader2 size={19} className="animate-spin" /> : <Apple size={20} fill="currentColor" />}Sign in with Apple</button>
     <button type="button" onClick={onGoogle} disabled={busy} className={cn(buttonStyle, 'bg-white text-black ring-1 ring-white/25')}>{busy ? <Loader2 size={19} className="animate-spin" /> : <GoogleGlyph />}Sign in with Google</button>
     <button type="button" onClick={onEmail} disabled={busy} className={cn(buttonStyle, 'border border-white/50 text-white')}><Mail size={19} />Continue with Email</button>
   </div>
@@ -384,7 +382,7 @@ if (data.session?.user) {
   }
 
   return (
-    <div className="relative h-full overflow-y-auto bg-[#0088FF] text-white">
+    <div className="relative flex h-full flex-col overflow-y-auto bg-[#000000] text-white">
       {step === 1 ? (
         <div className="relative z-30 flex shrink-0 items-center px-7 pt-[calc(env(safe-area-inset-top)+16px)]">
           <button
@@ -398,7 +396,7 @@ if (data.session?.user) {
         </div>
       ) : null}
 
-      <div className="mx-auto flex max-w-[440px] flex-col justify-center px-6 pt-[calc(env(safe-area-inset-top)+24px)]">
+      <div className="mx-auto flex w-full max-w-[440px] shrink-0 flex-1 flex-col justify-center px-6 pt-[calc(env(safe-area-inset-top)+24px)]">
         {step === 0 ? (
           <div className="my-5 animate-in fade-in slide-in-from-bottom-4"><SignInBrand /></div>
         ) : (
@@ -444,7 +442,7 @@ if (data.session?.user) {
         )}
       </div>
 
-      <div className="mx-auto max-w-[440px] px-6 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-5">
+      <div className="mx-auto w-full max-w-[440px] shrink-0 px-6 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-5">
         {step === 0 ? (
           <div className="space-y-3">
             <SignInOptions busy={authLoading} onApple={() => void handleAppleSignIn()} onGoogle={() => void handleGoogleSignIn()} onEmail={() => {

@@ -10,7 +10,6 @@ export type Overlay =
   | { type: 'dm'; id: string }
   | { type: 'user'; id: string }
   | { type: 'create' }
-  | { type: 'community' }
   | { type: 'paywall'; feature?: string }
   | { type: 'settings' }
 
@@ -23,7 +22,6 @@ interface NavValue {
   openDm: (id: string) => void
   openUser: (id: string) => void
   openCreate: () => void
-  openCommunity: () => void
   openPaywall: (feature?: string) => void
   openSettings: () => void
   back: () => void
@@ -56,9 +54,6 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const openCreate = useCallback(() => {
     setOverlays((prev) => [...prev, { type: 'create' }])
   }, [])
-  const openCommunity = useCallback(() => {
-    setOverlays((prev) => [...prev, { type: 'community' }])
-  }, [])
   const openPaywall = useCallback((feature?: string) => {
     setOverlays((prev) => [...prev, { type: 'paywall', feature }])
   }, [])
@@ -81,7 +76,6 @@ export function NavProvider({ children }: { children: ReactNode }) {
     openDm,
         openUser,
         openCreate,
-        openCommunity,
         openPaywall,
         openSettings,
         back,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Globe, ChevronRight, Bell } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../navigation'
 import { Avatar } from '../avatar'
@@ -15,7 +15,7 @@ import type { User } from '@/lib/types'
 
 export function ChatsList() {
   const { workouts, messages, getUser, hasJoined, currentUserId, isPremium, pushToast, refreshSocialState } = useStore()
-  const { openChat, openCommunity, openPaywall, openDm, setTab } = useNav()
+  const { openChat, openPaywall, openDm, setTab } = useNav()
 
   type FriendRequest = {
   id: string
@@ -209,7 +209,6 @@ const declineFriendRequest = async (requestId: string) => {
         return <li key={conversation.conversationId}><MessagingInboxRow conversation={conversation} person={person} onOpen={() => openDm(conversation.conversationId)} /></li>
       })}</ul>}
       <section className="mt-auto shrink-0 border-t border-white/7 pt-3">
-        <button type="button" onClick={openCommunity} className="flex min-h-16 w-full items-center gap-3 rounded-xl px-2 text-left"><span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary"><Globe size={20} /></span><span className="flex-1"><span className="block text-sm font-semibold">WAITS Community</span><span className="text-xs text-white/45">Public chat · messages expire after 24 hours</span></span><ChevronRight size={18} className="text-white/35" /></button>
         {myWorkouts.length ? <><h2 className="mb-1 mt-4 px-2 text-xs font-semibold uppercase tracking-widest text-white/40">Workout Chats</h2>{myWorkouts.map((workout) => {
           const host = getUser(workout.hostId)
           const last = messages.filter((message) => message.workoutId === workout.id).sort((a, b) => b.createdAt - a.createdAt)[0]

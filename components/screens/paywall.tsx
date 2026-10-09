@@ -23,11 +23,11 @@ export function Paywall({ feature }: { feature?: string }) {
   const { pushToast } = useStore()
   const { back } = useNav()
   const [checkingOut, setCheckingOut] = useState(false)
-  const [isNativeIOS, setIsNativeIOS] = useState(false)
+  const [isNativeIOS, setIsNativeIOS] = useState<boolean | null>(null)
   const nativePaywallOpened = useRef(false)
 
   useEffect(() => {
-    const nativeIOS = /WAITS-iOS/i.test(navigator.userAgent)
+    const nativeIOS = Boolean(window.ReactNativeWebView) || /WAITS-iOS/i.test(navigator.userAgent)
     setIsNativeIOS(nativeIOS)
     if (nativeIOS && window.ReactNativeWebView && !nativePaywallOpened.current) {
       nativePaywallOpened.current = true
@@ -36,13 +36,15 @@ export function Paywall({ feature }: { feature?: string }) {
   }, [])
 
   const startUpgrade = () => {
-    if (isNativeIOS) {
+    if (window.ReactNativeWebView || /WAITS-iOS/i.test(navigator.userAgent)) {
       const nativeWebView = window as typeof window & {
         ReactNativeWebView?: { postMessage: (message: string) => void }
       }
-      nativeWebView.ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: 'WAITS_NATIVE_OPEN_PAYWALL' }),
-      )
+      if (!nativeWebView.ReactNativeWebView) {
+        pushToast({ title: 'Apple purchase screen unavailable', body: 'Please reopen WAITS. No web checkout was started.' })
+        return
+      }
+      nativeWebView.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WAITS_NATIVE_OPEN_PAYWALL' }))
       return
     }
     setCheckingOut(true)
@@ -71,8 +73,8 @@ export function Paywall({ feature }: { feature?: string }) {
           <p className="mt-1 max-w-[20rem] text-pretty text-sm text-primary-foreground/80">
             {feature && feature !== 'WAITS Pro' ? `${feature} and more with WAITS Pro.` : 'Your training network, unlocked.'}
           </p>
-          {!isNativeIOS ? <p className="mt-4 text-3xl font-extrabold">{priceLabel()}</p> : null}
-          <p className="mt-2 text-sm text-white/80">{isNativeIOS ? 'Select your plan in the Apple purchase screen.' : 'Billed monthly. Cancel anytime.'}</p>
+          {isNativeIOS === false ? <p className="mt-4 text-3xl font-extrabold">{priceLabel()}</p> : null}
+          <p className="mt-2 text-sm text-white/80">{isNativeIOS === null ? 'Loading billing options…' : isNativeIOS ? 'Select your plan in the Apple purchase screen.' : 'Billed monthly. Cancel anytime.'}</p>
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">Workout Chats are included with Free for hosts and people who join.</p>
@@ -95,12 +97,12 @@ export function Paywall({ feature }: { feature?: string }) {
 
       {!checkingOut ? (
         <div className="shrink-0 border-t border-border bg-card/95 px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur">
-          <button type="button" onClick={startUpgrade} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-extrabold text-lime-foreground transition-transform active:scale-[0.98]">
+          <button type="button" disabled={isNativeIOS === null} onClick={startUpgrade} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime py-4 text-base font-extrabold text-lime-foreground transition-transform active:scale-[0.98] disabled:opacity-60">
             <Crown size={20} />
-            {isNativeIOS ? 'View Pro Plans' : `Upgrade For ${priceLabel()}`}
+            {isNativeIOS === null ? 'Loading Plans…' : isNativeIOS ? 'View Pro Plans' : `Upgrade For ${priceLabel()}`}
           </button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            {isNativeIOS ? 'Secure purchase through Apple · Restore Purchases available' : 'Cancel anytime · Secure checkout by Stripe'}
+            {isNativeIOS === null ? 'Checking your platform' : isNativeIOS ? 'Secure purchase through Apple · Restore Purchases available' : 'Cancel anytime · Secure checkout by Stripe'}
           </p>
           <div className="mt-2 flex items-center justify-center gap-5 text-xs text-muted-foreground"><a href="/terms" className="inline-flex min-h-11 items-center underline underline-offset-2">Terms of Service</a><a href="/privacy" className="inline-flex min-h-11 items-center underline underline-offset-2">Privacy Policy</a></div>
         </div>
