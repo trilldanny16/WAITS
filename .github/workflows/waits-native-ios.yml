@@ -1,7 +1,7 @@
 name: WAITS signed iOS release (standard free Mac)
 on:
   push:
-    branches: [codex/native-ios-free-release-2026-10-09]
+    branches: [codex/native-ios-subscription-review-2026-10-29]
     paths: [native-ios/**, .github/workflows/waits-native-ios.yml]
 permissions:
   contents: read
@@ -58,10 +58,10 @@ jobs:
           unzip -q "$RUNNER_TEMP/waits-release.ipa" -d "$RUNNER_TEMP/waits-inspect"
           APP_PATH=$(find "$RUNNER_TEMP/waits-inspect/Payload" -maxdepth 1 -name '*.app' -type d | head -1)
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP_PATH/Info.plist")" = 'com.waitsapp.waits'
-          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP_PATH/Info.plist")" = '69'
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP_PATH/Info.plist")" = '70'
           codesign --verify --deep --strict "$APP_PATH"
           xcrun altool --upload-app --type ios --file "$RUNNER_TEMP/waits-release.ipa" --apiKey UV655VNMLL --apiIssuer a65e5dd2-bcdd-45ca-b093-fb8b6a62cfd1
-          printf 'Build 69 uploaded to Apple. Processing, internal availability, device purchase and restore remain unverified. No App Store review submitted.\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Build 70 uploaded to Apple. Processing, internal availability, device purchase and restore remain unverified. No App Store review submitted.\n' >> "$GITHUB_STEP_SUMMARY"
       - name: Clean private signing files
         if: always()
         run: node ci/cleanup-signing.cjs
