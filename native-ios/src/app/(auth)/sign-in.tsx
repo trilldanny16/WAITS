@@ -27,7 +27,7 @@ function GoogleGlyph() {
 
 function SignInLogo() {
   return <View pointerEvents="none" accessible accessibilityLabel="WAITS clock and weights logo" style={styles.brand}>
-    <SvgXml xml={WAITS_CLOCK_LOGO_XML} width={192} height={122} />
+    <SvgXml xml={WAITS_CLOCK_LOGO_XML} width={144} height={92} />
     <Text style={styles.wordmark}>WAITS</Text>
   </View>
 }
@@ -37,12 +37,15 @@ export default function SignIn() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [creating, setCreating] = useState(false)
-  const [showEmailForm, setShowEmailForm] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [appleSubmitting, setAppleSubmitting] = useState(false)
   const [googleSubmitting, setGoogleSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const initialCallbackHandled = useRef(false)
+  const passwordInput = useRef<TextInput>(null)
+  const busy = submitting || appleSubmitting || googleSubmitting
+  const googleLabel = creating ? 'Sign up with Google' : 'Sign in with Google'
 
   useEffect(() => {
     let disposed = false
@@ -70,11 +73,11 @@ export default function SignIn() {
   if (!loading && user) return <Redirect href="/" />
 
   const submit = async () => {
-    if (submitting) return
+    if (busy) return
     const normalizedEmail = email.trim().toLowerCase()
     const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
-    if (!looksLikeEmail || password.length < 8) {
-      setMessage('Enter your email and a password with at least 8 characters.')
+    if (!looksLikeEmail || !password || (creating && password.length < 8)) {
+      setMessage(creating ? 'Enter your email and a password with at least 8 characters.' : 'Enter a valid email address and your password.')
       return
     }
     setSubmitting(true)
@@ -93,6 +96,7 @@ export default function SignIn() {
         setMessage('Check your email to confirm your WAITS account, then sign in.')
         setCreating(false)
         setPassword('')
+        setShowPassword(false)
         return
       }
       if (result.data.user) await completePendingOnboarding(result.data.user.id)
@@ -105,7 +109,7 @@ export default function SignIn() {
   }
 
   const signInWithApple = async () => {
-    if (submitting || appleSubmitting) return
+    if (busy) return
     setAppleSubmitting(true)
     setMessage(null)
     try {
@@ -154,7 +158,7 @@ export default function SignIn() {
   }
 
   const signInWithGoogle = async () => {
-    if (googleSubmitting || submitting || appleSubmitting) return
+    if (busy) return
     setGoogleSubmitting(true)
     setMessage(null)
     try {
@@ -186,23 +190,42 @@ export default function SignIn() {
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.backRow}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={12} onPress={() => { if (showEmailForm) { setShowEmailForm(false); setMessage(null) } else { router.replace('/onboarding') } }} style={styles.backButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={12} onPress={() => { if (creating) { setCreating(false); setPassword(''); setShowPassword(false); setMessage(null) } else { router.replace('/onboarding') } }} style={styles.backButton}>
             <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>‹ Back</Text>
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <SignInLogo />
-          <Text style={styles.tagline}>Never lift alone.</Text>
-          <Text style={styles.supporting}>Find your people. Train together.</Text>
+          <Text accessibilityRole="header" style={styles.title}>{creating ? 'Create an account' : 'Log in'}</Text>
         </View>
 
         <View style={styles.actions}>
         <View style={styles.card}>
+          <TextInput value={email} onChangeText={setEmail} editable={!busy} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" returnKeyType="next" onSubmitEditing={() => passwordInput.current?.focus()} placeholder="Email" placeholderTextColor="rgba(255,255,255,0.8)" style={styles.input} accessibilityLabel="Email address" />
+          <View style={styles.passwordRow}>
+            <TextInput ref={passwordInput} value={password} onChangeText={setPassword} editable={!busy} secureTextEntry={!showPassword} autoCapitalize="none" autoCorrect={false} autoComplete={creating ? 'new-password' : 'current-password'} returnKeyType="go" onSubmitEditing={() => void submit()} placeholder="Password" placeholderTextColor="rgba(255,255,255,0.8)" style={styles.passwordInput} accessibilityLabel="Password" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              onPress={() => setShowPassword((visible) => !visible)}
+              style={styles.passwordToggle}
+            >
+              <Text style={styles.switchText}>{showPassword ? 'Hide' : 'Show'}</Text>
+            </Pressable>
+          </View>
+          {message ? <Text style={styles.message} accessibilityRole="alert" accessibilityLiveRegion="polite">{message}</Text> : null}
+          <Pressable onPress={() => void submit()} disabled={busy} accessibilityRole="button" accessibilityLabel={creating ? 'Create account' : 'Sign in'} accessibilityState={{ disabled: busy, busy: submitting }} style={({ pressed }) => [styles.primary, pressed && !submitting && styles.pressed, submitting && styles.disabled]}>
+            {submitting ? <ActivityIndicator color={colors.ink} /> : <Text style={styles.primaryText}>{creating ? 'Create account' : 'Log in'}</Text>}
+          </Pressable>
+          <Pressable disabled={busy} accessibilityRole="button" accessibilityState={{ disabled: busy }} onPress={() => { setCreating((value) => !value); setMessage(null); setPassword(''); setShowPassword(false) }} style={styles.switchButton}>
+            <Text style={styles.switchText}>{creating ? 'Already have an account? Sign in' : 'New to WAITS? Create an account'}</Text>
+          </Pressable>
+          <View style={styles.social}>
           {Platform.OS === 'ios' ? (
             <>
               <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonType={creating ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
                 buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
                 cornerRadius={17}
                 style={[styles.appleButton, appleSubmitting && styles.disabled]}
@@ -210,24 +233,10 @@ export default function SignIn() {
               />
             </>
           ) : null}
-          <Pressable accessibilityRole="button" accessibilityLabel="Sign in with Google" accessibilityState={{ disabled: googleSubmitting, busy: googleSubmitting }} onPress={() => void signInWithGoogle()} disabled={googleSubmitting} style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, googleSubmitting && styles.disabled]}>
-            {googleSubmitting ? <ActivityIndicator color="#000000" /> : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><GoogleGlyph /><Text style={styles.googleText}>Sign in with Google</Text></View>}
+          <Pressable accessibilityRole="button" accessibilityLabel={googleLabel} accessibilityState={{ disabled: busy, busy: googleSubmitting }} onPress={() => void signInWithGoogle()} disabled={busy} style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, googleSubmitting && styles.disabled]}>
+            {googleSubmitting ? <ActivityIndicator color="#000000" /> : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><GoogleGlyph /><Text style={styles.googleText}>{googleLabel}</Text></View>}
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityState={{ expanded: showEmailForm }} onPress={() => { setShowEmailForm((value) => !value); setMessage(null) }} style={styles.emailButton}>
-            <Text style={styles.emailText}>{showEmailForm ? 'Back to sign-in options' : 'Continue with Email'}</Text>
-          </Pressable>
-          {showEmailForm ? <>
-          <TextInput value={email} onChangeText={setEmail} editable={!submitting} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" textContentType="emailAddress" returnKeyType="next" placeholder="Email" placeholderTextColor="rgba(255,255,255,0.8)" style={styles.input} accessibilityLabel="Email address" />
-          <TextInput value={password} onChangeText={setPassword} editable={!submitting} secureTextEntry autoComplete={creating ? 'new-password' : 'current-password'} textContentType={creating ? 'newPassword' : 'password'} returnKeyType="go" onSubmitEditing={() => void submit()} placeholder="Password" placeholderTextColor="rgba(255,255,255,0.8)" style={styles.input} accessibilityLabel="Password" />
-          {message ? <Text style={styles.message} accessibilityRole="alert" accessibilityLiveRegion="polite">{message}</Text> : null}
-          <Pressable onPress={() => void submit()} disabled={submitting} accessibilityRole="button" accessibilityLabel={creating ? 'Create account' : 'Sign in'} accessibilityState={{ disabled: submitting, busy: submitting }} style={({ pressed }) => [styles.primary, pressed && !submitting && styles.pressed, submitting && styles.disabled]}>
-            {submitting ? <ActivityIndicator color={colors.ink} /> : <Text style={styles.primaryText}>{creating ? 'CREATE ACCOUNT' : 'SIGN IN'}</Text>}
-          </Pressable>
-          <Pressable disabled={submitting} accessibilityRole="button" accessibilityState={{ disabled: submitting }} onPress={() => { setCreating((value) => !value); setMessage(null); setPassword('') }} style={styles.switchButton}>
-            <Text style={styles.switchText}>{creating ? 'Already have an account? Sign in' : 'New to WAITS? Create an account'}</Text>
-          </Pressable>
-          </> : null}
-          {!showEmailForm && message ? <Text style={styles.message} accessibilityRole="alert">{message}</Text> : null}
+          </View>
         </View>
 
         <View style={styles.footer}>
@@ -251,25 +260,21 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 8 },
   backRow: { height: 48, zIndex: 30, justifyContent: 'center', alignItems: 'flex-start' },
   backButton: { minWidth: 80, minHeight: 44, justifyContent: 'center' },
-  scrollContent: { flexGrow: 1, justifyContent: 'space-between', paddingTop: 16, paddingBottom: 20, gap: 24 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: 20, gap: 14 },
   hero: { alignItems: 'center', paddingVertical: 12 },
   brand: { alignItems: 'center' },
-  wordmark: { color: '#FFFFFF', marginTop: 16, fontSize: 40, fontWeight: '900', letterSpacing: 2 },
-  tagline: { marginTop: 10, color: '#FFFFFF', fontSize: 25, lineHeight: 32, fontWeight: '800', textAlign: 'center' },
-  supporting: { marginTop: 6, color: 'rgba(255,255,255,0.9)', fontSize: 16, lineHeight: 22, textAlign: 'center' },
+  wordmark: { color: '#FFFFFF', marginTop: 16, fontSize: 30, fontWeight: '900', letterSpacing: 2 },
   actions: { gap: 16 },
   card: { paddingVertical: 12 },
-  title: { color: '#FFFFFF', fontSize: 25, fontWeight: '900', letterSpacing: -0.5 },
-  subtitle: { marginTop: 6, marginBottom: 18, color: 'rgba(255,255,255,0.72)', fontSize: 14, lineHeight: 20 },
-  appleButton: { width: '100%', height: 62 },
-  googleButton: { height: 62, marginTop: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: '#FFFFFF' },
+  title: { marginTop: 14, textAlign: 'center', color: '#FFFFFF', fontSize: 25, fontWeight: '900', letterSpacing: -0.5 },
+  appleButton: { width: '100%', height: 48 },
+  googleButton: { height: 48, marginTop: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: '#FFFFFF' },
   googleText: { color: '#000000', fontSize: 18, fontWeight: '700' },
-  emailButton: { height: 62, marginTop: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  emailText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
-  dividerRow: { marginTop: 17, marginBottom: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dividerLine: { height: StyleSheet.hairlineWidth, flex: 1, backgroundColor: 'rgba(255,255,255,0.25)' },
-  dividerText: { color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  input: { height: 52, marginTop: 10, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 16, color: '#FFFFFF', fontSize: 16 },
+  input: { height: 52, marginTop: 10, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', backgroundColor: '#202020', paddingHorizontal: 16, color: '#FFFFFF', fontSize: 16 },
+  social: { marginTop: 14 },
+  passwordRow: { minHeight: 52, marginTop: 10, flexDirection: 'row', borderRadius: 17, borderWidth: 1, borderColor: '#393939', backgroundColor: '#202020' },
+  passwordInput: { flex: 1, minWidth: 0, paddingHorizontal: 16, color: '#FFFFFF', fontSize: 16 },
+  passwordToggle: { minWidth: 64, minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', alignItems: 'center' },
   message: { marginTop: 12, color: '#FFFFFF', backgroundColor: 'rgba(0,0,0,0.25)', padding: 12, borderRadius: 12, fontSize: 13, lineHeight: 18, fontWeight: '600' },
   primary: { height: 52, marginTop: 18, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: colors.lime },
   primaryText: { color: colors.ink, fontSize: 14, fontWeight: '900', letterSpacing: 0.4 },

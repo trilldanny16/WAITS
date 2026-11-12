@@ -14,7 +14,10 @@ assert.doesNotMatch(file, /<Image\b|backgroundColor:\s*colors\.blue|backgroundCo
 assert.doesNotMatch(xml, /<rect\b|<image\b|fill=["'](?:black|#000(?:000)?)["']/i);
 assert.match(file, /AppleAuthenticationButtonType\.SIGN_IN/);
 assert.match(file, /Sign in with Google/);
-assert.match(file, /Continue with Email/);
+assert.doesNotMatch(file, /Continue with Email/);
+assert.match(file, /New to WAITS\? Create an account/);
+assert.match(file, /AppleAuthenticationButtonType\.SIGN_UP/);
+assert.match(file, /Sign up with Google/);
 assert.match(file, /const GOOGLE_REDIRECT = 'waits:\/\/sign-in'/);
 assert.doesNotMatch(file, /phone-pad|Phone Number|Sign in with Phone/i);
 assert.match(fs.readFileSync('src/app/onboarding.tsx', 'utf8'), /router\.replace\('\/\(auth\)\/sign-in'\)/);
